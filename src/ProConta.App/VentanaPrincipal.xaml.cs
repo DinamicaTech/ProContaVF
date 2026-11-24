@@ -244,8 +244,9 @@ public partial class VentanaPrincipal : Window
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
         // Cotizaciones de los activos financieros (activos/activos-financieros 2026-11-23): Yahoo Finance, EODHD con la clave de Integraciones y cambio del BCE.
         var clienteEodhd = new ProConta.Activos.Financieros.ClienteEodhd(Http);
-        var cotizaciones = new ProConta.Activos.Financieros.ServicioCotizaciones(new ProConta.Activos.Financieros.ClienteYahooFinance(Http), clienteEodhd,
-            new ProConta.Activos.Financieros.ServicioCambiosDivisa(bd, new ProConta.Activos.Financieros.ClienteBce(Http)),
+        var clienteYahoo = new ProConta.Activos.Financieros.ClienteYahooFinance(Http);
+        var cambiosDivisa = new ProConta.Activos.Financieros.ServicioCambiosDivisa(bd, new ProConta.Activos.Financieros.ClienteBce(Http));
+        var cotizaciones = new ProConta.Activos.Financieros.ServicioCotizaciones(clienteYahoo, clienteEodhd, cambiosDivisa,
             () => ProConta.Activos.Mantenimiento.ProveedorConexionCotizaciones.ClaveAsync(bd, contexto.Contexto.IdSociedad));
         _facturacion.Ventas = ventas;
         _facturacion.Avaibook = new ProConta.Facturacion.Ventas.ImportadorAvaibook(bd, ventas, clienteAvaibook, autorizador);
@@ -666,9 +667,9 @@ public partial class VentanaPrincipal : Window
             _area, new ProConta.Contabilidad.UI.Liquidacion.DialogosLiquidacionIva(() => this));
         var abrirCentimos = new ComandoDelegado(() => _centimos.Abrir());
         // Activos (activos 2026-11-17 18:50): listado, fichas en pestañas y alta paso a paso, en Datos maestros; abre el Mayor y la amortización.
+        var servicioActivos = new ProConta.Activos.Gestion.ServicioActivos(bd, cuentas, () => autorizador.PuedeAsync(Acciones.Activos));
         _activos = new ProConta.Activos.UI.ModuloActivos(
-            new ProConta.Activos.UI.ContextoActivos(
-                new ProConta.Activos.Gestion.ServicioActivos(bd, cuentas, () => autorizador.PuedeAsync(Acciones.Activos)), contexto.Contexto, contexto.RazonSocial, Avisar)
+            new ProConta.Activos.UI.ContextoActivos(servicioActivos, contexto.Contexto, contexto.RazonSocial, Avisar)
             {
                 AbrirMayor = (cuentasMayor, anios) => { if (anios.Count == 0) _mayor.Abrir(cuentasMayor); else _mayor.Abrir(cuentasMayor, anios); },
                 AbrirAmortizacion = () => _amortizacion.Abrir(),
@@ -677,9 +678,12 @@ public partial class VentanaPrincipal : Window
                 AbrirProgramada = id => _facturacion.AbrirProgramada(id),
                 CrearPanelDocumentos = (id, nombre) => _documentos.CrearPanel(new ProConta.Documentos.Vinculo(ProConta.Documentos.TiposEntidad.Activo, id, null, nombre)),
                 Cotizaciones = cotizaciones,
+                // Análisis de los activos financieros (activos/activos-financieros 2026-11-23): histórico de Yahoo, precio del día de EODHD y cambio del BCE.
+                Cartera = new ProConta.Activos.Gestion.ServicioCarteraFinanciera(bd, servicioActivos, cotizaciones, clienteYahoo, cambiosDivisa),
             },
             _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
         var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());
+        var abrirCartera = new ComandoDelegado(() => _activos.AbrirCartera());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -702,6 +706,9 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Activos", null, true, false,
                 "Inmuebles, vehículos, instalaciones y aplicaciones de la sociedad: listado con sus cifras del año, ficha con su cuenta de resultados, subcuentas y amortización, y alta paso a paso",
                 abrirActivos, EsHija: true),
+            new OpcionNavegacion("Activos financieros", null, true, false,
+                "Análisis de los ETFs, fondos y participaciones: valor de la cartera, revalorización, comparativa, rentabilidad por activo y proyección, con las cotizaciones al día",
+                abrirCartera, EsHija: true),
             new OpcionNavegacion("Documentos", null, true, false,
                 "Gestor documental de la sociedad: añade ficheros (o arrástralos) a «Por clasificar», revisa lo que el programa propone (tipo, fecha, título y vínculo), " +
                 "archívalos de una vez y vincúlalos a modelos, ejercicios, terceros, activos, facturas o asientos; vista previa, versiones y búsqueda",

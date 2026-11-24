@@ -92,6 +92,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         VenderCommand = new ComandoDelegado(p => { if (Unico(p) is { } f) _ = _modulo.VenderAsync(f.Id, f.Codigo); },
             p => !_ocupado && Unico(p) is { Propio: true, Datos.DeBaja: false } f && TiposActivoPgc.EsInversion(f.Datos.CodigoTipo));
         QuitarCentroCommand = new ComandoDelegado(() => FiltrarCentro(null, null));
+        AnalisisFinancieroCommand = new ComandoDelegado(() => _modulo.AbrirCartera(), () => _modulo.Contexto.Cartera is not null);
         MarcarTodosCommand = new ComandoDelegado(() => MarcarTodos(!TodosMarcados));
     }
 
@@ -118,6 +119,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     public ICommand NuevaCompraCommand { get; }
     public ICommand VenderCommand { get; }
     public ICommand QuitarCentroCommand { get; }
+    public ICommand AnalisisFinancieroCommand { get; }
     public ICommand MarcarTodosCommand { get; }
 
     // ---------- estado ----------

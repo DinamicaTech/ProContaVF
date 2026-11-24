@@ -88,6 +88,47 @@ public sealed class ServicioCambiosDivisa(IBaseDatos bd, ClienteBce bce)
             : Resultado<(DateTime, decimal)>.Fallo(r.Errores);
     }
 
+    /// <summary>
+    /// Cambios de un periodo (para pasar a euros un histórico de cotizaciones): los guardados y, si faltan días al principio o al final del periodo, los
+    /// pide al BCE en una sola consulta y los guarda. EUR no tiene cambios (lista vacía). Si el BCE falla, devuelve lo guardado con el error en el aviso.
+    /// </summary>
+    public async Task<(IReadOnlyList<(DateTime Fecha, decimal UnidadesPorEuro)> Cambios, string? Aviso)> CambiosAsync(string moneda, DateTime desde, DateTime hasta,
+        CancellationToken cancelacion = default)
+    {
+        moneda = moneda.Trim().ToUpperInvariant();
+        if (moneda == "EUR") return ([], null);
+        desde = desde.Date.AddDays(-DiasHaciaAtras);
+        hasta = hasta.Date;
+        var guardados = await LeerPeriodoAsync(moneda, desde, hasta);
+        // Faltan datos si no hay ninguno o si el primero o el último quedan a más de una semana larga de los extremos.
+        var faltan = guardados.Count == 0 || (guardados[0].Fecha - desde).TotalDays > DiasHaciaAtras || (hasta - guardados[^1].Fecha).TotalDays > 4;
+        if (!faltan) return (guardados, null);
+        var pedirDesde = guardados.Count > 0 && (guardados[0].Fecha - desde).TotalDays <= DiasHaciaAtras ? guardados[^1].Fecha.AddDays(1) : desde;
+        var r = await bce.CambiosAsync(moneda, pedirDesde, hasta, cancelacion);
+        if (!r.EsCorrecto) return (guardados, r.Errores.FirstOrDefault()?.Mensaje);
+        if (r.Valor.Count == 0) return (guardados, null);
+        var ya = guardados.Select(g => g.Fecha).ToHashSet();
+        await GuardarNuevosAsync(moneda, r.Valor.Where(x => !ya.Contains(x.Fecha.Date)).ToList());
+        return (guardados.Concat(r.Valor.Where(x => !ya.Contains(x.Fecha.Date))).OrderBy(x => x.Fecha).ToList(), null);
+    }
+
+    /// <summary>Los cambios guardados de un periodo (con los <see cref="DiasHaciaAtras"/> días anteriores), sin consultar al BCE.</summary>
+    public Task<IReadOnlyList<(DateTime Fecha, decimal UnidadesPorEuro)>> CambiosGuardadosAsync(string moneda, DateTime desde, DateTime hasta) =>
+        LeerPeriodoAsync(moneda.Trim().ToUpperInvariant(), desde.Date.AddDays(-DiasHaciaAtras), hasta.Date);
+
+    private Task<IReadOnlyList<(DateTime Fecha, decimal UnidadesPorEuro)>> LeerPeriodoAsync(string moneda, DateTime desde, DateTime hasta) =>
+        bd.EjecutarAsync<IReadOnlyList<(DateTime, decimal)>>(async s => await s.ConsultarAsync(
+            "SELECT Fecha, UnidadesPorEuro FROM CambiosDivisa WHERE Moneda = ? AND Fecha >= ? AND Fecha <= ? ORDER BY Fecha",
+            f => (f.Fecha("Fecha").Date, f.Decimal("UnidadesPorEuro")), moneda, desde, hasta));
+
+    private Task GuardarNuevosAsync(string moneda, IReadOnlyList<(DateTime Fecha, decimal UnidadesPorEuro)> cambios) => cambios.Count == 0 ? Task.CompletedTask : bd.EnTransaccionAsync(async s =>
+    {
+        foreach (var (f, v) in cambios)
+            await s.EjecutarAsync("INSERT INTO CambiosDivisa (Moneda, Fecha, UnidadesPorEuro, Origen, FechaHoraImportacion) VALUES (?, ?, ?, ?, ?)",
+                moneda, f.Date, v, Origen, DateTime.Now);
+        return true;
+    });
+
     private Task<(DateTime Fecha, decimal UnidadesPorEuro)?> LeerAsync(string moneda, DateTime fecha) => bd.EjecutarAsync(s => s.ConsultarPrimeroAsync<(DateTime, decimal)?>(
         "SELECT TOP 1 Fecha, UnidadesPorEuro FROM CambiosDivisa WHERE Moneda = ? AND Fecha <= ? AND Fecha >= ? ORDER BY Fecha DESC",
         f => (f.Fecha("Fecha").Date, f.Decimal("UnidadesPorEuro")), moneda, fecha, fecha.AddDays(-DiasHaciaAtras)));

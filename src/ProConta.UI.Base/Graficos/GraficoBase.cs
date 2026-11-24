@@ -1,28 +1,40 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using Coordinates = ScottPlot.Coordinates;
+using Pixel = ScottPlot.Pixel;
+using Plot = ScottPlot.Plot;
+using ScottPlot.Interactivity.UserActions;
+using ScottPlot.WPF;
 
 namespace ProConta.UI.Base.Graficos;
 
 /// <summary>
-/// Base de los controles del motor de gráficos (informes/graficos): dibujo propio con <see cref="DrawingContext"/>, sin
-/// bibliotecas externas; textos con la fuente de la biblioteca; tooltip flotante que sigue al ratón con el contenido que da cada
-/// gráfico. La geometría y las escalas están en clases puras (<see cref="GeometriaGrafico"/>, <see cref="EscalasGrafico"/>).
+/// Base de los controles de gráficos (informes/graficos): un gráfico de ScottPlot que dibuja cada control con el estilo común
+/// (<see cref="EstiloPlano"/>), más el tooltip flotante propio que sigue al ratón con el contenido que da cada gráfico. El ratón lo recibe este
+/// control, no ScottPlot: así los gráficos dentro de un botón no le quitan el clic y la rueda desplaza la pantalla salvo en los gráficos con zoom.
 /// </summary>
-public abstract class GraficoBase : FrameworkElement
+public abstract class GraficoBase : ContentControl
 {
     private static readonly Dictionary<string, SolidColorBrush> Pinceles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Popup _popup;
     private readonly StackPanel _contenidoTooltip = new();
     private int _indiceTooltip = -2;
+    private bool _pendiente;
 
     protected GraficoBase()
     {
-        SnapsToDevicePixels = true;
-        UseLayoutRounding = true;
+        Lienzo = new WpfPlot { IsHitTestVisible = false, Focusable = false };
+        Lienzo.UserInputProcessor.UserActionResponses.Clear();
+        Lienzo.Menu = null;
+        Content = Lienzo;
+        Focusable = false;
+        IsTabStop = false;
+        Background = Brushes.Transparent;
+        HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        VerticalContentAlignment = VerticalAlignment.Stretch;
         _popup = new Popup
         {
             AllowsTransparency = true, Placement = PlacementMode.Relative, PlacementTarget = this, IsHitTestVisible = false, StaysOpen = true,
@@ -30,25 +42,41 @@ public abstract class GraficoBase : FrameworkElement
             {
                 Background = Brushes.White, BorderBrush = Pincel("#E1DDD2"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(10, 8, 10, 8), MinWidth = 170, MaxWidth = 320, Child = _contenidoTooltip,
-                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Color.FromRgb(0x14, 0x21, 0x3A), Opacity = 0.16, BlurRadius = 24, ShadowDepth = 8, Direction = 270 },
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Color.FromRgb(0x14, 0x21, 0x3A), Opacity = 0.16, BlurRadius = 24, ShadowDepth = 8, Direction = 270 },
             },
         };
+        Loaded += (_, _) => { AjustarEscala(); Redibujar(); };
+        SizeChanged += (_, _) => Redibujar();
         MouseMove += AlMoverRaton;
         MouseLeave += (_, _) => OcultarTooltip();
-        IsVisibleChanged += (_, _) => { if (!IsVisible) OcultarTooltip(); };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible) OcultarTooltip();
+            else if (_pendiente) Redibujar();
+        };
     }
 
-    /// <summary>Fuente de los textos: la de la biblioteca (IBM Plex Sans) si está cargada.</summary>
-    protected Typeface Letra => new(TryFindResource("Fuente.Texto") as FontFamily ?? new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+    /// <summary>El control de ScottPlot que dibuja el gráfico.</summary>
+    protected WpfPlot Lienzo { get; }
 
-    protected Typeface LetraNegrita => new(TryFindResource("Fuente.Texto") as FontFamily ?? new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+    protected Plot Plot => Lienzo.Plot;
+
+    /// <summary>El gráfico responde al ratón (tooltip y resaltado); si no, el ratón pasa al control de debajo (por ejemplo, un botón).</summary>
+    protected bool Interactivo
+    {
+        get => IsHitTestVisible;
+        set => IsHitTestVisible = value;
+    }
+
+    /// <summary>La rueda y el arrastre hacen zoom (la rueda ya no desplaza la pantalla sobre el gráfico).</summary>
+    protected bool ConZoom { get; set; }
 
     public static SolidColorBrush Pincel(string color)
     {
         lock (Pinceles)
         {
             if (Pinceles.TryGetValue(color, out var p)) return p;
-            p = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+            p = new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(color));
             p.Freeze();
             Pinceles[color] = p;
             return p;
@@ -56,48 +84,69 @@ public abstract class GraficoBase : FrameworkElement
     }
 
     protected static SolidColorBrush Tinta { get; } = Pincel("#16213A");
-    protected static SolidColorBrush ApagadoPincel { get; } = Pincel("#646A78");
-    protected static Pen LapizRejilla { get; } = Congelar(new Pen(Pincel(PaletaGraficos.Rejilla), 1));
 
-    protected static Pen Congelar(Pen p)
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
     {
-        p.Freeze();
-        return p;
+        base.OnDpiChanged(oldDpi, newDpi);
+        AjustarEscala();
+        Redibujar();
     }
 
-    /// <summary>Texto preparado para dibujar con la fuente de la biblioteca.</summary>
-    protected FormattedText Texto(string texto, double tamano = 11, Brush? color = null, bool negrita = false) =>
-        new(texto, CultureInfo.GetCultureInfo("es-ES"), FlowDirection.LeftToRight, negrita ? LetraNegrita : Letra, tamano, color ?? ApagadoPincel,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip);
-
-    /// <summary>Dibuja un texto alineado (−1 izquierda, 0 centro, 1 derecha) con su línea base aproximada en <paramref name="y"/>.</summary>
-    protected void Escribir(DrawingContext dc, string texto, double x, double y, int alineacion = 0, double tamano = 11, Brush? color = null, bool negrita = false)
+    private void AjustarEscala()
     {
-        var t = Texto(texto, tamano, color, negrita);
-        var dx = alineacion switch { < 0 => 0, 0 => -t.Width / 2, _ => -t.Width };
-        dc.DrawText(t, new Point(x + dx, y - t.Baseline));
+        var dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        Lienzo.DisplayScale = (float)dpi;
+        Plot.ScaleFactor = dpi;
     }
 
-    /// <summary>Fondo transparente para recibir el ratón en toda la superficie.</summary>
-    protected void FondoSensible(DrawingContext dc) => dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
+    /// <summary>Vuelve a construir el gráfico con los datos y el tamaño actuales (si el control no se ve, en cuanto se vea).</summary>
+    protected void Redibujar()
+    {
+        if (!IsLoaded || !IsVisible || ActualWidth < 1 || ActualHeight < 1)
+        {
+            _pendiente = true;
+            return;
+        }
+        _pendiente = false;
+        Construir(ActualWidth, ActualHeight);
+        if (Resaltado >= 0) Resaltar(Resaltado);
+        Lienzo.Refresh();
+    }
 
-    /// <summary>Índice del elemento bajo el ratón (categoría, tramo…), o −1 si no hay ninguno.</summary>
-    protected abstract int IndiceEn(Point posicion);
+    /// <summary>Construye el gráfico en <see cref="Plot"/> para un control de <paramref name="ancho"/> por <paramref name="alto"/> píxeles lógicos.</summary>
+    protected abstract void Construir(double ancho, double alto);
+
+    /// <summary>Índice del elemento bajo el ratón (categoría, día, tramo…), o −1; <paramref name="c"/> son las coordenadas de los datos.</summary>
+    protected virtual int IndiceEn(Coordinates c, Point posicion) => -1;
 
     /// <summary>Contenido del tooltip del elemento <paramref name="indice"/>; null para no mostrar nada.</summary>
-    protected abstract ContenidoTooltip? TooltipDe(int indice);
+    protected virtual ContenidoTooltip? TooltipDe(int indice) => null;
 
-    /// <summary>Elemento resaltado por el ratón (−1 ninguno); el gráfico lo usa al dibujar.</summary>
+    /// <summary>Dibuja el resaltado del elemento <paramref name="indice"/> (−1 lo quita), sin refrescar.</summary>
+    protected virtual void Resaltar(int indice) { }
+
+    /// <summary>Elemento resaltado por el ratón (−1 ninguno).</summary>
     protected int Resaltado { get; private set; } = -1;
+
+    /// <summary>Píxel físico (el que usa ScottPlot) de una posición del ratón sobre el control.</summary>
+    protected Pixel PixelDe(Point p)
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        return new Pixel((float)(p.X * dpi.DpiScaleX), (float)(p.Y * dpi.DpiScaleY));
+    }
+
+    private bool Dibujado => Plot.RenderManager.LastRender.DataRect.Width > 0;
 
     private void AlMoverRaton(object sender, MouseEventArgs e)
     {
         var p = e.GetPosition(this);
-        var i = IndiceEn(p);
+        if (ConZoom) Lienzo.UserInputProcessor.Process(new ScottPlot.Interactivity.UserActions.MouseMove(PixelDe(p)));
+        var i = Dibujado && !IsMouseCaptured ? IndiceEn(Plot.GetCoordinates(PixelDe(p)), p) : -1;
         if (i != Resaltado)
         {
             Resaltado = i;
-            InvalidateVisual();
+            Resaltar(i);
+            Lienzo.Refresh();
         }
         if (i < 0)
         {
@@ -110,7 +159,7 @@ public abstract class GraficoBase : FrameworkElement
             var c = TooltipDe(i);
             if (c is null)
             {
-                OcultarTooltip();
+                _popup.IsOpen = false;
                 return;
             }
             Rellenar(c);
@@ -120,6 +169,35 @@ public abstract class GraficoBase : FrameworkElement
         _popup.IsOpen = true;
     }
 
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (!ConZoom) return;
+        OcultarTooltip();
+        CaptureMouse();
+        Lienzo.UserInputProcessor.Process(new LeftMouseDown(PixelDe(e.GetPosition(this))));
+        e.Handled = true;
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+        if (!ConZoom) return;
+        Lienzo.UserInputProcessor.Process(new LeftMouseUp(PixelDe(e.GetPosition(this))));
+        if (IsMouseCaptured) ReleaseMouseCapture();
+        e.Handled = true;
+    }
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        if (!ConZoom || !Dibujado) return;
+        var px = PixelDe(e.GetPosition(this));
+        Lienzo.UserInputProcessor.Process(e.Delta > 0 ? new MouseWheelUp(px) : new MouseWheelDown(px));
+        OcultarTooltip();
+        e.Handled = true;
+    }
+
     private void OcultarTooltip()
     {
         _popup.IsOpen = false;
@@ -127,7 +205,8 @@ public abstract class GraficoBase : FrameworkElement
         if (Resaltado != -1)
         {
             Resaltado = -1;
-            InvalidateVisual();
+            Resaltar(-1);
+            Lienzo.Refresh();
         }
     }
 
@@ -152,7 +231,7 @@ public abstract class GraficoBase : FrameworkElement
         }
     }
 
-    /// <summary>Pincel rayado (tramo de proyección) del color de la serie, como el patrón de la maqueta.</summary>
+    /// <summary>Pincel rayado (tramo de proyección) del color de la serie, como el patrón de la maqueta (leyendas fuera del gráfico).</summary>
     public static Brush Rayado(string color)
     {
         var c = Pincel(color);
@@ -166,36 +245,5 @@ public abstract class GraficoBase : FrameworkElement
         };
         b.Freeze();
         return b;
-    }
-
-    /// <summary>Geometría de una barra con las esquinas superiores redondeadas (o las inferiores, si es negativa).</summary>
-    protected static Geometry BarraRedondeada(Caja c, double radio, bool haciaArriba = true)
-    {
-        var r = Math.Min(radio, Math.Min(c.Ancho / 2, c.Alto));
-        if (r <= 0.5) return new RectangleGeometry(new Rect(c.X, c.Y, c.Ancho, c.Alto));
-        var g = new StreamGeometry();
-        using (var ctx = g.Open())
-        {
-            if (haciaArriba)
-            {
-                ctx.BeginFigure(new Point(c.X, c.Abajo), true, true);
-                ctx.LineTo(new Point(c.X, c.Y + r), true, false);
-                ctx.QuadraticBezierTo(new Point(c.X, c.Y), new Point(c.X + r, c.Y), true, false);
-                ctx.LineTo(new Point(c.Derecha - r, c.Y), true, false);
-                ctx.QuadraticBezierTo(new Point(c.Derecha, c.Y), new Point(c.Derecha, c.Y + r), true, false);
-                ctx.LineTo(new Point(c.Derecha, c.Abajo), true, false);
-            }
-            else
-            {
-                ctx.BeginFigure(new Point(c.X, c.Y), true, true);
-                ctx.LineTo(new Point(c.X, c.Abajo - r), true, false);
-                ctx.QuadraticBezierTo(new Point(c.X, c.Abajo), new Point(c.X + r, c.Abajo), true, false);
-                ctx.LineTo(new Point(c.Derecha - r, c.Abajo), true, false);
-                ctx.QuadraticBezierTo(new Point(c.Derecha, c.Abajo), new Point(c.Derecha, c.Abajo - r), true, false);
-                ctx.LineTo(new Point(c.Derecha, c.Y), true, false);
-            }
-        }
-        g.Freeze();
-        return g;
     }
 }

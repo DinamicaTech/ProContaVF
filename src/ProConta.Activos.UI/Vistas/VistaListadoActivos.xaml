@@ -57,6 +57,8 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button Content="Nuevo activo…" Style="{StaticResource Boton.Primario}" Command="{Binding NuevoCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="Da de alta un activo paso a paso: qué es, la compra, la amortización y un repaso de lo que se va a crear (ficha, centro y subcuentas). No graba asientos" />
+          <Button Content="Análisis financiero" Style="{StaticResource Boton}" Command="{Binding AnalisisFinancieroCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Abre el análisis de los activos financieros (ETFs, fondos y participaciones): valor de la cartera, revalorización, comparativa, rentabilidad por activo y proyección" />
           <Button Content="Generar subcuentas…" Style="{StaticResource Boton}" Command="{Binding GenerarTodasCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="Para todos los activos propios en uso, propone las subcuentas de la plantilla de su tipo que faltan en el ejercicio de trabajo (o con otro nombre) y las crea al confirmar" />
           <Button Content="Exportar a Excel" Style="{StaticResource Boton}" Command="{Binding ExportarExcelCommand, ElementName=Tabla}" Margin="0,0,8,0" VerticalAlignment="Center"
