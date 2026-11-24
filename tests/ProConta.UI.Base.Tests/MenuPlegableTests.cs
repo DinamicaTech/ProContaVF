@@ -76,6 +76,27 @@ public class MenuPlegableTests
     }
 
     [Fact]
+    public void Dos_submenus_seguidos_se_despliegan_cada_uno_por_su_cuenta()
+    {
+        // Como «Fin de trimestre» justo antes de «Fin de ejercicio» (contabilidad/procesos 2026-11-24).
+        List<Opcion> m =
+        [
+            new("Contabilidad", 0), new("Mayor", 1), new("Fin de trimestre", 1),
+            new("Recurrentes", 2), new("N43", 2), new("Modelos", 2), new("Liquidación", 2),
+            new("Fin de ejercicio", 1),
+            new("Amortización", 2), new("Prorrata", 2), new("Liquidación 4T", 2), new("Cierre", 2),
+            new("Asiento manual", 1),
+        ];
+        MenuPlegable.Organizar(m);
+        Assert.Equal(["Contabilidad", "Fin de trimestre", "Fin de ejercicio"], m.Where(o => o.EsPlegable).Select(o => o.Titulo));
+
+        MenuPlegable.Alternar(m, O(m, "Contabilidad"));
+        MenuPlegable.Alternar(m, O(m, "Fin de trimestre"));
+        Assert.Equal(["Contabilidad", "Mayor", "Fin de trimestre", "Recurrentes", "N43", "Modelos", "Liquidación", "Fin de ejercicio", "Asiento manual"], Visibles(m));
+        Assert.Same(O(m, "Contabilidad"), O(m, "Fin de ejercicio").Grupo);
+    }
+
+    [Fact]
     public void Un_grupo_no_plegable_no_cambia_al_alternarlo()
     {
         var m = Menu();
