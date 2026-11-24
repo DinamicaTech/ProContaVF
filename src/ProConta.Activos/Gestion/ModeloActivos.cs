@@ -16,7 +16,7 @@ public sealed record TipoActivo(int IdTipoActivo, string Codigo, string Nombre, 
         TiposActivoPgc.Vehiculo => 0.16m,
         TiposActivoPgc.Instalacion => 0.10m,
         TiposActivoPgc.Aplicacion => 0.33m,
-        TiposActivoPgc.Inversion => 0m,
+        _ when EsInversion => 0m,
         _ => 0.03m,
     };
 }

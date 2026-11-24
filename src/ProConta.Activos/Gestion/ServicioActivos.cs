@@ -52,8 +52,18 @@ public sealed partial class ServicioActivos
     // ---------- catálogos ----------
 
     public Task<IReadOnlyList<TipoActivo>> TiposAsync() => _bd.EjecutarAsync<IReadOnlyList<TipoActivo>>(async s =>
-        await s.ConsultarAsync("SELECT IdTipoActivo, Codigo, Nombre, EsAmortizablePredeterminado FROM TiposActivo WHERE EstaActivo = True ORDER BY IdTipoActivo",
-            f => new TipoActivo(f.Entero("IdTipoActivo"), (f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim(), f.Logico("EsAmortizablePredeterminado"))));
+    {
+        await CategoriasAsync(s);
+        return await s.ConsultarAsync("SELECT IdTipoActivo, Codigo, Nombre, EsAmortizablePredeterminado FROM TiposActivo WHERE EstaActivo = True ORDER BY IdTipoActivo",
+            f => new TipoActivo(f.Entero("IdTipoActivo"), (f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim(), f.Logico("EsAmortizablePredeterminado")));
+    });
+
+    /// <summary>Qué tipos son inversiones financieras por su categoría (<see cref="TiposActivoPgc.RegistrarCategorias"/>).</summary>
+    private static async Task<bool> CategoriasAsync(ISesionDatos s)
+    {
+        TiposActivoPgc.RegistrarCategorias(await s.ConsultarAsync("SELECT Codigo, Categoria FROM TiposActivo", f => ((f.Texto("Codigo") ?? "").Trim(), f.Texto("Categoria"))));
+        return true;
+    }
 
     public Task<IReadOnlyList<CentroParaActivo>> CentrosAsync(string idSociedad) => _bd.EjecutarAsync<IReadOnlyList<CentroParaActivo>>(async s =>
         await s.ConsultarAsync("SELECT IdCentroCoste, Codigo, Nombre, IdCentroCostePadre, Nivel, EsImputable, EstaActivo FROM CentrosCoste WHERE IdSociedad = ? ORDER BY RutaOrden",
@@ -156,6 +166,7 @@ public sealed partial class ServicioActivos
     {
         var (activos, planes, enlaces, nombres, codigoDe, apuntes, centros) = await _bd.EjecutarAsync(async s =>
         {
+            await CategoriasAsync(s);
             var a = await s.ConsultarAsync(SelectActivos + "WHERE a.IdSociedad = ? ORDER BY a.Codigo", LeerActivo, ctx.IdSociedad);
             var p = await PlanesAsync(s, ctx.IdSociedad);
             var e = await EnlacesAsync(s, ctx.IdSociedad);
@@ -193,6 +204,7 @@ public sealed partial class ServicioActivos
     {
         var leido = await _bd.EjecutarAsync(async s =>
         {
+            await CategoriasAsync(s);
             var a = await s.ConsultarPrimeroAsync(SelectActivos + "WHERE a.IdActivo = ? AND a.IdSociedad = ?", LeerActivo, idActivo, ctx.IdSociedad);
             if (a is null) return null;
             var inm = await s.ConsultarPrimeroAsync(
