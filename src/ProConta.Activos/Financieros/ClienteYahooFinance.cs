@@ -109,15 +109,24 @@ public sealed class ClienteYahooFinance(HttpClient http)
             var n = Math.Min(ts.GetArrayLength(), close.GetArrayLength());
             for (var i = 0; i < n; i++)
                 if (ts[i].ValueKind == JsonValueKind.Number && close[i].ValueKind == JsonValueKind.Number && close[i].TryGetDecimal(out var c) && c > 0m)
-                    cierres.Add((Dia(ts[i].GetInt64()), c));
+                    cierres.Add((Dia(ts[i].GetInt64()), Redondear(c)));
         }
         // Un mismo día puede venir dos veces (la sesión en curso): se queda el último valor.
         var porDia = cierres.GroupBy(x => x.Item1).Select(x => x.Last()).OrderBy(x => x.Item1).ToList();
-        decimal? ultimo = meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var pv) && pv > 0m ? pv : null;
+        decimal? ultimo = meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var pv) && pv > 0m ? Redondear(pv) : null;
         DateTime? fechaUltimo = meta.TryGetProperty("regularMarketTime", out var t) && t.ValueKind == JsonValueKind.Number ? Dia(t.GetInt64()) : null;
         return new GraficoYahoo(Cadena(meta, "symbol") ?? simbolo, moneda, Cadena(meta, "fullExchangeName") ?? Cadena(meta, "exchangeName") ?? "",
             Cadena(meta, "longName") ?? Cadena(meta, "shortName"), Cadena(meta, "instrumentType") is { } it ? TipoInstrumento(it) : null, ultimo, fechaUltimo, porDia);
     }
+
+    /// <summary>Decimales con que se guardan los precios de Yahoo.</summary>
+    public const int DecimalesPrecio = 4;
+
+    /// <summary>
+    /// Yahoo da los cierres en coma flotante de precisión simple (159.33999633789062 por 159,34): se redondean a <see cref="DecimalesPrecio"/> decimales,
+    /// que cubren los precios con más decimales que publica, para que el precio en euros y el coste del lote no arrastren ese error.
+    /// </summary>
+    public static decimal Redondear(decimal precio) => Math.Round(precio, DecimalesPrecio, MidpointRounding.AwayFromZero);
 
     /// <summary>ETF, FONDO, ACCION o el tipo de Yahoo tal cual.</summary>
     public static string TipoInstrumento(string tipoYahoo) => tipoYahoo.ToUpperInvariant() switch

@@ -77,6 +77,17 @@ public sealed class CotizacionesTests
         Assert.Equal(1795478400L, ClienteYahooFinance.SegundosUnix(local));
     }
 
+    /// <summary>Cierre real de VWCE.DE del 20/11/2026, que Yahoo da como 159.33999633789062.</summary>
+    [Fact]
+    public void RedondeaLosPreciosDeYahooEnComaFlotante()
+    {
+        var json = "{\"chart\":{\"result\":[{\"meta\":{\"currency\":\"EUR\",\"symbol\":\"VWCE.DE\",\"gmtoffset\":3600,\"regularMarketPrice\":164.74000549316406}," +
+                   $"\"timestamp\":[{Unix(new DateTime(2026, 11, 20, 8, 0, 0))}],\"indicators\":{{\"quote\":[{{\"close\":[159.33999633789062]}}]}}}}]}}}}";
+        var g = ClienteYahooFinance.LeerGrafico("VWCE.DE", json)!;
+        Assert.Equal(159.34m, g.Cierres[0].Item2);
+        Assert.Equal(164.74m, g.UltimoPrecio);
+    }
+
     [Fact]
     public void LeeLaBusquedaDeYahooSinOpciones()
     {
