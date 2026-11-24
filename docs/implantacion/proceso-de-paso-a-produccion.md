@@ -15,6 +15,8 @@ No construye nada propio: usa el script de instalación de plataforma/entrega, e
 - 2026-11-16 09:45 · Reparto: el procedimiento y sus listas de comprobación viven aquí; la copia de ejecutables la hace el script de instalación de plataforma/entrega (línea «Derived from» allí); la BD y el esquema, datos/esquema (`copia-estructura` y `actualizar`), sin cambios; las importaciones, implantacion/importador-contasol e implantacion/migracion-erp tal como están; sus pendientes se revisan en el paso D.
 - 2026-11-18 16:21 · La lista «Modelos tributarios · Qué rellenar en producción antes de presentar» (datos-a-rellenar-en-produccion.md, del hilo de modelos tributarios, PR #123, esquema 73) se integra en el plan y no como md aparte, porque en docs cada md es un nodo: la corrección del NIF y los códigos postales de los socios va en el ERP antes de migrar (paso D); el resto es el paso J, después del arranque y antes de presentar cada modelo (acordado con el propietario).
 - 2026-11-24 12:15 · Activado por el propietario. Claude tiene acceso total a `C:\Docs\ProConta` y subcarpetas. El ERP y ContaSol no tienen cambios desde hace una semana: sus copias en la carpeta del repositorio son el origen de la importación. Los pendientes conocidos de la migración del ERP (paso D) no bloquean el arranque y se revisan después.
+- 2026-11-24 13:05 · Origen de la importación: ContaSol 0022018…0022026 (los 0032018/0032021 eran copias corregidas de un ensayo y el propietario los borró; la corrección de la 4770000 se hizo de nuevo en los originales) y el ERP `ProcontaEstructurav2.accdb`, con los maestros saneados por el propietario: no se arrastran clientes ni conceptos históricos que ya no son de la actividad, así que las ventas y líneas antiguas que los usaban quedan sin cliente o sin concepto (aceptado por el propietario 2026-11-24 12:52).
+- 2026-11-24 13:05 · La migración 20261117_2035_ACTIVO_LINEAS_VENTA (esquema 71) se aplica en la BD vacía, antes de cargar el ERP, y después el diagnóstico la da por parcial («MigracionParcial»). En producción se rellenó a mano con `RellenoActivoLineas.AplicarAsync` (1.706 líneas de factura y 25 de programada), tras copiar la BD en `datos\implantacion`. Pendiente para una BD nueva: que la migración del ERP haga ese relleno al terminar (implantacion/migracion-erp).
 
 ## Plan (borrador, a revisar al activar el nodo)
 Cada paso se marca con la fecha en que se hace y cómo se comprobó.
@@ -25,19 +27,19 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 - [x] Ejecutar `probar.cmd` (con y sin BD de pruebas) sobre main y compilar con `compilar.cmd`. — 2026-11-24: compila; en paralelo fallaron 5 pruebas contra Access por bloqueos («Demasiados usuarios activos»), que pasan repetidas una a una; `ProgramadasAccessTests.DosLotesALaVezNoDuplicanFacturas` (tres lotes a la vez) solo falla con la máquina cargada: no afecta con un usuario.
 
 **B. Instalar ejecutables y librerías**
-- [ ] ACE x64 instalado en el equipo.
-- [ ] Copiar la versión compilada a `C:\Docs\ProConta` con `instalar.cmd` de plataforma/entrega (respaldo previo de la versión anterior en `versiones`).
+- [x] ACE x64 instalado en el equipo. — 2026-11-24: ya estaba (lo usan las pruebas y las herramientas).
+- [x] Copiar la versión compilada a `C:\Docs\ProConta` con `instalar.cmd` de plataforma/entrega (respaldo previo de la versión anterior en `versiones`). — 2026-11-24 12:30: instalada `ProContaVF-main.1281+313e820` (PR #154); antes se cerraron los dos procesos del conector de Claude que Claude Desktop tenía abiertos desde `C:\Docs\ProConta\Conector` (bloqueaban la copia).
 - [ ] Acceso directo o `ejecutar.cmd` con `--bd "C:\Docs\ProConta\datos\<BD>.accdb"`; la versión de main se ve en la barra de estado.
 
 **C. Base de datos maestra**
-- [ ] Crear la BD de producción en `C:\Docs\ProConta\datos` a partir de la maestra (`ActualizadorEsquema copia-estructura`) y llevarla a la última versión (`actualizar`); `diagnosticar` sin errores.
+- [x] Crear la BD de producción en `C:\Docs\ProConta\datos` a partir de la maestra (`ActualizadorEsquema copia-estructura`) y llevarla a la última versión (`actualizar`); `diagnosticar` sin errores. — 2026-11-24: `C:\Docs\ProConta\datos\ProConta.accdb` desde la copia sin datos de la maestra (versión 1, `copias-limpieza-04`), actualizada al esquema 82 con `--origen-formas-pago` del ERP; diagnóstico «Actualizada» tras rellenar el activo de las líneas (ver Decisions 2026-11-24 13:05). Log e informes en `datos\implantacion`.
 - [ ] Primer administrador (operador Ronald; contraseña opcional).
 
 **D. Lanzar importaciones**
-- [ ] Importador de ContaSol, ejercicio a ejercicio (simulación primero), y revisión de sus incidencias.
+- [x] Importador de ContaSol, ejercicio a ejercicio (simulación primero), y revisión de sus incidencias. — 2026-11-24: 0022018…0022026, los 9 ejercicios «Completada» sin bloqueantes (antes se movieron en los originales los apuntes de la 4770000 a la 4770021 de 2018 y 2021, con permiso del propietario; copia previa en `datos\implantacion\respaldo-contasol`).
 - [ ] Antes de migrar, en el ERP: corregir el NIF del socio que pasó de NIE a NIF y añadir el código postal de los dos socios (lo piden los modelos tributarios, paso J).
-- [ ] Regenerar ProcontaEstructura y ejecutar MigradorERP; revisión de sus incidencias (la actividad General queda en prorrata).
-- [ ] Decidir cuáles de los pendientes conocidos de la migración bloquean el arranque: IdCentroCoste de Conceptos y LineasFactura; conceptos que solo difieren por departamento; TipoProducto por defecto del proveedor; F_MAE.NEXMAE → descripción de la cuenta; palabras clave → textos clave; CategoriasIVA → Actividades; 233 ventas 2018–2023 sin enlace con su asiento; 23 compras sin PDF; código de tipo de operación cruzado entre ContaSol y Compras.
+- [x] Regenerar ProcontaEstructura y ejecutar MigradorERP; revisión de sus incidencias (la actividad General queda en prorrata). — 2026-11-24: desde `ProcontaEstructurav2.accdb` (maestros saneados por el propietario), «Completada» sin bloqueantes; 394 ventas sin cliente y 5.822 líneas sin concepto, aceptado por el propietario.
+- [x] Decidir cuáles de los pendientes conocidos de la migración bloquean el arranque (2026-11-24: ninguno, se revisan después): IdCentroCoste de Conceptos y LineasFactura; conceptos que solo difieren por departamento; TipoProducto por defecto del proveedor; F_MAE.NEXMAE → descripción de la cuenta; palabras clave → textos clave; CategoriasIVA → Actividades; 233 ventas 2018–2023 sin enlace con su asiento; 23 compras sin PDF; código de tipo de operación cruzado entre ContaSol y Compras.
 
 **E. Revisar la configuración**
 - [ ] Sociedades y ejercicios; Empresas › Carpeta de documentos y Ejercicios › Carpeta de facturas de compra (dentro de C:\Docs, para las copias).
@@ -48,8 +50,8 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 - [ ] Catálogos › Cambios de deducción de las actividades: turístico 100 % deducible desde el 01/12/2026, antes de contabilizar compras de diciembre.
 
 **F. Validar la importación**
-- [ ] Sumas y saldos por ejercicio iguales a ContaSol.
-- [ ] Facturas de venta por serie sin huecos y totales por ejercicio iguales al ERP.
+- [x] Sumas y saldos por ejercicio iguales a ContaSol. — 2026-11-24: 2018–2026, 0 cuentas con saldo distinto (`datos\implantacion\validacion-saldos.md`).
+- [x] Facturas de venta por serie sin huecos y totales por ejercicio iguales al ERP. — 2026-11-24: totales por año iguales al ERP (informe de la migración); serie 2026 con 280 facturas hasta la 83280 (siguiente 83281) y la rectificativa «R» vacía.
 - [ ] Libros de IVA repercutido y soportado por trimestre iguales a ContaSol.
 - [ ] Terceros, activos, programadas y reservas migrados.
 - [ ] Inicio › Salud de la contabilidad sin avisos inesperados.
@@ -113,3 +115,6 @@ Lista del hilo de modelos tributarios (pantalla fusionada en la PR #123, esquema
 - 2026-11-24 12:15 · Tienes acceso total a c:\docs\ProConta y subcarpetas
 - 2026-11-24 12:15 · answer: pendientes de la migración del ERP → no bloquean el arranque; se revisan después
 - 2026-11-24 12:15 · answer: corte del ERP y ContaSol → sin cambios desde hace una semana; las copias de la carpeta del repositorio son las más actuales
+
+## Hand-over
+- 2026-11-24 13:05 · Hechos A, B, C y D; F parcial (saldos y series). Siguiente: el propietario hace E en la aplicación (operador, carpetas, Avaibook, AWS, correo, VeriFactu, cambio de deducción, copia de pruebas, conector de Claude) y revisa Inicio › Salud; después G en la copia de pruebas y H.
