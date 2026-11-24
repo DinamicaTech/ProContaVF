@@ -68,6 +68,15 @@ public sealed class CotizacionesTests
     [InlineData("IE00B4L5Y984", "no cuadra")]
     public void IsinNoValidosDicenPorQue(string isin, string texto) => Assert.Contains(texto, Isin.Error(isin));
 
+    /// <summary>Con el día de hoy del sistema (tipo Local) no debe lanzar: en España el desfase no es cero (fallo encontrado el 24/11/2026).</summary>
+    [Fact]
+    public void LasFechasDelGraficoNoDependenDelTipoDeFecha()
+    {
+        var local = DateTime.SpecifyKind(new DateTime(2026, 11, 24), DateTimeKind.Local);
+        Assert.Equal(ClienteYahooFinance.SegundosUnix(DateTime.SpecifyKind(local, DateTimeKind.Utc)), ClienteYahooFinance.SegundosUnix(local));
+        Assert.Equal(1795478400L, ClienteYahooFinance.SegundosUnix(local));
+    }
+
     [Fact]
     public void LeeLaBusquedaDeYahooSinOpciones()
     {

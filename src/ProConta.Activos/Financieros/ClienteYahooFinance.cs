@@ -31,8 +31,8 @@ public sealed class ClienteYahooFinance(HttpClient http)
     /// <summary>Gráfico diario de un símbolo entre dos fechas (ambas incluidas).</summary>
     public async Task<Resultado<GraficoYahoo>> GraficoAsync(string simbolo, DateTime desde, DateTime hasta, CancellationToken cancelacion = default)
     {
-        var p1 = new DateTimeOffset(desde.Date, TimeSpan.Zero).ToUnixTimeSeconds();
-        var p2 = new DateTimeOffset(hasta.Date.AddDays(1), TimeSpan.Zero).ToUnixTimeSeconds();
+        var p1 = SegundosUnix(desde);
+        var p2 = SegundosUnix(hasta.AddDays(1));
         var r = await GetAsync($"{Direccion}v8/finance/chart/{Uri.EscapeDataString(simbolo)}?period1={p1}&period2={p2}&interval=1d&events=history", cancelacion);
         if (!r.EsCorrecto) return Resultado<GraficoYahoo>.Fallo(r.Errores);
         return LeerGrafico(simbolo, r.Valor) is { } g ? Resultado<GraficoYahoo>.Correcto(g)
@@ -63,6 +63,12 @@ public sealed class ClienteYahooFinance(HttpClient http)
                 "Comprueba la conexión a internet y vuelve a intentarlo; si no, escribe el precio a mano."));
         }
     }
+
+    /// <summary>
+    /// Medianoche UTC del día dado en segundos Unix. Se construye con año, mes y día porque DateTime.Today es de tipo Local y un DateTimeOffset con
+    /// desfase cero a partir de él lanza una excepción en cualquier zona que no sea UTC (en España, siempre).
+    /// </summary>
+    internal static long SegundosUnix(DateTime dia) => new DateTimeOffset(dia.Year, dia.Month, dia.Day, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
 
     /// <summary>Lee la respuesta de la búsqueda: solo instrumentos con símbolo (ETF, fondos, acciones…), sin noticias.</summary>
     public static IReadOnlyList<ResultadoBusquedaYahoo> LeerBusqueda(string json)
