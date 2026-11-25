@@ -505,11 +505,17 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         Avisar(nameof(BancoFiltro));
     }
 
-    /// <summary>Aplica los filtros sobre las líneas leídas (sin volver a la BD).</summary>
-    public void Filtrar()
+    /// <summary>
+    /// Aplica los filtros sobre las líneas leídas (sin volver a la BD). Con <paramref name="enSitio"/> (refresco tras una acción)
+    /// no sustituye la colección: quita las filas que ya no cumplen y mete las nuevas en su sitio, para que la rejilla conserve
+    /// su orden, su desplazamiento y su selección.
+    /// </summary>
+    public void Filtrar(bool enSitio = false)
     {
         var filtro = Filtro;
-        Filas = new ObservableCollection<FilaLineaN43VM>(_todas.Where(f => filtro.Cumple(f.Datos)));
+        var visibles = _todas.Where(f => filtro.Cumple(f.Datos)).ToList();
+        if (enSitio) SincronizarFilas(_filas, visibles);
+        else Filas = new ObservableCollection<FilaLineaN43VM>(visibles);
         Fichas.Clear();
         foreach (var (clave, texto) in filtro.Fichas(id => Bancos.FirstOrDefault(b => b.Valor == id)?.Texto ?? id.ToString(System.Globalization.CultureInfo.InvariantCulture)))
             Fichas.Add(new FichaFiltroN43(clave, texto, new ComandoDelegado(() => QuitarFicha(clave))));
@@ -519,6 +525,19 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
             : "Quita alguna ficha de filtro para ver más líneas.";
         Avisar(nameof(HayFichas), nameof(TituloEstado), nameof(TextoAccionEstado));
         ActualizarAcciones();
+    }
+
+    /// <summary>
+    /// Deja <paramref name="filas"/> con los elementos de <paramref name="objetivo"/>, en su orden, sin sustituir la colección:
+    /// las filas que siguen no se mueven (las dos listas salen de las líneas leídas en el mismo orden).
+    /// </summary>
+    internal static void SincronizarFilas(ObservableCollection<FilaLineaN43VM> filas, IReadOnlyList<FilaLineaN43VM> objetivo)
+    {
+        var quedan = objetivo.ToHashSet();
+        for (var i = filas.Count - 1; i >= 0; i--)
+            if (!quedan.Contains(filas[i])) filas.RemoveAt(i);
+        for (var i = 0; i < objetivo.Count; i++)
+            if (i >= filas.Count || !ReferenceEquals(filas[i], objetivo[i])) filas.Insert(i, objetivo[i]);
     }
 
     public void QuitarFicha(string clave)
@@ -638,7 +657,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
             if (nuevas.TryGetValue(f.Id, out var l)) f.Datos = l;
             else { _todas.Remove(f); _seleccion.Remove(f.Id); }
         }
-        Filtrar();
+        Filtrar(enSitio: true);
         Avisar(nameof(DetalleDestinos), nameof(DetalleFechas));
         _ = CalcularAvanceAsync();
     }

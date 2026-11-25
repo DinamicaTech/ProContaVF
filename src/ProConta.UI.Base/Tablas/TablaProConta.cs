@@ -248,6 +248,37 @@ public class TablaProConta : DataGrid
 
     // ---------- ordenar: ascendente, descendente y vuelta al orden de fábrica ----------
 
+    // El DataGrid de WPF borra la ordenación cuando cambia ItemsSource. Las pantallas sustituyen las filas al filtrar o al volver a
+    // leer, y el operador perdía la columna por la que ordenaba (norma43/pantallas 2026-11-25 20:40). Se guarda la ordenación justo
+    // antes de que el DataGrid la borre y se vuelve a poner con las filas nuevas; si la vista nueva trae la suya, se pone esa.
+    private List<SortDescription> _ordenAntesDeCambiarFilas = [];
+
+    static TablaProConta()
+    {
+        // El constructor estático de DataGrid (que registra su coerción) aún no ha corrido cuando corre este: se fuerza antes.
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(DataGrid).TypeHandle);
+        var coercionDataGrid = ItemsSourceProperty.GetMetadata(typeof(DataGrid)).CoerceValueCallback;
+        ItemsSourceProperty.OverrideMetadata(typeof(TablaProConta), new FrameworkPropertyMetadata(null, (d, valor) =>
+        {
+            // Si la pantalla trae su propia vista ordenada (como el Mayor), manda la suya: el DataGrid también se la borraría.
+            if (d is TablaProConta t && !ReferenceEquals(valor, t.ItemsSource))
+                t._ordenAntesDeCambiarFilas = valor is ICollectionView { SortDescriptions.Count: > 0 } v ? v.SortDescriptions.ToList() : t.Items.SortDescriptions.ToList();
+            return coercionDataGrid is null ? valor : coercionDataGrid(d, valor);
+        }));
+    }
+
+    protected override void OnItemsSourceChanged(System.Collections.IEnumerable oldValue, System.Collections.IEnumerable newValue)
+    {
+        base.OnItemsSourceChanged(oldValue, newValue);
+        var orden = _ordenAntesDeCambiarFilas;
+        _ordenAntesDeCambiarFilas = [];
+        if (newValue is null || orden.Count == 0 || Items.SortDescriptions.Count > 0) return;
+        var columnas = orden.Select(s => Columns.FirstOrDefault(c => c.SortMemberPath == s.PropertyName)).ToList();
+        if (columnas.Any(c => c is null)) return;
+        foreach (var s in orden) Items.SortDescriptions.Add(s);
+        for (var i = 0; i < orden.Count; i++) columnas[i]!.SortDirection = orden[i].Direction;
+    }
+
     protected override void OnSorting(DataGridSortingEventArgs e)
     {
         if (e.Column.SortDirection == ListSortDirection.Descending && (Keyboard.Modifiers & ModifierKeys.Shift) == 0)
