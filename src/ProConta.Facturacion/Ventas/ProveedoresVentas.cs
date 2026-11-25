@@ -83,6 +83,7 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
     private IReadOnlyList<OpcionCampo> _activos = [];
     private IReadOnlyList<OpcionCampo> _conceptos = [];
     private IReadOnlyList<OpcionCampo> _clientes = [];
+    private IReadOnlyList<OpcionCampo> _acreedores = [];
 
     public ProveedorReglasVenta(IBaseDatos bd, ServicioVentas ventas) : base(bd, "reglasventa", "Reglas de venta", "Facturación",
         "Concepto, IVA y cliente con que se facturan las ventas de cada origen y activo (por ejemplo, las reservas de Airbnb de un piso). Se aplican al facturar.",
@@ -129,7 +130,11 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
             Ayuda = "E1 mientras el alquiler turístico esté exento. Cuando pase a llevar IVA, elige «Sujeta» y escribe el porcentaje: vale para todo lo que se facture desde entonces." },
         new("TipoIva", "IVA (%)", TipoCampo.Porcentaje) { Ancho = "xs", Ayuda = "IVA de la línea si es «Sujeta» (por ejemplo 10). El importe de la venta es lo que paga el huésped, IVA incluido. Vacío, el IVA del concepto." },
         new("IdCliente", "Cliente al que se factura", TipoCampo.Lista) { Opciones = _clientes, Ancho = "l",
-            Ayuda = "Cliente por defecto de esas ventas (la plataforma). Una venta puede llevar otro si el huésped pide la factura a su nombre." },
+            Ayuda = "Cliente por defecto de esas ventas (la plataforma). Una venta puede llevar otro si el huésped pide la factura a su nombre. Con «Factura nominal al huésped», el cliente cuya 430 comparten todos los huéspedes (por ejemplo «Clientes varios Airbnb»)." },
+        new("FacturaAlHuesped", "Factura nominal al huésped", TipoCampo.Logico) { Grupo = "fac",
+            Ayuda = "Marcado, cada reserva se factura a nombre de su huésped (una factura por reserva): el huésped se da de alta como cliente con el nombre, el email y el teléfono de Avaibook y la 430 del cliente de la regla. Con NIF sale factura completa; sin NIF, simplificada si no pasa de 400 €, y si pasa, queda en borrador hasta que escribas el NIF en su ficha." },
+        new("IdAcreedor", "Acreedor de la plataforma", TipoCampo.Lista) { Opciones = _acreedores, Ancho = "l",
+            Ayuda = "Acreedor que factura la comisión de la plataforma (por ejemplo Airbnb). Su comisión se compensa contra la 430 del cliente de la regla. Déjalo vacío si cliente y acreedor son el mismo tercero." },
         new("Agrupar", "Agrupar ventas", TipoCampo.Lista) { Obligatorio = true, Grupo = "fac", Opciones = Agrupaciones, Ancho = "m",
             Ayuda = "Cada cuánto junta «Facturar todo» las ventas en una factura, por su fecha de entrada: semanas de lunes a domingo, quincenas (1–15 y 16–fin de mes), meses, trimestres o años naturales. «No agrupar» hace una factura por venta." },
         new("SepararPorActivo", "Separar facturas por activo", TipoCampo.Logico) { Grupo = "fac",
@@ -145,7 +150,7 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
     private static readonly IReadOnlyList<OpcionCampo> AlFacturarOpciones = [new(ReglaVenta.Borrador, "Borrador"), new(ReglaVenta.Validar, "Facturar y exportar")];
 
     public override IReadOnlyList<ColumnaLista> Columnas => [new("IdOrigenVenta", "Origen", 110), new("IdActivo", "Activo relacionado"), new("CausaExencion", "Exención", 80), new("TipoIva", "IVA", 56, true),
-        new("Agrupar", "Agrupar", 100), new("AlFacturar", "Al facturar", 110), new("Activa", "Activa", 56)];
+        new("Agrupar", "Agrupar", 100), new("FacturaAlHuesped", "Al huésped", 80), new("AlFacturar", "Al facturar", 110), new("Activa", "Activa", 56)];
 
     public override async Task<IReadOnlyList<RegistroMantenimiento>> ListarAsync(ContextoMantenimiento c)
     {
@@ -155,13 +160,15 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
             .Select(x => new OpcionCampo(x.IdConcepto, x.CuentaVenta is null ? x.Nombre : $"{x.Nombre} ({x.CuentaVenta})"))];
         _clientes = [new OpcionCampo(null, "Sin cliente (cada venta lleva el suyo)"), .. (await _ventas.NombresClientesAsync()).OrderBy(x => x.Value, StringComparer.CurrentCultureIgnoreCase)
             .Select(x => new OpcionCampo(x.Key, $"{x.Value} ({x.Key})"))];
+        _acreedores = [new OpcionCampo(null, "El mismo tercero que el cliente"), .. (await _ventas.NombresProveedoresAsync()).OrderBy(x => x.Value, StringComparer.CurrentCultureIgnoreCase)
+            .Select(x => new OpcionCampo(x.Key, $"{x.Value} ({x.Key})"))];
         return await base.ListarAsync(c);
     }
 
     public override Task<RegistroMantenimiento> NuevoAsync(ContextoMantenimiento c) =>
         Task.FromResult(new RegistroMantenimiento(null, new Dictionary<string, object?>
         {
-            ["Activa"] = true, ["CausaExencion"] = "E1", ["Agrupar"] = AgrupacionVentas.Mensual, ["SepararPorActivo"] = true, ["AlFacturar"] = ReglaVenta.Borrador,
+            ["Activa"] = true, ["CausaExencion"] = "E1", ["Agrupar"] = AgrupacionVentas.Mensual, ["SepararPorActivo"] = true, ["AlFacturar"] = ReglaVenta.Borrador, ["FacturaAlHuesped"] = false,
         }));
 }
 

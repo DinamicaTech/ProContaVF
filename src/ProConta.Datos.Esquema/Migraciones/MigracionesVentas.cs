@@ -218,4 +218,32 @@ public static class MigracionesVentas
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 id, (short)1, l.Orden, false, l.Cuenta, l.Lado, l.Importe, l.Concepto, DBNull.Value, DBNull.Value);
     }
-}
+
+    /// <summary>
+    /// Factura nominal al huésped (facturacion/reservas 2026-11-25 14:13): la regla de venta puede pedir una factura por reserva
+    /// a nombre del huésped (FacturaAlHuesped), que se da de alta como cliente con la 430 del cliente de la regla, e indicar el
+    /// acreedor de la plataforma (IdAcreedor) para compensar su comisión aunque cliente y acreedor sean terceros distintos.
+    /// Las ventas guardan el email y el teléfono del huésped que da Avaibook. Solo añade columnas.
+    /// </summary>
+    public static Migracion FacturaNominalHuesped { get; } = new(
+        "20261125_1500_FACTURA_NOMINAL_HUESPED", 261125015,
+        "Ventas por facturar: factura nominal al huésped, acreedor de la plataforma en la regla y contacto del huésped.",
+        "facturacion/reservas",
+        new AnadirColumnaObligatoria("ReglasVenta", "FacturaAlHuesped", "YESNO", "No"),
+        new AnadirColumna("ReglasVenta", "IdAcreedor", "LONG"),
+        new PasoPersonalizado(
+            "Relacionar ReglasVenta (FK_ReglasVenta_Acreedor)",
+            "ALTER TABLE ReglasVenta ADD CONSTRAINT FK_ReglasVenta_Acreedor FOREIGN KEY (IdAcreedor) REFERENCES Proveedores (IdProveedor)",
+            (_, e) => Task.FromResult(MigracionesOrganizacion.TieneRelacion(e, "ReglasVenta", "FK_ReglasVenta_Acreedor")),
+            (s, _) => s.EjecutarAsync("ALTER TABLE ReglasVenta ADD CONSTRAINT FK_ReglasVenta_Acreedor FOREIGN KEY (IdAcreedor) REFERENCES Proveedores (IdProveedor)")),
+        new AnadirColumna("VentasPorFacturar", "EmailTitular", "TEXT(255)"),
+        new AnadirColumna("VentasPorFacturar", "TelefonoTitular", "TEXT(50)"))
+    {
+        Descripciones =
+        [
+            new("ReglasVenta", "FacturaAlHuesped", "Si cada venta se factura a nombre de su huésped (una factura por venta): el huésped se da de alta como cliente con la 430 del cliente de la regla, que comparten todos los huéspedes del origen."),
+            new("ReglasVenta", "IdAcreedor", "Acreedor (proveedor) de la plataforma del origen, cuya comisión se compensa contra la 430 del cliente de la regla; vacío si es el mismo tercero que el cliente."),
+            new("VentasPorFacturar", "EmailTitular", "Email del huésped que da Avaibook (dato personal): reconoce al huésped que repite al darlo de alta como cliente."),
+            new("VentasPorFacturar", "TelefonoTitular", "Teléfono del huésped que da Avaibook (dato personal), que pasa a su ficha de cliente."),
+        ],
+    };}

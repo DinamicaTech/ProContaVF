@@ -51,7 +51,8 @@ public static class AgrupadorVentas
         var regla = ReglaVenta.Para(reglas, v.IdOrigenVenta, v.IdActivo);
         var ivaPropio = !string.IsNullOrWhiteSpace(v.CausaExencion) || v.TipoIva is not null;
         var causa = ivaPropio ? v.CausaExencion : regla?.CausaExencion;
-        return new VentaResuelta(v.IdCliente ?? regla?.IdCliente, v.IdConcepto ?? regla?.IdConcepto, string.IsNullOrWhiteSpace(causa) ? null : causa.Trim(),
+        // Con «Factura nominal al huésped», el cliente de la regla solo da la 430 de los huéspedes: la factura va al cliente del huésped.
+        return new VentaResuelta(v.IdCliente ?? (regla is { FacturaAlHuesped: true } ? null : regla?.IdCliente), v.IdConcepto ?? regla?.IdConcepto, string.IsNullOrWhiteSpace(causa) ? null : causa.Trim(),
             ivaPropio ? v.TipoIva : regla?.TipoIva, regla);
     }
 
@@ -73,7 +74,8 @@ public static class AgrupadorVentas
                     NombreActivo(v.IdActivo), periodo.Texto, false, [v], problema));
                 continue;
             }
-            var sinAgrupar = AgrupacionVentas.Normalizar(agrupar) == AgrupacionVentas.No;
+            // La factura nominal al huésped es siempre una por reserva.
+            var sinAgrupar = AgrupacionVentas.Normalizar(agrupar) == AgrupacionVentas.No || res.Regla is { FacturaAlHuesped: true };
             var porActivo = sinAgrupar || (res.Regla?.SepararPorActivo ?? true);
             facturables.Add((v, new ClaveFacturaVentas(res.IdCliente!.Value, v.IdOrigenVenta, periodo.Desde, periodo.Hasta, porActivo ? v.IdActivo : null, sinAgrupar ? v.IdVentaPorFacturar : null),
                 periodo, res.Regla?.ValidaAlFacturar ?? false));
@@ -97,6 +99,10 @@ public static class AgrupadorVentas
         const string enReglas = "en Parámetros y tablas › Reglas de venta";
         if (v.IdActivo is int a && !d.Activos.ContainsKey(a))
             return "Su activo relacionado ya no existe en Activos: elige otro en la venta.";
+        if (res.IdCliente is null && res.Regla is { FacturaAlHuesped: true })
+            return string.IsNullOrWhiteSpace(v.Titular)
+                ? $"La regla de {donde} factura al huésped, pero la venta no trae su nombre: elige el cliente en la venta."
+                : $"La regla de {donde} factura al huésped y aún no está dado de alta como cliente: vuelve a importar de Avaibook o pulsa «Facturar todo», que lo da de alta.";
         if (res.IdCliente is null)
             return $"No tiene cliente: ponlo en la regla de {donde} ({enReglas}) o elige uno en la venta.";
         if (res.IdConcepto is not int c)

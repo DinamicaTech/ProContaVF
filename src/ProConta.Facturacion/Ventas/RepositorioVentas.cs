@@ -8,7 +8,7 @@ internal static class RepositorioVentas
 {
     private const string Columnas =
         "v.IdVentaPorFacturar, v.IdSociedad, v.IdOrigenVenta, v.IdCliente, v.IdActivo, v.IdConcepto, v.FechaReferencia, v.FechaFin, v.Cantidad, v.Importe, " +
-        "v.Comision, v.TipoIva, v.CausaExencion, v.Descripcion, v.Referencia, v.Titular, v.Anulada, v.MotivoAnulacion, v.FacturadaFuera, v.IdFactura, " +
+        "v.Comision, v.TipoIva, v.CausaExencion, v.Descripcion, v.Referencia, v.Titular, v.EmailTitular, v.TelefonoTitular, v.Anulada, v.MotivoAnulacion, v.FacturadaFuera, v.IdFactura, " +
         "v.Fuente, v.IdExterno, v.Huella, v.Incidencia, v.Notas, v.FechaAlta, v.OperadorAlta, v.FechaModificacion, v.Version, " +
         "f.EstadoFactura AS EstadoFacturaEnlazada, f.NumeroFactura AS NumeroFacturaEnlazada";
 
@@ -34,6 +34,8 @@ internal static class RepositorioVentas
             Descripcion = r.Texto("Descripcion"),
             Referencia = r.Texto("Referencia"),
             Titular = r.Texto("Titular"),
+            EmailTitular = r.Texto("EmailTitular"),
+            TelefonoTitular = r.Texto("TelefonoTitular"),
             Anulada = r.Logico("Anulada"),
             MotivoAnulacion = r.Texto("MotivoAnulacion"),
             FacturadaFuera = r.Logico("FacturadaFuera"),
@@ -79,10 +81,10 @@ internal static class RepositorioVentas
     {
         await s.EjecutarAsync(
             "INSERT INTO VentasPorFacturar (IdSociedad, IdOrigenVenta, IdCliente, IdActivo, IdConcepto, FechaReferencia, FechaFin, Cantidad, Importe, Comision, TipoIva, CausaExencion, " +
-            "Descripcion, Referencia, Titular, Anulada, MotivoAnulacion, FacturadaFuera, IdFactura, Fuente, IdExterno, Huella, Incidencia, Notas, FechaAlta, OperadorAlta, FechaModificacion, Version) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+            "Descripcion, Referencia, Titular, EmailTitular, TelefonoTitular, Anulada, MotivoAnulacion, FacturadaFuera, IdFactura, Fuente, IdExterno, Huella, Incidencia, Notas, FechaAlta, OperadorAlta, FechaModificacion, Version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
             v.IdSociedad, v.IdOrigenVenta, v.IdCliente, v.IdActivo, v.IdConcepto, v.FechaReferencia.Date, v.FechaFin?.Date, v.Cantidad, v.Importe, v.Comision, v.TipoIva,
-            Vacio(v.CausaExencion), Recortar(v.Descripcion, 255), Recortar(v.Referencia, 60), Recortar(v.Titular, 150), v.Anulada, Recortar(v.MotivoAnulacion, 255), v.FacturadaFuera,
+            Vacio(v.CausaExencion), Recortar(v.Descripcion, 255), Recortar(v.Referencia, 60), Recortar(v.Titular, 150), Recortar(v.EmailTitular, 255), Recortar(v.TelefonoTitular, 50), v.Anulada, Recortar(v.MotivoAnulacion, 255), v.FacturadaFuera,
             v.IdFactura, v.Fuente, Recortar(v.IdExterno, 80), v.Huella, Recortar(v.Incidencia, 255), Vacio(v.Notas), v.FechaAlta, Recortar(v.OperadorAlta, 100), v.FechaModificacion);
         return await s.UltimoIdAsync();
     }
@@ -91,12 +93,21 @@ internal static class RepositorioVentas
     public static Task ActualizarAsync(ISesionDatos s, VentaPorFacturar v) =>
         s.ActualizarConVersionAsync(
             "UPDATE VentasPorFacturar SET IdOrigenVenta = ?, IdCliente = ?, IdActivo = ?, IdConcepto = ?, FechaReferencia = ?, FechaFin = ?, Cantidad = ?, Importe = ?, Comision = ?, " +
-            "TipoIva = ?, CausaExencion = ?, Descripcion = ?, Referencia = ?, Titular = ?, Anulada = ?, MotivoAnulacion = ?, Huella = ?, Incidencia = ?, Notas = ?, " +
+            "TipoIva = ?, CausaExencion = ?, Descripcion = ?, Referencia = ?, Titular = ?, EmailTitular = ?, TelefonoTitular = ?, Anulada = ?, MotivoAnulacion = ?, Huella = ?, Incidencia = ?, Notas = ?, " +
             "FechaModificacion = ?, Version = Version + 1 WHERE IdVentaPorFacturar = ? AND Version = ?",
             v.Rotulo,
             v.IdOrigenVenta, v.IdCliente, v.IdActivo, v.IdConcepto, v.FechaReferencia.Date, v.FechaFin?.Date, v.Cantidad, v.Importe, v.Comision, v.TipoIva,
-            Vacio(v.CausaExencion), Recortar(v.Descripcion, 255), Recortar(v.Referencia, 60), Recortar(v.Titular, 150), v.Anulada, Recortar(v.MotivoAnulacion, 255),
-            v.Huella, Recortar(v.Incidencia, 255), Vacio(v.Notas), v.FechaModificacion, v.IdVentaPorFacturar, v.Version);
+            Vacio(v.CausaExencion), Recortar(v.Descripcion, 255), Recortar(v.Referencia, 60), Recortar(v.Titular, 150), Recortar(v.EmailTitular, 255), Recortar(v.TelefonoTitular, 50),
+            v.Anulada, Recortar(v.MotivoAnulacion, 255), v.Huella, Recortar(v.Incidencia, 255), Vacio(v.Notas), v.FechaModificacion, v.IdVentaPorFacturar, v.Version);
+
+    /// <summary>Pone a una venta pendiente sin cliente el del huésped dado de alta; devuelve si la ha cambiado.</summary>
+    public static async Task<bool> AsignarClienteHuespedAsync(ISesionDatos s, int id, int idCliente, DateTime ahora) =>
+        await s.EjecutarAsync("UPDATE VentasPorFacturar SET IdCliente = ?, FechaModificacion = ?, Version = Version + 1 " +
+                              "WHERE IdVentaPorFacturar = ? AND IdCliente IS NULL AND IdFactura IS NULL AND Anulada = False AND FacturadaFuera = False", idCliente, ahora, id) == 1;
+
+    /// <summary>Pone el email y el teléfono del huésped de una venta sin tocar nada más (ni su versión: no cambia lo que se factura).</summary>
+    public static Task CompletarContactoTitularAsync(ISesionDatos s, int id, string? email, string? telefono) =>
+        s.EjecutarAsync("UPDATE VentasPorFacturar SET EmailTitular = ?, TelefonoTitular = ? WHERE IdVentaPorFacturar = ?", Recortar(email, 255), Recortar(telefono, 50), id);
 
     /// <summary>Solo anota una incidencia de la fuente (venta ya facturada que ha cambiado), sin tocar sus datos.</summary>
     public static Task AnotarIncidenciaAsync(ISesionDatos s, int id, string? incidencia) =>
@@ -145,16 +156,17 @@ internal static class RepositorioVentas
 
     internal static ReglaVenta MapearRegla(IFilaDatos r) => new(r.Entero("IdReglaVenta"), (r.Texto("IdSociedad") ?? "").Trim(), r.Entero("IdOrigenVenta"), r.EnteroNulo("IdActivo"),
         r.EnteroNulo("IdConcepto"), Vacio(r.Texto("CausaExencion")), r.DecimalNulo("TipoIva"), r.EnteroNulo("IdCliente"), r.Logico("Activa"),
-        AgrupacionVentas.Normalizar(r.Texto("Agrupar")), r.Logico("SepararPorActivo"), (r.Texto("AlFacturar") ?? ReglaVenta.Borrador).Trim());
+        AgrupacionVentas.Normalizar(r.Texto("Agrupar")), r.Logico("SepararPorActivo"), (r.Texto("AlFacturar") ?? ReglaVenta.Borrador).Trim(),
+        !r.EsNulo("FacturaAlHuesped") && r.Logico("FacturaAlHuesped"), r.EnteroNulo("IdAcreedor"));
 
     public static Task<IReadOnlyList<ReglaVenta>> ReglasAsync(ISesionDatos s, string idSociedad) =>
-        s.ConsultarAsync("SELECT IdReglaVenta, IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar FROM ReglasVenta WHERE IdSociedad = ? ORDER BY IdReglaVenta",
+        s.ConsultarAsync("SELECT IdReglaVenta, IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar, FacturaAlHuesped, IdAcreedor FROM ReglasVenta WHERE IdSociedad = ? ORDER BY IdReglaVenta",
             MapearRegla, idSociedad);
 
     public static async Task<int> InsertarReglaAsync(ISesionDatos s, ReglaVenta r)
     {
-        await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            r.IdSociedad, r.IdOrigenVenta, r.IdActivo, r.IdConcepto, Vacio(r.CausaExencion), r.TipoIva, r.IdCliente, r.Activa, AgrupacionVentas.Normalizar(r.Agrupar), r.SepararPorActivo, r.AlFacturar);
+        await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdActivo, IdConcepto, CausaExencion, TipoIva, IdCliente, Activa, Agrupar, SepararPorActivo, AlFacturar, FacturaAlHuesped, IdAcreedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            r.IdSociedad, r.IdOrigenVenta, r.IdActivo, r.IdConcepto, Vacio(r.CausaExencion), r.TipoIva, r.IdCliente, r.Activa, AgrupacionVentas.Normalizar(r.Agrupar), r.SepararPorActivo, r.AlFacturar, r.FacturaAlHuesped, r.IdAcreedor);
         return await s.UltimoIdAsync();
     }
 

@@ -1,4 +1,4 @@
-﻿using ProConta.UI.Base.Preferencias;
+using ProConta.UI.Base.Preferencias;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -242,7 +242,8 @@ public partial class VentanaPrincipal : Window
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador), asientosBanco);
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, cuentas, new CatalogoCentrosCosteAccess(bd), () => this), _terceros.AbrirFicha);
         // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
-        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
+        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador,
+            terceros: new RepositorioTercerosAccess(bd), roles: roles);
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
         // Cotizaciones de los activos financieros (activos/activos-financieros 2026-11-23): Yahoo Finance, EODHD con la clave de Integraciones y cambio del BCE.
         var clienteEodhd = new ProConta.Activos.Financieros.ClienteEodhd(Http);
