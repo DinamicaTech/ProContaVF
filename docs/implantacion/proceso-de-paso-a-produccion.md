@@ -44,6 +44,7 @@ Cada paso se marca con la fecha en que se hace y cómo se comprobó.
 **E. Revisar la configuración**
 - [ ] Sociedades y ejercicios; Empresas › Carpeta de documentos y Ejercicios › Carpeta de facturas de compra (dentro de C:\Docs, para las copias).
 - [ ] Credenciales de AWS Textract por sociedad.
+- [ ] Parámetros y tablas › «Reconocimiento de facturas de compra»: fila de la sociedad con «Activo» y «Usar OCR en los PDF escaneados» marcados (sin la fila, el OCR está apagado aunque haya claves de AWS; detectado el 2026-11-25 con un PDF escaneado de Bauhaus).
 - [ ] Correo: envío y recepción POP3.
 - [ ] Integraciones › Avaibook · Conexión: volver a poner el token.
 - [ ] VeriFactu desactivado.
