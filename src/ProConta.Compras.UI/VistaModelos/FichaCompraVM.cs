@@ -210,6 +210,7 @@ public sealed class FichaCompraVM : ModeloVista
         _cuentaGasto = CuentasGasto.FirstOrDefault(c => c.Valor == factura.CuentaGasto) ?? CuentasGasto[0];
         _centroCoste = CentrosCoste.FirstOrDefault(c => c.Valor == factura.IdCentroCoste) ?? CentrosCoste[0];
         DarDeAltaProveedorCommand = new ComandoDelegado(_ => _ = DarDeAltaProveedor?.Invoke(this), _ => DarDeAltaProveedor is not null && PuedeDarDeAltaProveedor);
+        BuscarProveedorCommand = new ComandoDelegado(p => _ = BuscarProveedorAsync(p as string, diferir: false), _ => !SoloLectura && ElegirProveedor is not null);
         NombreComercialCommand = new ComandoDelegado(_ => _ = EditarNombreComercial?.Invoke(this), _ => PuedeEditarNombreComercial);
         AnadirTextoClaveCommand = new ComandoDelegado(_ => _ = AnadirTextoClave?.Invoke(this, null, null),
             _ => AnadirTextoClave is not null && (_cuentaGasto.Valor is not null || _centroCoste.Valor is not null));
@@ -277,7 +278,10 @@ public sealed class FichaCompraVM : ModeloVista
         get => _nif;
         set
         {
-            if (!Cambiar(ref _nif, (value ?? "").Trim().ToUpperInvariant(), "nif")) return;
+            var t = (value ?? "").Trim();
+            // Un nombre en vez de un NIF (sin cifras): el campo se queda como estaba y se abre el buscador con lo escrito.
+            if (!SoloLectura && !_cargando && EsNombre(t)) { Avisar(nameof(Nif)); _ = BuscarProveedorAsync(t, diferir: true); return; }
+            if (!Cambiar(ref _nif, t.ToUpperInvariant(), "nif")) return;
             _proveedor = BuscarPorNif(_nif);
             _cuentaProveedorNueva = null;
             Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
@@ -427,6 +431,56 @@ public sealed class FichaCompraVM : ModeloVista
         Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
         ProponerFormaPago();
         ProponerProducto();
+    }
+
+    /// <summary>Lupa, F4 o «Buscar proveedor…» junto al NIF: abre el buscador de proveedores por nombre o NIF (compras/pantallas 2026-11-25).</summary>
+    public System.Windows.Input.ICommand BuscarProveedorCommand { get; }
+
+    /// <summary>Lo pone la pantalla: enseña los proveedores de la empresa filtrados por el texto y devuelve el elegido, o null.</summary>
+    internal Func<IReadOnlyList<ProveedorFicha>, string, ProveedorFicha?>? ElegirProveedor { get; set; }
+
+    /// <summary>Lo escrito en el NIF es un nombre: tiene letras y ninguna cifra (todo NIF, también los extranjeros, lleva cifras).</summary>
+    internal static bool EsNombre(string texto) => texto.Any(char.IsLetter) && !texto.Any(char.IsDigit);
+
+    private bool _buscandoProveedor;
+
+    /// <summary>Abre el buscador de proveedores con el texto dado (o el nombre del proveedor actual) y toma el elegido.</summary>
+    internal async Task BuscarProveedorAsync(string? texto, bool diferir)
+    {
+        if (SoloLectura || ElegirProveedor is null || _buscandoProveedor) return;
+        // Desde el campo, después de que termine de escribirse el valor (no se abre una ventana dentro del enlace).
+        if (diferir) await Task.Yield();
+        if (_buscandoProveedor) return;
+        _buscandoProveedor = true;
+        try
+        {
+            var t = (texto ?? "").Trim();
+            // Con el NIF del proveedor actual en el campo, el buscador se abre vacío para buscar otro por nombre.
+            if (_proveedor is not null && Nucleo.Identificacion.Nif.Normalizar(t) == Nucleo.Identificacion.Nif.Normalizar(_nif)) t = "";
+            if (ElegirProveedor(_proveedores, t) is { } elegido) TomarProveedor(elegido);
+            // Cancelado: el campo vuelve al NIF que había (si no, el nombre escrito volvería a abrir el buscador).
+            else Avisar(nameof(Nif));
+        }
+        finally
+        {
+            _buscandoProveedor = false;
+        }
+    }
+
+    /// <summary>El proveedor elegido en el buscador: la ficha toma su NIF y ese proveedor (aunque otro tenga el mismo NIF).</summary>
+    internal void TomarProveedor(ProveedorFicha elegido)
+    {
+        if (SoloLectura) return;
+        var mismo = _proveedor?.IdProveedor == elegido.IdProveedor;
+        Cambiar(ref _nif, elegido.Nif.Trim().ToUpperInvariant(), "nif", nameof(Nif));
+        if (mismo) return;
+        _proveedor = elegido;
+        _cuentaProveedorNueva = null;
+        Marcar("proveedor");
+        Avisar(nameof(NombreProveedor), nameof(HayProveedor), nameof(AvisoProveedor), nameof(RazonSocialAeat), nameof(PuedeDarDeAltaProveedor), nameof(IdTerceroProveedor), nameof(Cuenta), nameof(PuedeEditarNombreComercial), nameof(MarcaVies), nameof(AyudaVies));
+        ProponerFormaPago();
+        ProponerProducto();
+        ProponerAbreviado();
     }
 
     private ProveedorFicha? BuscarPorNif(string nif)

@@ -290,8 +290,27 @@
                             <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.user}" Margin="6,0,0,0"
                                     Command="{Binding DataContext.AbrirProveedorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     ToolTip="Abre la ficha del proveedor en Terceros" AutomationProperties.Name="Abrir la ficha del proveedor" />
-                            <TextBox Text="{Binding Nif, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}" Tag="nif"
-                                     GotKeyboardFocus="Campo_GotKeyboardFocus" ToolTip="NIF del proveedor; selecciona texto en el PDF para rellenarlo" />
+                            <!-- Buscador de proveedores por nombre o NIF (compras/pantallas 2026-11-25), como el de la cuenta de gasto. -->
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.search}" Margin="6,0,0,0"
+                                    Command="{Binding BuscarProveedorCommand}" CommandParameter="{Binding Text, ElementName=CampoNif}"
+                                    ToolTip="Busca el proveedor por su nombre o su NIF entre los de la empresa (F4)" AutomationProperties.Name="Buscar el proveedor" />
+                            <TextBox x:Name="CampoNif" Text="{Binding Nif, UpdateSourceTrigger=LostFocus}" Style="{StaticResource Campo.Mono}" IsReadOnly="{Binding SoloLectura}" Tag="nif"
+                                     GotKeyboardFocus="Campo_GotKeyboardFocus"
+                                     ToolTip="NIF del proveedor; selecciona texto en el PDF para rellenarlo. Escribe un nombre o pulsa F4 para buscarlo entre los proveedores">
+                              <TextBox.ContextMenu>
+                                <ContextMenu>
+                                  <MenuItem Header="Buscar proveedor…" InputGestureText="F4" Command="{Binding BuscarProveedorCommand}" CommandParameter="{Binding PlacementTarget.Text, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                            ToolTip="Busca el proveedor por su nombre o su NIF entre los de la empresa" />
+                                  <Separator />
+                                  <MenuItem Command="ApplicationCommands.Cut" Header="Cortar" />
+                                  <MenuItem Command="ApplicationCommands.Copy" Header="Copiar" />
+                                  <MenuItem Command="ApplicationCommands.Paste" Header="Pegar" />
+                                </ContextMenu>
+                              </TextBox.ContextMenu>
+                              <TextBox.InputBindings>
+                                <KeyBinding Key="F4" Command="{Binding BuscarProveedorCommand}" CommandParameter="{Binding Text, ElementName=CampoNif}" />
+                              </TextBox.InputBindings>
+                            </TextBox>
                           </DockPanel>
                           <DockPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.edit}" Margin="6,0,0,0" Command="{Binding NombreComercialCommand}"

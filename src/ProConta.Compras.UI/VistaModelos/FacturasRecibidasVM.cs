@@ -693,6 +693,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
             {
                 value.PropertyChanged += AlCambiarFicha;
                 value.BuscarCuenta = BuscarCuentaGastoAsync;
+                value.ElegirProveedor = (lista, texto) => _modulo.Dialogos.ElegirProveedor(lista, texto);
                 if (_s.TextosClave is not null && _puedeEditar && !Prueba) value.AnadirTextoClave = AnadirTextoClaveAsync;
                 if (_s.AltaProveedor is not null && _puedeEditar && !Prueba)
                 {
