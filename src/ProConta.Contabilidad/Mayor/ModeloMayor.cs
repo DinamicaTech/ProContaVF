@@ -74,8 +74,9 @@ public sealed record DatosMayor(
 /// <param name="Apuntes">Apuntes del periodo (con la apertura del primer ejercicio, sin cierres).</param>
 /// <param name="EsSubcuenta">Admite apuntes (imputable); las cuentas de grupo muestran todas sus subcuentas.</param>
 /// <param name="Cuadre">Si está cuadrada en los ejercicios elegidos; <paramref name="AyudaCuadre"/> dice cuándo, quién y con qué comentario.</param>
+/// <param name="Descripcion">Descripción de la cuenta en el plan (CuentasContables.Descripcion), la del ejercicio más reciente de la vista.</param>
 public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta,
-    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null)
+    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null, string? Descripcion = null)
 {
     public string Etiqueta => Nombre.Length > 0 ? $"{Codigo} {Nombre}" : Codigo;
 }
@@ -84,7 +85,7 @@ public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinA
 public sealed record SumaCuenta(string Cuenta, int IdSociedadEjercicio, byte TipoAsiento, decimal Debe, decimal Haber, int Apuntes);
 
 /// <summary>Cuenta del plan de un ejercicio (CuentasContables).</summary>
-public sealed record PlanCuenta(string Codigo, string Nombre, bool EsImputable, int IdSociedadEjercicio);
+public sealed record PlanCuenta(string Codigo, string Nombre, bool EsImputable, int IdSociedadEjercicio, string? Descripcion = null);
 
 /// <summary>Asiento completo para verlo en solo lectura desde el Mayor.</summary>
 public sealed record AsientoMayor(

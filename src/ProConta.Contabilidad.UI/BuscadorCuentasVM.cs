@@ -21,6 +21,7 @@ public sealed class BuscadorCuentasVM : ModeloVista
     private List<CuentaContable> _todas = [];
     private string _texto;
     private bool _soloGrupos;
+    private bool _soloConSaldo;
     private IReadOnlyList<CuentaContable> _resultados = [];
     private CuentaContable? _seleccionada;
     private string _estado = "Leyendo el plan de cuentas…";
@@ -63,6 +64,12 @@ public sealed class BuscadorCuentasVM : ModeloVista
 
     public string Texto { get => _texto; set { if (Fijar(ref _texto, value ?? "")) Filtrar(); } }
     public bool SoloGrupos { get => _soloGrupos; set { if (Fijar(ref _soloGrupos, value)) Filtrar(); } }
+
+    /// <summary>
+    /// Solo las cuentas con saldo actual distinto de cero en el ejercicio de trabajo (la caché de CuentasContables que
+    /// mantiene el motor de asientos); desmarcada al abrir (contabilidad/cuenta-contable 2026-11-25).
+    /// </summary>
+    public bool SoloConSaldo { get => _soloConSaldo; set { if (Fijar(ref _soloConSaldo, value)) Filtrar(); } }
     public IReadOnlyList<CuentaContable> Resultados { get => _resultados; private set => Fijar(ref _resultados, value); }
     public CuentaContable? Seleccionada { get => _seleccionada; set { if (Fijar(ref _seleccionada, value)) Avisar(nameof(CuentaPropuesta)); } }
     public string Estado { get => _estado; private set => Fijar(ref _estado, value); }
@@ -82,10 +89,12 @@ public sealed class BuscadorCuentasVM : ModeloVista
 
     private void Filtrar()
     {
-        Resultados = BuscadorCuentas.Filtrar(_todas, _texto, Limite, SoloSubcuentas);
+        var lista = BuscadorCuentas.Filtrar(_todas, _texto, Limite, SoloSubcuentas);
+        Resultados = _soloConSaldo ? lista.Where(c => Math.Round(c.SaldoActual, 2) != 0).ToList() : lista;
         Seleccionada = Resultados.FirstOrDefault(c => c.Codigo == _texto.Trim()) ?? Resultados.FirstOrDefault();
         Estado = Resultados.Count == 0
-            ? _soloGrupos && HayGrupos ? $"Ninguna cuenta del {(Grupos.Count == 1 ? "grupo " + Grupos[0] : "filtro")} coincide. Quita «{TextoGrupos}» o crea la subcuenta." : "Ninguna cuenta coincide. Puedes crear la subcuenta."
+            ? _soloConSaldo && lista.Count > 0 ? "Ninguna cuenta que coincide tiene saldo. Quita «Solo con saldo» para verlas."
+            : _soloGrupos && HayGrupos ? $"Ninguna cuenta del {(Grupos.Count == 1 ? "grupo " + Grupos[0] : "filtro")} coincide. Quita «{TextoGrupos}» o crea la subcuenta." : "Ninguna cuenta coincide. Puedes crear la subcuenta."
             : Resultados.Count == 1 ? "1 cuenta" : $"{Resultados.Count} cuentas";
     }
 
