@@ -114,20 +114,44 @@ internal sealed class AccionesDocumentos(ModuloDocumentos modulo)
         return true;
     }
 
-    /// <summary>Elimina documentos (de la bandeja, o archivados sin vínculos) tras confirmarlo; sus ficheros van a la papelera de Windows.</summary>
+    /// <summary>
+    /// Elimina documentos tras confirmarlo; sus ficheros van a la papelera de Windows. Los archivados con vínculos (documentos 2026-11-25) se
+    /// eliminan en el mismo paso con «Quitar los vínculos y eliminar», que enseña antes a qué está vinculado cada uno. Los justificantes de una
+    /// presentación a la AEAT se quedan siempre, y se dice por qué.
+    /// </summary>
     public async Task<bool> EliminarAsync(IReadOnlyList<FilaDocumentoVM> filas, object? origen)
     {
         if (filas.Count == 0) return false;
         if (!await Ctx.Servicio.PuedeAsync()) { modulo.SinPermiso(); return false; }
-        var bandeja = filas.All(f => f.Datos.PorClasificar);
+        var justificantes = await Ctx.Servicio.JustificantesAsync(filas.Select(f => f.Id).ToList());
+        var quedan = filas.Where(f => justificantes.ContainsKey(f.Id)).ToList();
+        var eliminables = filas.Where(f => !justificantes.ContainsKey(f.Id)).ToList();
+        var explicacionQuedan = quedan.Select(f => $"«{f.Datos.Titulo}» es el justificante de la presentación del {justificantes[f.Id]}: es la prueba de lo presentado y se queda. " +
+                                                   "Si es el fichero equivocado, sustitúyelo con «Nueva versión…».").ToList();
+        if (eliminables.Count == 0)
+        {
+            Dlg.Error(quedan.Count == 1 ? "No se puede eliminar" : "No se pueden eliminar", "Estos documentos se quedan:", explicacionQuedan);
+            return false;
+        }
+        var bandeja = eliminables.All(f => f.Datos.PorClasificar);
+        var vinculados = eliminables.Where(f => !f.Datos.PorClasificar && f.Datos.Vinculos.Count > 0).ToList();
         var mensaje = bandeja
-            ? $"Se quita{(filas.Count == 1 ? "" : "n")} de «Por clasificar» y su copia va a la papelera de Windows. El fichero original, si no elegiste moverlo, sigue donde estaba."
-            : "Se elimina del gestor y su fichero va a la papelera de Windows (se puede recuperar de ahí). Solo se pueden eliminar los que no tienen vínculos.";
-        if (Dlg.Preguntar(bandeja ? "Quitar de la bandeja" : "Eliminar documentos", mensaje, filas.Select(f => f.Datos.Titulo).ToList(),
-                new OpcionMensaje(bandeja ? "Quitar" : "Eliminar", bandeja ? "Los quita de la bandeja" : "Los elimina y manda sus ficheros a la papelera", Principal: true, Peligro: true),
+            ? $"Se quita{(eliminables.Count == 1 ? "" : "n")} de «Por clasificar» y su copia va a la papelera de Windows. El fichero original, si no elegiste moverlo, sigue donde estaba."
+            : "Se elimina" + (eliminables.Count == 1 ? "" : "n") + " del gestor y su fichero va a la papelera de Windows (se puede recuperar de ahí)." +
+              (vinculados.Count == 0 ? "" : vinculados.Count == 1 && eliminables.Count == 1
+                  ? " Está vinculado a lo que se ve abajo: se quitan esos vínculos y lo vinculado no cambia."
+                  : $" {(vinculados.Count == 1 ? "Uno está vinculado" : $"{vinculados.Count} están vinculados")} a lo que se ve abajo: se quitan esos vínculos y lo vinculado no cambia.");
+        if (quedan.Count > 0) mensaje += $" {(quedan.Count == 1 ? "Otro se queda" : $"Otros {quedan.Count} se quedan")} porque es justificante de la AEAT.";
+        var detalle = eliminables.Select(f => !f.Datos.PorClasificar && f.Datos.Vinculos.Count > 0
+            ? $"{f.Datos.Titulo} — vinculado a {string.Join(", ", f.Datos.Vinculos.Select(v => v.Etiqueta))}"
+            : f.Datos.Titulo).Concat(explicacionQuedan).ToList();
+        var boton = bandeja ? "Quitar" : vinculados.Count > 0 ? "Quitar los vínculos y eliminar" : "Eliminar";
+        if (Dlg.Preguntar(bandeja ? "Quitar de la bandeja" : "Eliminar documentos", mensaje, detalle,
+                new OpcionMensaje(boton, bandeja ? "Los quita de la bandeja" : vinculados.Count > 0 ? "Quita sus vínculos, los elimina y manda sus ficheros a la papelera"
+                    : "Los elimina y manda sus ficheros a la papelera", Principal: true, Peligro: true),
                 new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0)
             return false;
-        var r = await Ctx.Servicio.EliminarAsync(filas.Select(f => f.Id).ToList());
+        var r = await Ctx.Servicio.EliminarAsync(eliminables.Select(f => f.Id).ToList(), quitarVinculos: true);
         if (!r.EsCorrecto) Dlg.Error("No se han eliminado todos", r.Error!.TextoOperador());
         else Ctx.Avisar(ModuloDocumentos.Plural(r.Valor, "documento eliminado", "documentos eliminados") + ". Sus ficheros están en la papelera de Windows.");
         modulo.Cambiado(origen);
