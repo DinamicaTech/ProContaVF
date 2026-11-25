@@ -416,7 +416,7 @@ public sealed class ConciliacionN43AccessTests : IDisposable
     }
 
     [Fact]
-    public async Task Un_asiento_del_erp_por_la_555_o_de_una_nomina_no_se_borra_y_el_motivo_lo_dice()
+    public async Task Un_asiento_del_erp_aparcado_en_la_555_se_deshace_pero_el_de_una_nomina_no_y_el_motivo_lo_dice()
     {
         var ids = await PrepararAsync(M(11, 2, 100m, true, "RECIBO POR LA PUENTE"), M(11, 3, 900m, true, "NOMINA FICTICIA"));
         foreach (var (codigo, nombre) in new[] { ("5550000", "Partidas pendientes ficticias"), ("6400000", "Sueldos ficticios"), ("4650001", "Remuneraciones ficticias") })
@@ -425,20 +425,21 @@ public sealed class ConciliacionN43AccessTests : IDisposable
             Assert.True(c.EsCorrecto, c.Error?.ToString());
         }
         await ErpAsync(
-            ([ids[0]], [Apunte.AlDebe("6280001", 100m), Apunte.AlHaber("5550000", 100m)]),
+            ([ids[0]], [Apunte.AlDebe("5550000", 100m), Apunte.AlHaber("5720001", 100m)]),
             ([ids[1]], [Apunte.AlDebe("6400000", 900m), Apunte.AlHaber("4650001", 900m)]));
 
         var lineas = await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]);
-        Assert.Contains("555", lineas.Single(l => l.Id == ids[0]).BloqueoDeshacerErp);
+        // Aparcado en la puente sin cuenta (propietario 2026-11-25 16:52): se puede deshacer.
+        Assert.Null(lineas.Single(l => l.Id == ids[0]).BloqueoDeshacerErp);
         Assert.Contains("nómina", lineas.Single(l => l.Id == ids[1]).BloqueoDeshacerErp);
-        Assert.Contains("555", AccionesLineasN43.Evaluar([lineas.Single(l => l.Id == ids[0])]).Deshacer);
+        Assert.Null(AccionesLineasN43.Evaluar([lineas.Single(l => l.Id == ids[0])]).Deshacer);
+        Assert.Contains("nómina", AccionesLineasN43.Evaluar([lineas.Single(l => l.Id == ids[1])]).Deshacer);
 
         var r = await Servicio.DeshacerAsync("T01", ids, _actor, "Probar");
-        Assert.Empty(r.Asientos);
-        Assert.Contains("555", r.Rechazadas[ids[0]][0].ToString());
+        Assert.Equal([ids[0]], r.Asientos.Keys);
         Assert.Contains("nómina", r.Rechazadas[ids[1]][0].ToString());
-        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
-        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto"));
     }
 
     [Fact]

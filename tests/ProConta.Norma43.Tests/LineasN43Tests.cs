@@ -119,11 +119,11 @@ public sealed class LineasN43Tests
         Assert.NotNull(propia.Reasignar); // contabilizada: no se reasigna
 
         // Del ERP con un asiento que no es «de banco limpio»: no se deshace, y el motivo lo dice (norma43/conciliacion 2026-11-25 15:30).
-        var erp = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 8, propio: false) with { BloqueoDeshacerErp = "Su asiento 8 pasa por la cuenta puente 5550000." }]);
+        var erp = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 8, propio: false) with { BloqueoDeshacerErp = "Su asiento 8 es el de una nómina (lleva la 6400000)." }]);
         Assert.Contains("ERP", erp.AsignarCuenta);
         Assert.NotNull(erp.Contabilizar);
         Assert.Contains("ERP", erp.Deshacer);
-        Assert.Contains("5550000", erp.Deshacer);
+        Assert.Contains("nómina", erp.Deshacer);
         Assert.Empty(erp.ADeshacer);
 
         // Del ERP con asiento de banco limpio: se deshace; sus textos no se actualizan, y asignar cuenta pide deshacer antes.
@@ -323,8 +323,14 @@ public sealed class LineasN43Tests
         Assert.Contains("factura", AsientosErpN43.Bloqueo(Erp("6280001", "5720001") with { LibroIva = true }, "5720001"));
         Assert.Contains("una factura de compra", AsientosErpN43.Bloqueo(Erp("4000001", "5720001") with { UsadoPor = "una factura de compra" }, "5720001"));
         Assert.Contains("nómina", AsientosErpN43.Bloqueo(Erp("6400000", "4650102", "4751000", "4760003"), "5720001"));
-        Assert.Contains("555", AsientosErpN43.Bloqueo(Erp("5550000", "4300001"), "5720001"));
-        Assert.Contains("no lleva la 572", AsientosErpN43.Bloqueo(Erp("4300001", "7050000"), "5720001"));
-        Assert.Contains("5720009", AsientosErpN43.Bloqueo(Erp("6280001", "5720009"), "5720001"));
+        // La 555 puente como contrapartida (movimiento aparcado sin cuenta) no lo impide (propietario 2026-11-25 16:52), y en un banco ficticio
+        // (remesas) la 555 es la propia cuenta del banco.
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("5720001", "5550017"), "5720001"));
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("5550025", "4300001"), "5550025"));
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("5550025", "4300001"), null));
+        Assert.Contains("movimiento dividido", AsientosErpN43.Bloqueo(Erp("5550045", "4300001"), "5720001")); // fracción de un SPLIT del ERP
+        Assert.Contains("no lleva la cuenta 5720001", AsientosErpN43.Bloqueo(Erp("4300001", "7050000"), "5720001"));
+        Assert.Contains("ninguna cuenta de banco", AsientosErpN43.Bloqueo(Erp("4300001", "7050000"), null));
+        Assert.Contains("5720001", AsientosErpN43.Bloqueo(Erp("6280001", "5720009"), "5720001"));
     }
 }
