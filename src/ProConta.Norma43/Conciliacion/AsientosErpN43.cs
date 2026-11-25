@@ -16,7 +16,7 @@ public sealed record AsientoErpN43(int IdAsiento, bool ImportadoContaSol, IReadO
 /// <summary>Reglas y lecturas del deshacer de las líneas contabilizadas en el ERP (norma43/conciliacion 2026-11-25 15:30).</summary>
 public static class AsientosErpN43
 {
-    /// <summary>Cuenta puente del ERP: el asiento de la línea no lleva el banco, que va en otro asiento.</summary>
+    /// <summary>Cuenta puente (555): donde el ERP aparca los movimientos sin cuenta, y la «cuenta de banco» de los bancos ficticios.</summary>
     public const string PrefijoPuente = "555";
 
     private static readonly string[] Iva = ["472", "477"];
@@ -24,9 +24,10 @@ public static class AsientosErpN43
 
     /// <summary>
     /// Por qué no se puede deshacer el asiento del ERP de una línea, o null si es un asiento «de banco limpio»: importado de ContaSol, con la
-    /// 572 del banco de la línea, sin la 555 puente, sin IVA (472/477 o libro de IVA), sin nómina (640/476) y sin otro proceso que lo use.
+    /// cuenta del banco de la línea, sin IVA (472/477 o libro de IVA), sin nómina (640/476) y sin otro proceso que lo use. La 555 puente como
+    /// contrapartida (movimiento aparcado sin cuenta) no lo impide.
     /// </summary>
-    /// <param name="cuentaBanco">La 572 de la línea en su ejercicio; null si no se conoce (entonces basta con que lleve alguna 572).</param>
+    /// <param name="cuentaBanco">La cuenta del banco de la línea en su ejercicio (572, o 555 en un banco ficticio); null si no se conoce (entonces basta con que lleve alguna 572 o 555).</param>
     public static string? Bloqueo(AsientoErpN43? a, string? cuentaBanco)
     {
         if (a is null) return "Su asiento ya no existe: pulsa F5 para releer las líneas.";
@@ -40,13 +41,20 @@ public static class AsientosErpN43
             return $"Su asiento {a.IdAsiento} es también el de {a.UsadoPor}: borrarlo lo dejaría sin asiento. Corrígelo desde el Mayor.";
         if (Con(Nomina) is { } nomina)
             return $"Su asiento {a.IdAsiento} es el de una nómina (lleva la {nomina}): borrarlo quitaría la nómina. Corrígelo desde el Mayor.";
-        if (Con([PrefijoPuente]) is { } puente)
-            return $"Su asiento {a.IdAsiento} pasa por la cuenta puente {puente} y el banco va en otro asiento: borrarlo dejaría la {PrefijoPuente} descuadrada. Corrígelo desde el Mayor.";
-        var bancos = cuentas.Where(ReglasAsiento.EsCuentaBanco).ToList();
-        if (bancos.Count == 0)
-            return $"Su asiento {a.IdAsiento} no lleva la 572 del banco: es el de otra operación. Corrígelo desde el Mayor.";
-        if (!string.IsNullOrWhiteSpace(cuentaBanco) && !bancos.Contains(cuentaBanco.Trim(), StringComparer.Ordinal))
-            return $"Su asiento {a.IdAsiento} lleva la {bancos[0]} y no la {cuentaBanco.Trim()} de este banco: corrígelo desde el Mayor.";
+        // La cuenta del banco es la de su configuración: una 572 o, en los bancos ficticios (remesas, devoluciones), una 555. La 555 como
+        // contrapartida es la puente donde se aparcan los movimientos sin cuenta: deshacerlos es justo lo que se quiere (propietario 2026-11-25 16:52).
+        if (!string.IsNullOrWhiteSpace(cuentaBanco))
+        {
+            var banco = cuentaBanco.Trim();
+            if (cuentas.Contains(banco, StringComparer.Ordinal)) return null;
+            // Una fracción de un movimiento dividido en el ERP («SPLIT»): va contra la 555 del split, no contra el banco, y el banco está en el
+            // asiento del movimiento entero; borrarla sola dejaría esa 555 descuadrada.
+            return Con([PrefijoPuente]) is { } split
+                ? $"Su asiento {a.IdAsiento} va contra la {split} y no contra la {banco} de este banco: es una parte de un movimiento dividido en el ERP, y borrarla sola dejaría la {split} descuadrada. Corrígelo desde el Mayor."
+                : $"Su asiento {a.IdAsiento} no lleva la cuenta {banco} de este banco: es el de otra operación. Corrígelo desde el Mayor.";
+        }
+        if (!cuentas.Any(c => ReglasAsiento.EsCuentaBanco(c) || c.StartsWith(PrefijoPuente, StringComparison.Ordinal)))
+            return $"Su asiento {a.IdAsiento} no lleva ninguna cuenta de banco: es el de otra operación. Corrígelo desde el Mayor.";
         return null;
     }
 
