@@ -180,7 +180,7 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
         var asientosErp = await AsientosErpN43.LeerAsync(s, contabilizadas.Values.Where(c => c.Existe && !c.Propio).Select(c => c.Asiento));
 
         // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea, por su cobro, su
-        // devolución o un reintento (norma43/remesas).
+        // devolución, un reintento (norma43/remesas) o un cobro a trozos (norma43/conciliacion/plataformas).
         var facturas = new Dictionary<int, List<string>>();
         var desgloses = new Dictionary<int, int>();
         foreach (var bloque in filas.Select(f => f.Id).Chunk(300))
@@ -189,13 +189,15 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             const string venta = "SELECT {0} AS Linea, s.Prefijo, f.NumeroFactura FROM {1} WHERE {0} IN ({2})";
             const string desdeVenta = "Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
             const string desdeReintento = "(ReintentosSEPA AS r INNER JOIN Facturas AS f ON r.IdFactura = f.IdFactura) LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
+            const string desdeTrozo = "(CobrosParcialesN43 AS c INNER JOIN Facturas AS f ON c.IdFactura = f.IdFactura) LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
             static (int Linea, string Numero) Venta(IFilaDatos f) => (f.Entero("Linea"), (Limpio(f.Texto("Prefijo")) ?? "") + (Limpio(f.Texto("NumeroFactura")) ?? ""));
             var enlazadas = (await s.ConsultarAsync($"SELECT LineaN43, NumeroFactura FROM FacturasCompra WHERE LineaN43 IN ({lista})",
                     f => (Linea: f.Entero("LineaN43"), Numero: Limpio(f.Texto("NumeroFactura")) ?? "(sin número)")))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43", desdeVenta, lista), Venta))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43Devolucion", desdeVenta, lista), Venta))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43", desdeReintento, lista), Venta))
-                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43Devolucion", desdeReintento, lista), Venta));
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43Devolucion", desdeReintento, lista), Venta))
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "c.LineaN43", desdeTrozo, lista), Venta));
             foreach (var e in enlazadas)
             {
                 if (!facturas.TryGetValue(e.Linea, out var l)) facturas[e.Linea] = l = [];

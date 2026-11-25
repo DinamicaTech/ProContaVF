@@ -25,6 +25,7 @@ public sealed class AsientosBancoN43(IBaseDatos bd, ServicioConciliacionN43 conc
                 foreach (var f in await s.ConsultarAsync($"SELECT LineaN43, LineaN43Devolucion FROM {tabla} WHERE IdFactura = ?",
                              x => (x.EnteroNulo("LineaN43"), x.EnteroNulo("LineaN43Devolucion")), idFactura))
                     ids.AddRange([f.Item1, f.Item2]);
+            ids.AddRange(await s.ConsultarAsync("SELECT LineaN43 FROM CobrosParcialesN43 WHERE IdFactura = ?", x => x.EnteroNulo("LineaN43"), idFactura));
             return ids.OfType<int>().ToList();
         });
         return await ActualizarAsync(lineas, actor, "Cambio en la factura de venta enlazada");
@@ -79,6 +80,7 @@ public sealed class AsientosBancoN43(IBaseDatos bd, ServicioConciliacionN43 conc
                     foreach (var f in await s.ConsultarAsync($"SELECT LineaN43, LineaN43Devolucion FROM {tabla} WHERE IdFactura IN ({lista})",
                                  x => (x.EnteroNulo("LineaN43"), x.EnteroNulo("LineaN43Devolucion"))))
                         lineas.UnionWith(new[] { f.Item1, f.Item2 }.OfType<int>());
+                lineas.UnionWith(await s.ConsultarAsync($"SELECT LineaN43 FROM CobrosParcialesN43 WHERE IdFactura IN ({lista})", x => x.Entero("LineaN43")));
             }
             foreach (var bloque in (idsRegistroCompra ?? []).Distinct().Chunk(200))
                 lineas.UnionWith((await s.ConsultarAsync($"SELECT LineaN43 FROM FacturasCompra WHERE IdRegistro IN ({Lista(bloque)})",

@@ -62,6 +62,7 @@ public static class DuenosTablas
             "IncidenciasImportacionBancaria", "LotesImportacionBancaria", "PalabrasClaveBancarias");
         Asignar("norma43", "norma43/conciliacion", "ConceptosN43");
         Asignar("norma43", "norma43/remesas", "ReintentosSEPA");
+        Asignar("norma43", "norma43/conciliacion/plataformas", "CobrosParcialesN43");
         Asignar("correo", "correo", "ConfiguracionCorreo", "PlantillasCorreo", "TiposCorreo", "EnviosCorreo",
             "ConfiguracionMailDispatcher", "ProcesamientosMailDispatcher", "AdjuntosMailDispatcher");
         Asignar("correo", "correo/envio", "CuentasCorreo", "LotesCorreo", "MensajesCorreo", "DestinatariosMensajeCorreo", "AdjuntosMensajeCorreo",
