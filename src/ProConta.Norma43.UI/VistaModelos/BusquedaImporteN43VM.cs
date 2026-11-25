@@ -16,11 +16,20 @@ public sealed class BusquedaImporteN43VM : ModeloVista
     {
         ArgumentNullException.ThrowIfNull(busquedas);
         var premarcadas = ReglasBusquedaImporteN43.Premarcadas(busquedas);
-        Grupos = busquedas.Select(b => new GrupoBusquedaImporteN43VM(this, b,
+        // Solo los movimientos con alguna factura que conciliar (propietario 2026-11-25): los demás no aparecen.
+        Buscados = busquedas.Count;
+        Grupos = busquedas.Where(b => b.Candidatos.Count > 0).Select(b => new GrupoBusquedaImporteN43VM(this, b,
             b.Candidatos.Select(c => new CandidatoBusquedaImporteN43VM(this, b.Linea.Id, c, premarcadas.Contains((b.Linea.Id, c.Documento.Tipo, c.Documento.Id)), abrir)).ToList())).ToList();
     }
 
+    /// <summary>Los movimientos con alguna factura candidata; los que no tienen ninguna no se muestran.</summary>
     public IReadOnlyList<GrupoBusquedaImporteN43VM> Grupos { get; }
+
+    /// <summary>Cuántos movimientos se buscaron (con candidatas o sin ellas).</summary>
+    public int Buscados { get; }
+
+    /// <summary>Cuántos movimientos buscados no tienen ninguna factura que conciliar y no aparecen.</summary>
+    public int SinFacturas => Buscados - Grupos.Count;
 
     private IEnumerable<CandidatoBusquedaImporteN43VM> Todos => Grupos.SelectMany(g => g.Candidatos);
 
@@ -30,11 +39,13 @@ public sealed class BusquedaImporteN43VM : ModeloVista
     {
         get
         {
-            var con = Grupos.Count(g => g.Candidatos.Count > 0);
-            return Grupos.Count == 1
-                ? con == 0 ? "No he encontrado ninguna factura con este importe." : "Marca con un clic las facturas que paga o cobra este movimiento."
-                : (con == Grupos.Count ? $"Los {Grupos.Count} movimientos tienen candidatas." : $"{con} de los {Grupos.Count} movimientos tienen candidatas.")
-                  + " Marca con un clic las facturas que paga o cobra cada uno.";
+            if (Grupos.Count == 0)
+                return Buscados == 1 ? "No he encontrado ninguna factura que pueda conciliar este movimiento."
+                    : $"Ninguno de los {Buscados} movimientos tiene facturas que pueda conciliar.";
+            var marca = Grupos.Count == 1 ? "Marca con un clic las facturas que paga o cobra este movimiento." : "Marca con un clic las facturas que paga o cobra cada uno.";
+            if (SinFacturas == 0) return Grupos.Count == 1 ? marca : $"Los {Grupos.Count} movimientos tienen facturas que pueden conciliar. {marca}";
+            return $"{(Grupos.Count == 1 ? "Se muestra 1 movimiento" : $"Se muestran {Grupos.Count} movimientos")} de los {Buscados} elegidos; " +
+                $"{(SinFacturas == 1 ? "el otro no tiene" : $"los otros {SinFacturas} no tienen")} ninguna factura que pueda conciliar. {marca}";
         }
     }
 

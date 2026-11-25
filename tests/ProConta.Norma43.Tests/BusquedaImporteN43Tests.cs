@@ -91,6 +91,24 @@ public sealed class BusquedaImporteN43Tests
     }
 
     [Fact]
+    public void El_dialogo_solo_muestra_los_movimientos_con_alguna_factura_que_conciliar()
+    {
+        var l1 = L(1, 100m);
+        var l2 = L(2, 555m);
+        var l3 = L(3, 777m);
+        var docs = new[] { C(1, 100m, 0) };
+        var vm = new BusquedaImporteN43VM([.. new[] { l1, l2, l3 }.Select(l => new BusquedaLineaN43(l, ReglasBusquedaImporteN43.Elegir(l, docs)))], null);
+        Assert.Equal([1], vm.Grupos.Select(g => g.Candidatos[0].IdLinea));
+        Assert.Equal((3, 2), (vm.Buscados, vm.SinFacturas));
+        Assert.StartsWith("Se muestra 1 movimiento de los 3 elegidos; los otros 2 no tienen ninguna factura", vm.Cabecera);
+
+        var ninguno = new BusquedaImporteN43VM([new BusquedaLineaN43(l2, []), new BusquedaLineaN43(l3, [])], null);
+        Assert.False(ninguno.HayCandidatos);
+        Assert.Empty(ninguno.Grupos);
+        Assert.Equal("Ninguno de los 2 movimientos tiene facturas que pueda conciliar.", ninguno.Cabecera);
+    }
+
+    [Fact]
     public void Buscar_por_importe_vale_con_una_o_varias_lineas_tambien_contabilizadas_pero_no_en_un_ejercicio_cerrado()
     {
         Assert.NotNull(AccionesLineasN43.Evaluar([]).BuscarPorImporte);

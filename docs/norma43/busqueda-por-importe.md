@@ -25,6 +25,8 @@ Hecho y validado por el propietario (2026-11-16, PR #85): `BusquedaPorImporteN43
 - 2026-11-16 12:10 · [replaced by norma43/remesas 2026-11-16 12:20] Validado por el propietario (PR #85): deja de ser borrador. La tabla de enlaces factura ↔ línea que propone norma43/remesas (varios cobros y devoluciones por factura), si se aprueba, sustituirá a Facturas.LineaN43 en su propio esquema.
 
 - 2026-11-16 12:20 · Reintentos (norma43/remesas 2026-11-16 12:20, propietario 2026-11-16 12:03): no hay tabla de enlaces; Facturas.LineaN43 sigue siendo el primer cobro, su devolución va en Facturas.LineaN43Devolucion y los cobros siguientes en ReintentosSEPA. La búsqueda ofrece las facturas de venta cuyo último intento se devolvió (su cobro vigente es nulo) y enlazarlas crea un reintento; desenlazar quita el cobro vigente (`CobrosFacturasN43`).
+- 2026-11-25 19:10 · El diálogo solo muestra los movimientos que tienen alguna factura que pueda conciliar; los demás no aparecen y la cabecera dice cuántos se han quedado fuera. Si ninguno tiene candidatas, no se abre el diálogo: un aviso dice los criterios de la búsqueda y que se revise el importe total y la fecha de la factura. Sustituye en eso a la decisión del 2026-11-16 11:30 de «Selección» (cada línea como cabecera con sus candidatas debajo, también las que no tienen ninguna).
+
 ## Requirements
 - 2026-10-29 17:08 · No veo las opciones de 'Buscar por importe' (sería un contextual que hace lo que hay en el formulario frmN43BusquedaPorImporte) ni la de 'Movimientos similares', que ejecuta el formulario frmMovimientosN43Similares. Ambas funcionalidades se merecen un nodo propio por debajo de Norma43
 - 2026-10-29 17:18 · Sí, en la factura de venta ahora ya se marcará como exportada, con su IdAsiento y en el asiento aparecerá el número de factura.
@@ -36,3 +38,4 @@ Hecho y validado por el propietario (2026-11-16, PR #85): `BusquedaPorImporteN43
 - 2026-11-16 10:54 · 3- Ok, de hecho, eso haría de flag 'conciliada'
 - 2026-11-16 12:10 · Ok, ya puedes fusionar PR
 - 2026-11-16 12:20 · Derived from norma43/remesas: ofrecer las facturas de venta devueltas para volver a cobrarlas y anotar el nuevo cobro como reintento.
+- 2026-11-25 19:07 · Solo mostrar los movimientos que tienen alguna factura que pueda conciliar.

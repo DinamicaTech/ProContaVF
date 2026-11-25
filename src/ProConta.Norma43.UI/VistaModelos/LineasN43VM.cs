@@ -817,6 +817,19 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         if (sel.Count == 0 || _busqueda is null || _acciones.BuscarPorImporte is not null) return;
         var busquedas = await _busqueda.BuscarAsync(_contexto.Trabajo.IdSociedad, sel.Select(f => f.Datos).ToList());
         var vm = new BusquedaImporteN43VM(busquedas, AbrirDocumento);
+        if (!vm.HayCandidatos)
+        {
+            // Sin ningún movimiento que conciliar no hay nada que marcar: se avisa en lugar de abrir el diálogo vacío.
+            var detalles = new List<string>();
+            if (sel.Any(f => f.Datos.EsCargo))
+                detalles.Add($"Cargos: facturas de compra a ±{ReglasBusquedaImporteN43.DiasCompra} días, importe ±0,02 €, sin enlazar con otro movimiento.");
+            if (sel.Any(f => !f.Datos.EsCargo))
+                detalles.Add($"Abonos: facturas de venta de hasta {ReglasBusquedaImporteN43.DiasVentaAntes} días antes o {ReglasBusquedaImporteN43.DiasVentaDespues} después, importe ±0,02 €, sin enlazar con otro movimiento.");
+            detalles.Add("Si la factura existe, revisa su importe total y su fecha en Compras o en Facturas.");
+            _dialogos.Preguntar("Buscar por importe", vm.Cabecera, detalles,
+                new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+            return;
+        }
         if (!_dialogos.BuscarPorImporte(vm)) return;
         var cambios = vm.Cambios();
         if (cambios.Count == 0) return;
