@@ -6,8 +6,16 @@ using ProConta.Nucleo.Contexto;
 using ProConta.Nucleo.Resultados;
 using ProConta.Organizacion.Sociedades;
 using ProConta.Seguridad.Permisos;
+using ProConta.Terceros;
+using ProConta.Terceros.Roles;
 
 namespace ProConta.Facturacion.Ventas;
+
+/// <summary>Huéspedes dados de alta como clientes (reglas «Factura nominal al huésped»): cuántos, a cuántas ventas se ha puesto y qué no se ha podido hacer.</summary>
+public sealed record AltaHuespedes(int Altas, int Ventas, IReadOnlyList<string> Incidencias)
+{
+    public static readonly AltaHuespedes Nada = new(0, 0, []);
+}
 
 /// <summary>Resultado de guardar una venta: la guardada o, si no se ha guardado, por qué (con el campo que corregir).</summary>
 public sealed record ResultadoVenta(VentaPorFacturar? Venta, IReadOnlyList<Incidencia> Incidencias)
@@ -37,8 +45,13 @@ public sealed class ServicioVentas
     private readonly CatalogoConceptos _conceptos;
     private readonly IAutorizadorAcciones _autorizador;
     private readonly IReloj _reloj;
+    private readonly IRepositorioTerceros? _terceros;
+    private readonly ServicioRoles? _roles;
 
-    public ServicioVentas(IBaseDatos bd, IServicioSociedades sociedades, ServicioFacturas facturas, CatalogoConceptos conceptos, IAutorizadorAcciones? autorizador = null, IReloj? reloj = null)
+    /// <param name="terceros">Para dar de alta a los huéspedes como clientes (reglas «Factura nominal al huésped»); sin él, no se dan de alta.</param>
+    /// <param name="roles">Rol de cliente y 430 de los huéspedes; sin él, no se dan de alta.</param>
+    public ServicioVentas(IBaseDatos bd, IServicioSociedades sociedades, ServicioFacturas facturas, CatalogoConceptos conceptos, IAutorizadorAcciones? autorizador = null, IReloj? reloj = null,
+        IRepositorioTerceros? terceros = null, ServicioRoles? roles = null)
     {
         _bd = bd;
         _sociedades = sociedades;
@@ -46,6 +59,8 @@ public sealed class ServicioVentas
         _conceptos = conceptos;
         _autorizador = autorizador ?? AutorizadorTodo.Instancia;
         _reloj = reloj ?? RelojSistema.Instancia;
+        _terceros = terceros;
+        _roles = roles;
     }
 
     public CatalogoConceptos Conceptos => _conceptos;
@@ -96,6 +111,15 @@ public sealed class ServicioVentas
         {
             var filas = await s.ConsultarAsync("SELECT c.IdCliente, t.Nombre FROM Clientes AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero",
                 f => (f.Entero("IdCliente"), (f.Texto("Nombre") ?? "").Trim()));
+            return (IReadOnlyDictionary<int, string>)filas.GroupBy(x => x.Item1).ToDictionary(g => g.Key, g => g.First().Item2);
+        });
+
+    /// <summary>Nombre de cada proveedor (el de su tercero), para elegir el acreedor de la plataforma en las reglas de venta.</summary>
+    public Task<IReadOnlyDictionary<int, string>> NombresProveedoresAsync() =>
+        _bd.EjecutarAsync(async s =>
+        {
+            var filas = await s.ConsultarAsync("SELECT p.IdProveedor, t.Nombre FROM Proveedores AS p INNER JOIN Terceros AS t ON p.IdTercero = t.IdTercero WHERE p.Activo = True",
+                f => (f.Entero("IdProveedor"), (f.Texto("Nombre") ?? "").Trim()));
             return (IReadOnlyDictionary<int, string>)filas.GroupBy(x => x.Item1).ToDictionary(g => g.Key, g => g.First().Item2);
         });
 
@@ -227,6 +251,110 @@ public sealed class ServicioVentas
         }
     }
 
+    // ---------- huéspedes como clientes ----------
+
+    /// <summary>
+    /// Factura nominal al huésped (facturacion/reservas 2026-11-25 14:13): cada venta pendiente sin cliente cuya regla de venta
+    /// lo pide recibe como cliente a su huésped. El huésped se da de alta como tercero (persona física con el nombre, el email
+    /// y el teléfono de la reserva, sin NIF hasta que se escriba en su ficha) con el rol de cliente y, como cuenta, la misma
+    /// 430 que el cliente de la regla, que es la de todos los huéspedes del origen. Un huésped que repite (mismo email entre
+    /// los clientes de esa 430) reutiliza su ficha. Es idempotente: lo llaman la importación de Avaibook y «Facturar todo».
+    /// </summary>
+    public async Task<AltaHuespedes> AsegurarClientesHuespedAsync(string idSociedad, Actor actor)
+    {
+        if (_terceros is null || _roles is null) return AltaHuespedes.Nada;
+        var reglas = await ReglasAsync(idSociedad);
+        if (!reglas.Any(r => r.Activa && r.FacturaAlHuesped)) return AltaHuespedes.Nada;
+        var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad));
+        var candidatas = pendientes
+            .Select(v => (Venta: v, Regla: ReglaVenta.Para(reglas, v.IdOrigenVenta, v.IdActivo)))
+            .Where(x => x.Venta.IdCliente is null && x.Regla is { FacturaAlHuesped: true } && !string.IsNullOrWhiteSpace(x.Venta.Titular))
+            .ToList();
+        if (candidatas.Count == 0) return AltaHuespedes.Nada;
+
+        var incidencias = new List<string>();
+        var avisadas = new HashSet<int>();
+        var identidades = new Dictionary<int, int?>();
+        var porEmail = new Dictionary<(int, string), int>();
+        int altas = 0, ventas = 0;
+        var nombres = await NombresClientesAsync();
+        foreach (var (v, regla) in candidatas)
+        {
+            if (regla!.IdCliente is not int idClienteRegla)
+            {
+                if (avisadas.Add(regla.IdReglaVenta))
+                    incidencias.Add("Una regla de venta factura al huésped pero no tiene cliente: elige en ella el cliente cuya 430 compartirán los huéspedes (Parámetros y tablas › Reglas de venta).");
+                continue;
+            }
+            if (!identidades.TryGetValue(idClienteRegla, out var identidad))
+                identidades[idClienteRegla] = identidad = await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+                    "SELECT IdIdentidadContable FROM CuentasClientesSociedad WHERE IdCliente = ? AND IdSociedad = ? AND Clase = 'CLIENTE'",
+                    f => f.EnteroNulo("IdIdentidadContable"), idClienteRegla, idSociedad));
+            if (identidad is not int idIdentidad)
+            {
+                if (avisadas.Add(regla.IdReglaVenta))
+                    incidencias.Add($"El cliente «{nombres.GetValueOrDefault(idClienteRegla, $"cliente {idClienteRegla}")}» de una regla que factura al huésped no tiene cuenta 430 en esta sociedad: " +
+                                    "ponle la 430 que compartirán los huéspedes en su ficha (Terceros) y vuelve a importar o a facturar.");
+                continue;
+            }
+
+            var email = string.IsNullOrWhiteSpace(v.EmailTitular) ? null : v.EmailTitular.Trim();
+            int? idCliente = null;
+            if (email is not null)
+            {
+                if (porEmail.TryGetValue((idIdentidad, email.ToLowerInvariant()), out var yaVisto)) idCliente = yaVisto;
+                else idCliente = await _bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+                    "SELECT TOP 1 c.IdCliente FROM (Terceros AS t INNER JOIN Clientes AS c ON c.IdTercero = t.IdTercero) " +
+                    "INNER JOIN CuentasClientesSociedad AS x ON x.IdCliente = c.IdCliente " +
+                    "WHERE t.Email = ? AND x.IdSociedad = ? AND x.Clase = 'CLIENTE' AND x.IdIdentidadContable = ? AND c.IdCliente <> ? ORDER BY c.IdCliente",
+                    f => (int?)f.Entero("IdCliente"), email, idSociedad, idIdentidad, idClienteRegla));
+            }
+            if (idCliente is null)
+            {
+                var alta = await AltaHuespedAsync(v, idSociedad, idIdentidad, actor);
+                if (!alta.EsCorrecto)
+                {
+                    incidencias.Add($"{v.Rotulo} ({v.FechaReferencia:dd/MM/yyyy}): no he podido dar de alta a su huésped como cliente. {alta.Error!.TextoOperador()}");
+                    continue;
+                }
+                idCliente = alta.Valor;
+                altas++;
+            }
+            if (email is not null) porEmail[(idIdentidad, email.ToLowerInvariant())] = idCliente.Value;
+            var ahora = _reloj.Ahora;
+            if (await _bd.EjecutarAsync(s => RepositorioVentas.AsignarClienteHuespedAsync(s, v.IdVentaPorFacturar, idCliente.Value, ahora))) ventas++;
+        }
+        return new AltaHuespedes(altas, ventas, incidencias);
+    }
+
+    private async Task<Resultado<int>> AltaHuespedAsync(VentaPorFacturar v, string idSociedad, int idIdentidad, Actor actor)
+    {
+        var nombre = v.Titular!.Trim();
+        var tercero = new Tercero
+        {
+            TipoPersona = TipoPersona.Fisica,
+            NombrePersona = nombre.Length <= 100 ? nombre : nombre[..100],
+            Email = RepositorioVentas.Recortar(v.EmailTitular, 254),
+            Telefono = RepositorioVentas.Recortar(v.TelefonoTitular, 50),
+            Notas = $"Huésped dado de alta desde la venta {v.Rotulo}{(string.IsNullOrWhiteSpace(v.Referencia) ? "" : $" (reserva {v.Referencia.Trim()})")}. Escribe aquí su NIF y su dirección si pide factura completa.",
+        };
+        tercero.Roles.Cliente = new RolCliente { Activo = true };
+        var guardado = await _terceros!.GuardarAsync(tercero, actor);
+        if (!guardado.EsCorrecto) return Resultado<int>.Fallo(guardado.Errores);
+        var rol = await _roles!.AsegurarClienteAsync(guardado.Valor.IdTercero);
+        if (!rol.EsCorrecto) return rol;
+        var cuenta = await _roles.AsignarCuentaAsync(ClaseCuentaRol.Cliente, rol.Valor, idSociedad, idIdentidad);
+        return cuenta.EsCorrecto ? rol : Resultado<int>.Fallo(cuenta.Errores);
+    }
+
+    /// <summary>
+    /// Tipo de la factura nominal al huésped (facturacion/reservas 2026-11-25 14:18, Q1 b): completa (F1) si el huésped tiene
+    /// NIF; sin NIF, simplificada (F2) si no pasa de <see cref="ReglaVenta.LimiteSimplificada"/> y, si pasa, completa, que
+    /// queda en borrador hasta que se escriba el NIF en la ficha del huésped (el borrador lo recoge solo).
+    /// </summary>
+    public static string TipoFacturaHuesped(bool tieneNif, decimal total) =>
+        tieneNif || Math.Abs(total) > ReglaVenta.LimiteSimplificada ? "F1" : "F2";
+
     // ---------- facturación ----------
 
     /// <summary>Catálogos para resolver y agrupar las ventas de la sociedad, con los conceptos en el ejercicio de hoy (el de las facturas).</summary>
@@ -244,8 +372,10 @@ public sealed class ServicioVentas
     /// las de fecha de referencia hasta ese día): los grupos (una factura cada uno) y las ventas que no se pueden facturar con
     /// su motivo. No cambia nada.
     /// </summary>
-    public async Task<IReadOnlyList<GrupoVentas>> PrevisualizarAsync(string idSociedad, IReadOnlySet<int>? soloVentas = null, DateTime? hasta = null)
+    public async Task<IReadOnlyList<GrupoVentas>> PrevisualizarAsync(string idSociedad, IReadOnlySet<int>? soloVentas = null, DateTime? hasta = null, Actor? actor = null)
     {
+        // Con el operador, antes se dan de alta los huéspedes de las reglas nominales, para que la previsualización ya los vea como clientes.
+        if (actor is not null && await _autorizador.PuedeAsync(Acciones.FacturasEditar)) await AsegurarClientesHuespedAsync(idSociedad, actor);
         var (d, _) = await DatosAsync(idSociedad);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad, hasta));
         return AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d);
@@ -270,10 +400,13 @@ public sealed class ServicioVentas
         if (ejercicio.Cerrado)
             return Resultado<ResultadoFacturarVentas>.Fallo(new Error("Ventas.EjercicioCerrado", $"El ejercicio {hoy.Year} está cerrado y no admite facturas nuevas."));
 
+        var huespedes = await AsegurarClientesHuespedAsync(idSociedad, actor);
+        if (huespedes.Altas > 0 || huespedes.Ventas > 0) (d, _) = await DatosAsync(idSociedad);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad, hasta));
         var grupos = AgrupadorVentas.Agrupar(soloVentas is null ? pendientes : pendientes.Where(v => soloVentas.Contains(v.IdVentaPorFacturar)), d);
         var incidencias = grupos.Where(g => !g.Facturable)
             .Select(g => $"{g.Ventas[0].Rotulo} ({g.Ventas[0].FechaReferencia:dd/MM/yyyy}, {g.Ventas[0].Importe:N2} €): {g.Problema}").ToList();
+        incidencias.AddRange(huespedes.Incidencias);
         var creadas = new List<FacturaDeVentas>();
 
         foreach (var g in grupos.Where(g => g.Facturable))
@@ -295,6 +428,8 @@ public sealed class ServicioVentas
             if (propuesta?.FormaDePago is byte forma) f.FormaDePago = forma;
             if (propuesta?.DiaDePago is byte dia) f.DiaDePago = dia;
             f.TipoRetencion = 0m;
+            if (AgrupadorVentas.Resolver(g.Ventas[0], d.Reglas).Regla is { FacturaAlHuesped: true })
+                f.TipoFactura = TipoFacturaHuesped(await TieneNifAsync(g.Clave.IdCliente), g.Total);
             foreach (var v in g.Ventas)
             {
                 var res = AgrupadorVentas.Resolver(v, d.Reglas);
@@ -337,6 +472,10 @@ public sealed class ServicioVentas
         }
         return Resultado<ResultadoFacturarVentas>.Correcto(new ResultadoFacturarVentas(creadas, incidencias));
     }
+
+    private Task<bool> TieneNifAsync(int idCliente) =>
+        _bd.EjecutarAsync(async s => await s.EscalarAsync("SELECT t.NIF FROM Clientes AS c INNER JOIN Terceros AS t ON c.IdTercero = t.IdTercero WHERE c.IdCliente = ?", idCliente)
+            is string nif && !string.IsNullOrWhiteSpace(nif));
 
     private static Resultado<T> SinPermiso<T>(string que, string? registro) =>
         Resultado<T>.Fallo(new Error("Seguridad.SinPermiso", $"No tienes permiso para {que}.", registro, null, "Pídeselo a quien administra los permisos."));

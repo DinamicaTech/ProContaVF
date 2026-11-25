@@ -610,7 +610,7 @@ public sealed class ListadoVentasVM : ModeloVista, IPestanaTrabajo
         }
         try
         {
-            var grupos = await _ventas.PrevisualizarAsync(_s.Trabajo.IdSociedad, ids);
+            var grupos = await _ventas.PrevisualizarAsync(_s.Trabajo.IdSociedad, ids, actor: _s.Actor);
             if (grupos.Any(g => !g.Facturable) && grupos.All(g => !g.Facturable) && _modulo.AbrirParametros is { } abrir)
             {
                 // Nada se puede facturar todavía: lo normal es que falten las reglas de venta; se ofrece ir a ponerlas.

@@ -76,6 +76,13 @@ public sealed class CompensacionComision(IBaseDatos bd, IMotorAsientos motor, IR
     /// </summary>
     internal static async Task<(int IdCliente, string Nombre)?> PlataformaAsync(ISesionDatos s, string idSociedad, int idProveedor)
     {
+        // El acreedor indicado en la regla de venta (facturacion/reservas 2026-11-25 14:13) gana: su comisión va contra la 430 del cliente de la regla.
+        var porRegla = await s.ConsultarPrimeroAsync(
+            "SELECT TOP 1 r.IdCliente, t.Nombre FROM (ReglasVenta AS r INNER JOIN Proveedores AS p ON p.IdProveedor = r.IdAcreedor) " +
+            "INNER JOIN Terceros AS t ON t.IdTercero = p.IdTercero " +
+            "WHERE r.IdAcreedor = ? AND r.IdSociedad = ? AND r.Activa = True AND r.IdCliente IS NOT NULL ORDER BY r.IdReglaVenta",
+            f => (Id: f.Entero("IdCliente"), Nombre: f.Texto("Nombre") ?? ""), idProveedor, idSociedad);
+        if (porRegla.Id > 0) return (porRegla.Id, porRegla.Nombre);
         var fila = await s.ConsultarPrimeroAsync(
             "SELECT TOP 1 c.IdCliente, t.Nombre FROM ((Proveedores AS p INNER JOIN Clientes AS c ON c.IdTercero = p.IdTercero) " +
             "INNER JOIN Terceros AS t ON t.IdTercero = p.IdTercero) INNER JOIN ReglasVenta AS r ON r.IdCliente = c.IdCliente " +
@@ -90,6 +97,10 @@ public sealed class CompensacionComision(IBaseDatos bd, IMotorAsientos motor, IR
             "SELECT DISTINCT p.IdProveedor, t.Nombre FROM ((Proveedores AS p INNER JOIN Clientes AS c ON c.IdTercero = p.IdTercero) " +
             "INNER JOIN Terceros AS t ON t.IdTercero = p.IdTercero) INNER JOIN ReglasVenta AS r ON r.IdCliente = c.IdCliente " +
             "WHERE r.IdSociedad = ? AND r.Activa = True",
+            f => (Id: f.Entero("IdProveedor"), Nombre: f.Texto("Nombre") ?? ""), idSociedad))
+        .Concat(await s.ConsultarAsync(
+            "SELECT DISTINCT p.IdProveedor, t.Nombre FROM (ReglasVenta AS r INNER JOIN Proveedores AS p ON p.IdProveedor = r.IdAcreedor) " +
+            "INNER JOIN Terceros AS t ON t.IdTercero = p.IdTercero WHERE r.IdSociedad = ? AND r.Activa = True AND r.IdCliente IS NOT NULL",
             f => (Id: f.Entero("IdProveedor"), Nombre: f.Texto("Nombre") ?? ""), idSociedad))
         .GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.First().Nombre);
 
