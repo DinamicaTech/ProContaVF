@@ -118,10 +118,27 @@ public sealed class LineasN43Tests
         Assert.Null(propia.ActualizarTextos);
         Assert.NotNull(propia.Reasignar); // contabilizada: no se reasigna
 
-        var erp = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 8, propio: false)]);
+        // Del ERP con un asiento que no es «de banco limpio»: no se deshace, y el motivo lo dice (norma43/conciliacion 2026-11-25 15:30).
+        var erp = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 8, propio: false) with { BloqueoDeshacerErp = "Su asiento 8 pasa por la cuenta puente 5550000." }]);
         Assert.Contains("ERP", erp.AsignarCuenta);
         Assert.NotNull(erp.Contabilizar);
         Assert.Contains("ERP", erp.Deshacer);
+        Assert.Contains("5550000", erp.Deshacer);
+        Assert.Empty(erp.ADeshacer);
+
+        // Del ERP con asiento de banco limpio: se deshace; sus textos no se actualizan, y asignar cuenta pide deshacer antes.
+        var limpia = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 8, propio: false)]);
+        Assert.Null(limpia.Deshacer);
+        Assert.Equal([1], limpia.ADeshacer);
+        Assert.Empty(limpia.AActualizar);
+        Assert.NotNull(limpia.ActualizarTextos);
+        Assert.Contains("Deshacer el asiento", limpia.AsignarCuenta);
+
+        // Mezcla: deshace la propia y la limpia del ERP; actualiza solo la propia.
+        var mezcla = AccionesLineasN43.Evaluar([L(1, 10m, asiento: 7), L(2, 10m, asiento: 8, propio: false),
+            L(3, 10m, asiento: 9, propio: false) with { BloqueoDeshacerErp = "nómina" }]);
+        Assert.Equal([1, 2], mezcla.ADeshacer);
+        Assert.Equal([1], mezcla.AActualizar);
 
         var cerrada = AccionesLineasN43.Evaluar([L(1, 10m, cuenta: true, ejercicio: 2024, cerrado: true)]);
         Assert.Contains("2024 está cerrado", cerrada.AsignarCuenta);
@@ -285,5 +302,29 @@ public sealed class LineasN43Tests
         vm.SoloBanco = false;
         vm.SoloSentido = false;
         Assert.Equal((null, null), (vm.Edicion.Entidad, vm.Edicion.Sentido));
+    }
+
+    // ---------- deshacer los asientos del ERP (norma43/conciliacion 2026-11-25 15:30) ----------
+
+    private static AsientoErpN43 Erp(params string[] cuentas) => new(8, true, cuentas, false, null, [1]);
+
+    [Fact]
+    public void Solo_se_deshace_el_asiento_del_ERP_de_banco_limpio_y_el_motivo_dice_por_que_no()
+    {
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("6280001", "5720001"), "5720001"));
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("5230100", "5720001", "6260011"), "5720001")); // reparto con comisión
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("4751000", "5720001"), "5720001"));             // pago de retenciones a Hacienda
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("5720001", "5720002"), "5720002"));             // traspaso: lleva la de este banco
+        Assert.Null(AsientosErpN43.Bloqueo(Erp("6280001", "5720001"), null));                  // sin banco conocido basta una 572
+
+        Assert.Contains("ya no existe", AsientosErpN43.Bloqueo(null, "5720001"));
+        Assert.Contains("ContaSol", AsientosErpN43.Bloqueo(Erp("6280001", "5720001") with { ImportadoContaSol = false }, "5720001"));
+        Assert.Contains("factura", AsientosErpN43.Bloqueo(Erp("4300019", "7050030", "4770021"), "5720001"));
+        Assert.Contains("factura", AsientosErpN43.Bloqueo(Erp("6280001", "5720001") with { LibroIva = true }, "5720001"));
+        Assert.Contains("una factura de compra", AsientosErpN43.Bloqueo(Erp("4000001", "5720001") with { UsadoPor = "una factura de compra" }, "5720001"));
+        Assert.Contains("nómina", AsientosErpN43.Bloqueo(Erp("6400000", "4650102", "4751000", "4760003"), "5720001"));
+        Assert.Contains("555", AsientosErpN43.Bloqueo(Erp("5550000", "4300001"), "5720001"));
+        Assert.Contains("no lleva la 572", AsientosErpN43.Bloqueo(Erp("4300001", "7050000"), "5720001"));
+        Assert.Contains("5720009", AsientosErpN43.Bloqueo(Erp("6280001", "5720009"), "5720001"));
     }
 }
