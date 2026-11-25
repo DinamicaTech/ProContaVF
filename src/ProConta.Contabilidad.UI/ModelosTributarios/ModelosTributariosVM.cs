@@ -40,6 +40,11 @@ public interface IDialogosModelosTributarios
     bool Conformidad(ConformidadPresentacion datos, Action verPdf);
     /// <summary>Pide el NRC del pago (forma I). Null si se cancela.</summary>
     string? PedirNrc(string titulo, string explicacion);
+    /// <summary>
+    /// Pide la fecha, el justificante y el CSV de una presentación hecha fuera del programa; <paramref name="validar"/> devuelve el error que
+    /// enseñar o null si valen. Null si se cancela.
+    /// </summary>
+    (DateTime Fecha, string Justificante, string Csv)? PedirPresentacionExterna(string titulo, string explicacion, Func<DateTime?, string, string, string?> validar);
     /// <summary>«Modelos de la sociedad…»: los modelos con su marca. Devuelve los marcados, o null si se cancela.</summary>
     IReadOnlyCollection<string>? ElegirModelos(IReadOnlyList<(DefinicionModelo Modelo, bool Marcado)> modelos);
     /// <summary>Dónde guardar un fichero (propone carpeta y nombre). Null si se cancela.</summary>
@@ -527,7 +532,28 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
             case AccionModelo.AbrirCasillas: await AbrirCasillasAsync(fila); break;
             case AccionModelo.AbrirProceso: AbrirProceso(fila.Modelo, fila.Datos.Periodo); break;
             case AccionModelo.Documentos: _ctx.AbrirDocumentos?.Invoke(fila.Datos.Modelo, fila.Datos.Ejercicio, fila.Datos.Periodo); break;
+            case AccionModelo.RegistrarExterna: await RegistrarExternaAsync(fila); break;
         }
+    }
+
+    /// <summary>«Registrar presentado fuera del programa…» de una informativa (propietario 2026-11-24 21:22).</summary>
+    private async Task RegistrarExternaAsync(FilaPeriodoVM fila)
+    {
+        var titulo = $"{fila.Id} del {fila.Periodo} presentado fuera del programa";
+        var datos = _dialogos.PedirPresentacionExterna(titulo,
+            $"Escribe los datos del justificante del {fila.Id} del {fila.Periodo} que presentó la gestoría (o se presentó en la Sede). " +
+            "Quedará como presentado, sin importe ni fichero; el justificante en PDF se descarga en la Sede con su CSV.",
+            (f, j, c) => ServicioModelosTributarios.ErrorPresentacionExterna(f, j, c, Hoy));
+        if (datos is not { } d) return;
+        Ocupado = true;
+        try
+        {
+            var r = await _ctx.Servicio.RegistrarExternaAsync(_ctx.Trabajo, fila.Id, fila.Datos.Periodo, d.Fecha, d.Justificante, d.Csv, _ctx.Actor.Nombre);
+            if (!r.EsCorrecto) { _dialogos.Error($"No se ha registrado el {fila.Id} del {fila.Periodo}", string.Join(Environment.NewLine, r.Errores.Select(e => e.TextoOperador()))); return; }
+            _ctx.Avisar($"{fila.Id} {fila.Periodo} registrado como presentado: justificante {r.Valor.Justificante}.");
+        }
+        finally { Ocupado = false; }
+        await CargarAsync(fila.Id, fila.Datos.Periodo);
     }
 
     private void AbrirProceso(DefinicionModelo def, string periodo) => _ctx.AbrirProceso?.Invoke(def.Proceso, def.Id, periodo);

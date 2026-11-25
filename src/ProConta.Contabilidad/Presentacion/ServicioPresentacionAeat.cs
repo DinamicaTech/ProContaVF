@@ -302,12 +302,13 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
     /// Guarda una presentación hecha fuera del programa que devuelve la consulta de la AEAT (origen AEAT): sin importe, sin fichero y sin
     /// firmante, que la consulta no da. Si la AEAT no da la fecha, la de ahora.
     /// </summary>
-    public async Task<PresentacionGuardada> GuardarExternaAsync(string idSociedad, DeclaracionPresentadaAeat p, EntornoAeat entorno, CancellationToken cancelacion = default)
+    public async Task<PresentacionGuardada> GuardarExternaAsync(string idSociedad, DeclaracionPresentadaAeat p, EntornoAeat entorno, CancellationToken cancelacion = default,
+        string? operador = null, string? avisos = null)
     {
         var ejercicio = int.TryParse(p.Ejercicio, NumberStyles.None, CultureInfo.InvariantCulture, out var e) ? e : _reloj.Ahora.Year;
         var g = new PresentacionGuardada(0, idSociedad, p.Modelo.Trim(), ejercicio, p.Periodo.Trim().ToUpperInvariant(), ServiciosAeat.Codigo(entorno), p.FechaHora ?? _reloj.Ahora,
             p.Csv.Trim(), string.IsNullOrWhiteSpace(p.Expediente) ? null : p.Expediente.Trim(), p.Justificante.Trim(), p.JustificanteAnterior, null, 0m, 0m, null, null,
-            "Consulta a la AEAT", "Presentada fuera del programa: la consulta de la AEAT no da su importe ni su fichero.", null, null, PresentacionGuardada.OrigenAeat);
+            operador ?? "Consulta a la AEAT", avisos ?? "Presentada fuera del programa: la consulta de la AEAT no da su importe ni su fichero.", null, null, PresentacionGuardada.OrigenAeat);
         var id = await bd.EjecutarAsync(async s =>
         {
             await s.EjecutarAsync(
