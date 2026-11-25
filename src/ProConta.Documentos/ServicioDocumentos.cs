@@ -423,19 +423,41 @@ public sealed partial class ServicioDocumentos
     }
 
     /// <summary>
-    /// Elimina documentos: los de la bandeja siempre; los archivados solo si no tienen ningún vínculo. Sus ficheros van a la papelera de Windows.
+    /// Documentos que son el justificante de una presentación a la AEAT (PresentacionesAeat.IdDocumento), con qué presentación: no se eliminan
+    /// nunca, porque son la prueba de lo presentado (documentos 2026-11-25, Q3 a).
+    /// </summary>
+    public async Task<IReadOnlyDictionary<int, string>> JustificantesAsync(IReadOnlyList<int> ids)
+    {
+        if (ids.Count == 0) return new Dictionary<int, string>();
+        var lista = string.Join(",", ids.Distinct().Select(i => i.ToString(CultureInfo.InvariantCulture)));
+        var filas = await _bd.EjecutarAsync(s => s.ConsultarAsync(
+            $"SELECT IdDocumento, Modelo, Ejercicio, Periodo FROM PresentacionesAeat WHERE IdDocumento IN ({lista})",
+            f => (Id: f.Entero("IdDocumento"), Texto: $"modelo {f.Texto("Modelo")?.Trim()} {f.Texto("Periodo")?.Trim()} {f.Valor("Ejercicio")}".TrimEnd())));
+        return filas.GroupBy(f => f.Id).ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.Texto).Distinct()));
+    }
+
+    /// <summary>
+    /// Elimina documentos: los de la bandeja siempre; los archivados sin vínculos también, y con vínculos solo con <paramref name="quitarVinculos"/>
+    /// (documentos 2026-11-25): se quitan todos sus vínculos en la misma operación (lo vinculado no cambia). Los justificantes de una presentación
+    /// a la AEAT no se eliminan nunca (<see cref="JustificantesAsync"/>). Sus ficheros van a la papelera de Windows.
     /// Devuelve cuántos se han eliminado; los que no se pueden se explican en el error.
     /// </summary>
-    public async Task<Resultado<int>> EliminarAsync(IReadOnlyList<int> ids)
+    public async Task<Resultado<int>> EliminarAsync(IReadOnlyList<int> ids, bool quitarVinculos = false)
     {
         if (!await PuedeAsync()) return Resultado<int>.Fallo(SinPermiso("Eliminar documentos"));
         var hechos = 0;
         var noSe = new List<string>();
+        var justificantes = await JustificantesAsync(ids);
         foreach (var id in ids)
         {
             var d = await LeerAsync(id);
             if (d is null) continue;
-            if (!d.PorClasificar && d.Vinculos.Count > 0)
+            if (justificantes.TryGetValue(id, out var presentacion))
+            {
+                noSe.Add($"«{d.Titulo}» es el justificante de la presentación del {presentacion}");
+                continue;
+            }
+            if (!d.PorClasificar && d.Vinculos.Count > 0 && !quitarVinculos)
             {
                 noSe.Add($"«{d.Titulo}» tiene {d.Vinculos.Count} vínculo(s)");
                 continue;
@@ -453,9 +475,9 @@ public sealed partial class ServicioDocumentos
         }
         if (noSe.Count > 0)
             return Resultado<int>.Fallo(new Error("Documentos.ConVinculos",
-                $"He eliminado {hechos} documento(s), pero no los que están vinculados: {string.Join("; ", noSe)}.", null,
-                "Un documento archivado y vinculado puede ser el respaldo de un modelo, una factura o un asiento.",
-                "Si de verdad sobra, desvincúlalo antes (en el detalle, la × de cada vínculo) y vuelve a eliminarlo."));
+                $"He eliminado {hechos} documento(s), pero no estos: {string.Join("; ", noSe)}.", null,
+                "Un justificante de la AEAT es la prueba de lo presentado y se queda siempre; un documento vinculado puede ser el respaldo de un modelo, una factura o un asiento.",
+                "Si un documento vinculado de verdad sobra, elimínalo con «Quitar los vínculos y eliminar»; un justificante equivocado se sustituye con «Nueva versión…»."));
         return Resultado<int>.Correcto(hechos);
     }
 

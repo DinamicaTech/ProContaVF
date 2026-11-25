@@ -521,4 +521,98 @@ public sealed class ContabilizacionComprasAccessTests : IDisposable
         var conMotivo = await servicio.ExportarAsync(g, _actor, new OpcionesExportacion(MotivoAjuste: "Portes sin desglosar"));
         Assert.True(conMotivo.EsCorrecto, conMotivo.Error?.ToString());
     }
+
+    // ---------- eliminar una factura registrada por error (compras/pantallas 2026-11-25) ----------
+
+    private sealed class ExtractorVacio : ProConta.Compras.Reconocimiento.IExtractorDocumentoFacturaCompra
+    {
+        public ProConta.Compras.Reconocimiento.DocumentoFacturaExtraido Extraer(string rutaPdf) => Texto("", rutaPdf);
+    }
+
+    private ServicioFacturasCompra Facturas() => new(Bd, new ProConta.Compras.Reconocimiento.ServicioReconocimientoFacturaCompra(new ExtractorVacio()), _reloj);
+
+    private async Task<ComprobacionEliminacion> ComprobarAsync(int id) => (await Facturas().ComprobarEliminarAsync([id])).Single();
+
+    [Fact]
+    public async Task Una_sin_exportar_se_elimina_con_su_desglose_y_sus_vinculos_de_documentos()
+    {
+        await EmpresaAsync();
+        var (f, _) = await FacturaAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync(
+            "INSERT INTO Documentos (IdSociedad, Titulo, Estado, Origen, FechaAlta, OperadorAlta) VALUES ('T01', 'Albarán', 'ARCHIVADO', 'MANUAL', ?, 'Pruebas')", _reloj.Ahora));
+        var idDoc = Convert.ToInt32(await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT MAX(IdDocumento) FROM Documentos")));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync(
+            "INSERT INTO DocumentosVinculos (IdDocumento, TipoEntidad, IdEntidad, Etiqueta, FechaAlta, Operador) VALUES (?, 'FACTURA_COMPRA', ?, 'Factura', ?, 'Pruebas')",
+            idDoc, f.IdRegistro, _reloj.Ahora));
+
+        Assert.Equal(ClaseEliminacion.Directa, (await ComprobarAsync(f.IdRegistro)).Clase);
+        var r = await Facturas().EliminarAsync(f.IdRegistro);
+
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.False(r.Valor.PdfEnPapelera);   // el PDF de la prueba no existe
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM FacturasCompra WHERE IdRegistro = ?", f.IdRegistro));
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM DesglosesFacturaCompra WHERE IdRegistro = ?", f.IdRegistro));
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM DocumentosVinculos WHERE IdDocumento = ?", idDoc));
+        // El documento vinculado se queda: solo se quita su vínculo.
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM Documentos WHERE IdDocumento = ?", idDoc));
+    }
+
+    [Fact]
+    public async Task Exportada_en_el_trimestre_activo_hay_que_deshacer_antes_y_despues_se_elimina_sin_asiento_ni_libro()
+    {
+        await EmpresaAsync();
+        var (f, _) = await FacturaAsync();
+        var conta = Servicio();
+        Assert.True((await conta.ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false))).EsCorrecto);
+
+        Assert.Equal(ClaseEliminacion.DeshacerAntes, (await ComprobarAsync(f.IdRegistro)).Clase);
+        // Sin deshacer, el servicio no la elimina.
+        var sinDeshacer = await Facturas().EliminarAsync(f.IdRegistro);
+        Assert.False(sinDeshacer.EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM FacturasCompra WHERE IdRegistro = ?", f.IdRegistro));
+
+        Assert.True((await conta.DeshacerAsync(await RecargarAsync(f.IdRegistro), _actor)).EsCorrecto);
+        var r = await Facturas().EliminarAsync(f.IdRegistro);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM FacturasCompra"));
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM Asientos WHERE MotorPropietario = 'compras/factura-compra'"));
+        Assert.Equal(0, await Contar("SELECT COUNT(*) FROM IVASoportado"));
+    }
+
+    [Fact]
+    public async Task Con_el_asiento_en_un_trimestre_cerrado_o_con_contra_asiento_no_se_elimina()
+    {
+        await EmpresaAsync(trimestreActivo: 3);
+        var (f, _) = await FacturaAsync();
+        Assert.True((await Servicio().ExportarAsync(f, _actor, new OpcionesExportacion(EsProveedor: false))).EsCorrecto);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE SociedadesEjercicios SET TrimestreActivo = 4 WHERE IdSociedadEjercicio = 9001"));
+        _reloj = new RelojFijo(new DateTime(2026, 10, 15, 9, 0, 0));
+
+        var cerrada = await ComprobarAsync(f.IdRegistro);
+        Assert.Equal(ClaseEliminacion.Imposible, cerrada.Clase);
+        Assert.Contains("trimestre cerrado", cerrada.Motivo);
+        Assert.Contains("Deshacer exportación", cerrada.QueHacer);
+
+        // Deshecha con contra-asiento, la contabilidad ya la recoge: sigue sin poder eliminarse.
+        Assert.True((await Servicio().DeshacerAsync(await RecargarAsync(f.IdRegistro), _actor)).EsCorrecto);
+        Assert.Equal(ClaseEliminacion.Imposible, (await ComprobarAsync(f.IdRegistro)).Clase);
+        Assert.False((await Facturas().EliminarAsync(f.IdRegistro)).EsCorrecto);
+        Assert.Equal(1, await Contar("SELECT COUNT(*) FROM FacturasCompra WHERE IdRegistro = ?", f.IdRegistro));
+    }
+
+    [Fact]
+    public async Task La_original_de_una_rectificativa_o_una_conciliada_con_el_banco_no_se_eliminan()
+    {
+        await EmpresaAsync();
+        var (original, _) = await FacturaAsync();
+        var (rectificativa, _) = await FacturaAsync(md5Letra: "b");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET IdRegistroFacturaRectificada = ? WHERE IdRegistro = ?", original.IdRegistro, rectificativa.IdRegistro));
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE FacturasCompra SET LineaN43 = 77 WHERE IdRegistro = ?", rectificativa.IdRegistro));
+
+        var c = await Facturas().ComprobarEliminarAsync([original.IdRegistro, rectificativa.IdRegistro]);
+        Assert.All(c, x => Assert.Equal(ClaseEliminacion.Imposible, x.Clase));
+        Assert.Contains("FVb", c[0].Motivo);
+        Assert.Contains("banco", c[1].Motivo);
+        Assert.Contains("Líneas N43", c[1].QueHacer);
+    }
 }

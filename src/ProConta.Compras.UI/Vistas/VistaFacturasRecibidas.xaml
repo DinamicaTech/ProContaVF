@@ -126,6 +126,10 @@
             <MenuItem Header="Separar facturas…" Command="{Binding SepararCommand}"
                       ToolTip="El PDF trae dos facturas: pregunta desde qué página empieza la segunda y su nombre, deja el original como .BAK y registra la segunda" />
             <Separator />
+            <MenuItem Header="Eliminar factura…" Command="{Binding EliminarCommand}" ToolTipService.ShowOnDisabled="True"
+                      Visibility="{Binding Prueba, Converter={StaticResource Visible}, ConverterParameter=invertir}"
+                      ToolTip="Para una factura registrada por error: la quita con su PDF (a la papelera de Windows). Si está exportada en el trimestre activo, borra antes su asiento y su libro de IVA; si su asiento es de un trimestre cerrado o del ERP, no se puede" />
+            <Separator />
             <MenuItem Header="Actualizar" Command="{Binding RefrescarCommand}" InputGestureText="F5" ToolTip="Vuelve a leer las facturas" />
           </ContextMenu>
         </pc:VistaEstado.ContextMenu>

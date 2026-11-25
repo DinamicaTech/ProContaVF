@@ -42,7 +42,7 @@
                   ToolTip="Guarda otro fichero como versión nueva (por ejemplo, el firmado); la anterior se conserva intacta" />
         <Separator />
         <MenuItem Header="Eliminar…" Command="{Binding EliminarCommand}" ToolTipService.ShowOnDisabled="True"
-                  ToolTip="Elimina los marcados que no tienen vínculos; sus ficheros van a la papelera de Windows" />
+                  ToolTip="Elimina los marcados aunque estén vinculados: enseña a qué lo están y quita esos vínculos en el mismo paso. Sus ficheros van a la papelera de Windows. Los justificantes de la AEAT se quedan" />
       </ContextMenu>
       <Style x:Key="Fila" TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
         <Setter Property="ToolTip" Value="{Binding AyudaFila}" />

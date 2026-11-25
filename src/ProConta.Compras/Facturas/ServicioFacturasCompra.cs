@@ -444,6 +444,53 @@ public sealed class ServicioFacturasCompra(
     public Task<IReadOnlyList<ProveedorFicha>> ProveedoresAsync(ContextoSociedadEjercicio ctx, CancellationToken cancelacion = default) =>
         bd.EjecutarAsync(s => RepositorioFacturasCompra.ProveedoresFichaAsync(s, ctx.IdSociedad), cancelacion);
 
+    /// <summary>Si cada factura se puede eliminar, en el orden dado (compras/pantallas 2026-11-25); las que ya no existen no salen.</summary>
+    public Task<IReadOnlyList<ComprobacionEliminacion>> ComprobarEliminarAsync(IReadOnlyList<int> idsRegistro, CancellationToken cancelacion = default) =>
+        bd.EjecutarAsync(async s =>
+        {
+            var r = new List<ComprobacionEliminacion>();
+            foreach (var id in idsRegistro)
+                if (await EliminacionFacturaCompra.ComprobarAsync(s, id, _reloj.Ahora.Date) is { } c) r.Add(c);
+            return (IReadOnlyList<ComprobacionEliminacion>)r;
+        }, cancelacion);
+
+    /// <summary>
+    /// Elimina una factura de compra registrada por error que no ha llegado a la contabilidad (<see cref="ClaseEliminacion.Directa"/>; una
+    /// exportada en el trimestre activo, después de deshacer su exportación): su registro, su desglose y sus vínculos del gestor documental, en
+    /// una transacción. Su PDF va a la papelera de Windows (Q2 a), así se puede recuperar y «Buscar PDF nuevos» no lo vuelve a registrar; no va
+    /// si otra factura usa el mismo PDF o, en el entorno de pruebas, si está en una carpeta de producción.
+    /// </summary>
+    public async Task<Resultado<FacturaCompraEliminada>> EliminarAsync(int idRegistro, CancellationToken cancelacion = default)
+    {
+        var factura = await CargarAsync(idRegistro, cancelacion);
+        if (factura is null)
+            return Resultado<FacturaCompraEliminada>.Fallo(new Error("Compras.NoEncontrada", "La factura ya no existe: puede que otro puesto la haya eliminado.",
+                $"Factura de compra {idRegistro}", null, "Pulsa F5 para actualizar la lista."));
+        var comprobacion = await bd.EnTransaccionAsync(async s =>
+        {
+            var c = await EliminacionFacturaCompra.ComprobarAsync(s, idRegistro, _reloj.Ahora.Date);
+            if (c is { Clase: ClaseEliminacion.Directa }) await EliminacionFacturaCompra.BorrarAsync(s, idRegistro);
+            return c;
+        });
+        if (comprobacion is not { Clase: ClaseEliminacion.Directa })
+            return Resultado<FacturaCompraEliminada>.Fallo(new Error("Compras.NoEliminable", $"No he eliminado la {factura.Rotulo.ToLowerInvariant()}: " +
+                (comprobacion?.Clase == ClaseEliminacion.DeshacerAntes ? "está exportada." : comprobacion?.Motivo ?? "ya no existe."), factura.Rotulo, null,
+                comprobacion?.Clase == ClaseEliminacion.DeshacerAntes ? "Deshaz antes su exportación." : comprobacion?.QueHacer));
+
+        var ruta = factura.RutaPdf;
+        string? aviso = null;
+        var papelera = false;
+        if (ruta.Length > 0 && File.Exists(ruta))
+        {
+            var otras = Convert.ToInt32(await bd.EjecutarAsync(s => s.EscalarAsync("SELECT COUNT(*) FROM FacturasCompra WHERE MD5 = ?", factura.Md5)), CultureInfo.InvariantCulture);
+            if (otras > 0) aviso = "Otra factura registrada usa el mismo PDF: lo he dejado en su carpeta.";
+            else if (ProConta.Nucleo.Ficheros.EntornoFicheros.Protegida(ruta)) aviso = "Estás en el entorno de pruebas y el PDF está en una carpeta de producción: lo he dejado donde estaba.";
+            else if (ProConta.Documentos.Papelera.Enviar(ruta)) papelera = true;
+            else aviso = $"No he podido mandar el PDF a la papelera (¿está abierto en otro programa?). Bórralo a mano si no lo quieres: {ruta}. Si lo dejas, «Buscar PDF nuevos» lo volverá a registrar.";
+        }
+        return Resultado<FacturaCompraEliminada>.Correcto(new FacturaCompraEliminada(idRegistro, factura.Rotulo, ruta, papelera, aviso));
+    }
+
     /// <summary>
     /// Guarda lo que el operador ha revisado o corregido en una factura sin contabilizar. Con proveedor, número, fecha e
     /// importes que cuadran, deja de pedir revisión. Si otro operador la cambió mientras tanto, no se pisa.
