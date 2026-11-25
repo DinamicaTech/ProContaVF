@@ -346,7 +346,12 @@ public sealed class ServicioRecepcionCorreo
             File.SetAttributes(ruta, FileAttributes.ReadOnly);
             adjuntos.Add((ordinal, ServicioCorreo.Recortar(nombre, 255)!, contenido.Length, Convert.ToHexString(SHA256.HashData(contenido)), Path.Combine(relativa, fichero), LectorCorreo.Clasificar(nombre, contenido)));
         }
-        var propio = leido.Remitente is { } rem && (string.Equals(rem, cuenta.Direccion, StringComparison.OrdinalIgnoreCase) || string.Equals(rem, cuenta.ResponderA, StringComparison.OrdinalIgnoreCase));
+        // Correo propio (propietario 2026-11-25 09:47): el que envió ProContaVF (su Message-ID está en el correo enviado) o el que sale del propio
+        // buzón de recepción. Lo que llega desde la dirección de «Responder a» (el correo del operador, que reenvía facturas) sí se procesa.
+        var messageId = (leido.MessageId ?? "").Trim().Trim('<', '>');
+        var enviadoPorNosotros = messageId.Length > 0 && await _bd.EjecutarAsync(async s => Convert.ToInt32(await s.EscalarAsync(
+            "SELECT COUNT(*) FROM MensajesCorreo WHERE MessageId = ? OR MessageId = ?", messageId, $"<{messageId}>"), CultureInfo.InvariantCulture) > 0);
+        var propio = enviadoPorNosotros || (leido.Remitente is { } rem && string.Equals(rem, cuenta.Direccion, StringComparison.OrdinalIgnoreCase));
         var estado = leido.EsAutomatico || propio || leido.Remitente is null ? EstadoRecibido.Ignorado : EstadoRecibido.Descargado;
         var idMensaje = await _bd.EnTransaccionAsync(async s =>
         {
