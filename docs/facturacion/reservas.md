@@ -45,6 +45,7 @@ threads:
 - 2026-11-25 14:30 · Acreedor de la plataforma en la regla (propietario 2026-11-25 13:53: cliente y acreedor de cada plataforma pasan a ser fichas distintas): la regla de venta tiene «Acreedor de la plataforma» (ReglasVenta.IdAcreedor); ver facturacion/reservas/compensacion-comision 2026-11-25 14:30.
 - 2026-11-25 14:30 · La conciliación de los cobros de Airbnb y Booking con las facturas nominales queda como borrador en norma43/conciliacion/plataformas (propietario, Q3 de 2026-11-25 14:18), con lo comprobado al cruzar los cobros de 2026 con las ventas.
 - 2026-11-16 17:15 · Hecho, pendiente de validar, el cuadre de la comisión que quedaba para una segunda entrega (2026-11-14 11:45): facturacion/reservas/compensacion-comision compensa la 410 de cada factura de comisión contra la 430 de la plataforma, que es un solo tercero con los dos roles.
+- 2026-11-25 15:21 · OrigenesVenta guarda cómo paga cada plataforma (CargoCobroPorcentaje, ReferenciaCobro, DiasCobroTrasSalida, DiasCobroHabitualDesde/Hasta; esquema 86), que usa norma43/conciliacion/plataformas para cruzar sus cobros con las facturas de las reservas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 13 RF-RES-01..03: reservas de alojamiento
@@ -101,6 +102,7 @@ threads:
 - 2026-11-25 14:18 · Q1. b
 - 2026-11-25 14:18 · answer: factura nominal sin NIF → (b) si no hay NIF y no pasa de 400 €, se valida como simplificada; el resto espera al NIF
 - 2026-11-25 14:18 · Q3. Ok con el desglose
+- 2026-11-25 15:21 · Derived from norma43/conciliacion/plataformas: plazos de cobro de cada plataforma en OrigenesVenta.
 
 ## Hand-over
 - 2026-11-25 14:30 · Hecho, pendiente de validar: factura nominal al huésped y acreedor de la plataforma en la regla de venta (Decisions 2026-11-25 14:30), en la rama claude/facturas-nominales (esquema 85). Pruebas: `VentasAccessTests.FacturaNominalAlHuespedDaDeAltaAlClienteConLa430DeLaReglaYEligeCompletaOSimplificada` y `CompensacionComisionAccessTests.Con_el_acreedor_en_la_regla_compensa_aunque_cliente_y_acreedor_sean_terceros_distintos`. Para validarlo: en Reglas de venta de Airbnb y Booking, elegir como cliente la ficha «clientes varios» (con su 430), marcar «Factura nominal al huésped» y elegir el acreedor; importar de Avaibook y facturar. Pendiente aparte: la respuesta de Avaibook sobre los datos del check-in y la conciliación de los cobros (norma43/conciliacion/plataformas).

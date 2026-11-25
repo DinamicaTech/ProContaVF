@@ -131,6 +131,7 @@ public static class CatalogoMigraciones
         MigracionesIntegridad.RelacionesPendientes,
         MigracionesModelosTributarios.CasillasJustificante,
         MigracionesVentas.FacturaNominalHuesped,
+        MigracionesConciliacionN43.CobrosPlataformas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

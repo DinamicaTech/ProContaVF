@@ -72,6 +72,8 @@
       <MenuItem Header="{Binding AccionDeshacerExplosion.Texto}" Command="{Binding AccionDeshacerExplosion.Comando}" ToolTip="{Binding AccionDeshacerExplosion.Ayuda}" />
       <MenuItem Header="{Binding AccionPagoDividendos.Texto}" Command="{Binding AccionPagoDividendos.Comando}" ToolTip="{Binding AccionPagoDividendos.Ayuda}" />
       <MenuItem Header="{Binding AccionActivo.Texto}" Command="{Binding AccionActivo.Comando}" ToolTip="{Binding AccionActivo.Ayuda}" />
+      <MenuItem Header="{Binding AccionQuitarCobroPlataforma.Texto}" Command="{Binding AccionQuitarCobroPlataforma.Comando}" ToolTip="{Binding AccionQuitarCobroPlataforma.Ayuda}"
+                Visibility="{Binding HayPlataformas, Converter={StaticResource Visible}}" />
       <Separator />
       <MenuItem Header="{Binding AccionContabilizar.Texto}" Command="{Binding AccionContabilizar.Comando}" ToolTip="{Binding AccionContabilizar.Ayuda}" InputGestureText="Ctrl+E" />
       <MenuItem Header="{Binding AccionVerAsiento.Texto}" Command="{Binding AccionVerAsiento.Comando}" ToolTip="{Binding AccionVerAsiento.Ayuda}" InputGestureText="Doble clic" />
@@ -121,6 +123,9 @@
         <Button Content="Explotar remesas pendientes" Command="{Binding ExplotarPendientesCommand}" Margin="18,0,0,0" VerticalAlignment="Center"
                 Visibility="{Binding HayRemesas, Converter={StaticResource Visible}}"
                 ToolTip="Desglosa en recibos todas las remesas sin explotar de los ejercicios marcados cuyas facturas domiciliadas cuadran solas; las que no cuadran se abren una a una con «Explotar remesa…» (clic derecho)" />
+        <Button Content="Conciliar plataformas…" Command="{Binding ConciliarPlataformasCommand}" Margin="8,0,0,0" VerticalAlignment="Center"
+                Visibility="{Binding HayPlataformas, Converter={StaticResource Visible}}"
+                ToolTip="Cruza los cobros de Airbnb, Booking y demás plataformas de los ejercicios marcados con las facturas validadas de sus reservas, también los pagos a trozos y los que agrupan varias reservas, y concilia los que dejes marcados" />
       </StackPanel>
     </Border>
 

@@ -1,4 +1,4 @@
-using ProConta.Datos.Persistencia;
+﻿using ProConta.Datos.Persistencia;
 
 namespace ProConta.Datos.Esquema.Migraciones;
 
@@ -192,4 +192,54 @@ public static class MigracionesConciliacionN43
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 id, (short)1, l.Orden, false, l.Cuenta, l.Lado, l.Importe, l.Concepto, (object?)l.Centro ?? DBNull.Value, DBNull.Value);
     }
+    /// <summary>
+    /// Conciliación de los cobros de las plataformas (norma43/conciliacion/plataformas 2026-11-25): los cobros que pagan una factura a
+    /// trozos (CobrosParcialesN43; la línea que completa el cobro va en Facturas.LineaN43) y, en cada origen de venta, cómo paga la
+    /// plataforma: el cargo por cobrar que descuenta además de la comisión, desde qué fecha de la reserva y hasta cuántos días después de
+    /// la salida puede llegar el cobro, y su plazo habitual para desempatar. Airbnb y Booking se cargan con lo visto en los cobros de 2026.
+    /// </summary>
+    public static Migracion CobrosPlataformas { get; } = new(
+        "20261125_1600_COBROS_PLATAFORMAS_N43", 261125016,
+        "Norma 43: cobros a trozos de las facturas y plazos de cobro de cada plataforma de venta.",
+        "norma43/conciliacion/plataformas",
+        new CrearTabla("CobrosParcialesN43",
+            "CREATE TABLE CobrosParcialesN43 (IdCobroParcialN43 COUNTER CONSTRAINT PK_CobrosParcialesN43 PRIMARY KEY, " +
+            "IdFactura LONG NOT NULL, " + // sin relación: Facturas ya tiene el máximo de índices de Access (32)
+            "LineaN43 LONG NOT NULL CONSTRAINT FK_CobrosParcialesN43_Linea REFERENCES LineasExtractoBancario (IdLineaExtractoBancario), " +
+            "Importe CURRENCY NOT NULL)"),
+        new CrearIndice("CobrosParcialesN43", "UX_CobrosParcialesN43_FacturaLinea",
+            "CREATE UNIQUE INDEX UX_CobrosParcialesN43_FacturaLinea ON CobrosParcialesN43 (IdFactura, LineaN43)"),
+        new CrearIndice("CobrosParcialesN43", "IX_CobrosParcialesN43_Linea", "CREATE INDEX IX_CobrosParcialesN43_Linea ON CobrosParcialesN43 (LineaN43)"),
+        new AnadirColumna("OrigenesVenta", "CargoCobroPorcentaje", "DECIMAL(8,4)"),
+        new AnadirColumna("OrigenesVenta", "ReferenciaCobro", "TEXT(8)"),
+        new AnadirColumna("OrigenesVenta", "DiasCobroTrasSalida", "SHORT"),
+        new AnadirColumna("OrigenesVenta", "DiasCobroHabitualDesde", "SHORT"),
+        new AnadirColumna("OrigenesVenta", "DiasCobroHabitualHasta", "SHORT"),
+        new PasoPersonalizado(
+            "Plazos de cobro de Airbnb y Booking",
+            "UPDATE OrigenesVenta SET CargoCobroPorcentaje, ReferenciaCobro, DiasCobroTrasSalida, DiasCobroHabitualDesde, DiasCobroHabitualHasta WHERE Codigo IN ('AIRBNB', 'BOOKING')",
+            async (s, e) => e.Tabla("OrigenesVenta") is not null && Convert.ToInt32(await s.EscalarAsync(
+                "SELECT COUNT(*) FROM OrigenesVenta WHERE Codigo IN ('AIRBNB', 'BOOKING') AND ReferenciaCobro IS NULL"), System.Globalization.CultureInfo.InvariantCulture) == 0,
+            async (s, _) =>
+            {
+                await s.EjecutarAsync("UPDATE OrigenesVenta SET CargoCobroPorcentaje = 0, ReferenciaCobro = 'ENTRADA', DiasCobroTrasSalida = 7, " +
+                    "DiasCobroHabitualDesde = 2, DiasCobroHabitualHasta = 4 WHERE Codigo = 'AIRBNB' AND ReferenciaCobro IS NULL");
+                await s.EjecutarAsync("UPDATE OrigenesVenta SET CargoCobroPorcentaje = 1.3, ReferenciaCobro = 'SALIDA', DiasCobroTrasSalida = 15, " +
+                    "DiasCobroHabitualDesde = 2, DiasCobroHabitualHasta = 12 WHERE Codigo = 'BOOKING' AND ReferenciaCobro IS NULL");
+            }))
+    {
+        Descripciones =
+        [
+            new("CobrosParcialesN43", null, "Cobros a trozos de una factura de venta (p. ej. una reserva que la plataforma paga en varias transferencias): cada línea que paga una parte sin completarla; la que completa el cobro va en Facturas.LineaN43."),
+            new("CobrosParcialesN43", "IdCobroParcialN43", "Identificador autonumérico del cobro parcial."),
+            new("CobrosParcialesN43", "IdFactura", "Factura de venta cobrada en parte."),
+            new("CobrosParcialesN43", "LineaN43", "Movimiento bancario que paga esa parte."),
+            new("CobrosParcialesN43", "Importe", "Parte del movimiento que se aplica a la factura, en euros."),
+            new("OrigenesVenta", "CargoCobroPorcentaje", "Porcentaje del total de la reserva que la plataforma descuenta del cobro además de la comisión (Booking: 1,3 % de «cargo por servicio de los pagos»); vacío = 0."),
+            new("OrigenesVenta", "ReferenciaCobro", "Desde qué fecha de la reserva puede llegar el cobro de la plataforma: ENTRADA o SALIDA; vacío = ENTRADA."),
+            new("OrigenesVenta", "DiasCobroTrasSalida", "Días después de la salida en que aún puede llegar el cobro; vacío = 15."),
+            new("OrigenesVenta", "DiasCobroHabitualDesde", "Plazo habitual de cobro, días desde la fecha de referencia (inicio): desempata cuando un cobro cuadra con varias reservas; vacío = sin desempate."),
+            new("OrigenesVenta", "DiasCobroHabitualHasta", "Plazo habitual de cobro, días desde la fecha de referencia (fin)."),
+        ],
+    };
 }

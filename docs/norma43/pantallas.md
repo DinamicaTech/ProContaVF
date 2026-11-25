@@ -46,6 +46,7 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-16 19:25 · Validado por el propietario lo derivado de contabilidad/procesos/aplicacion-resultado (PR #95).
 - 2026-11-25 15:30 · Estados: «Sin cuenta», «Por contabilizar» (con cuenta, sin asiento), «Contabilizada» (asiento de ProContaVF) y «Contabilizada en el ERP». Una del ERP no se reasigna, ni se le cambia la cuenta, ni se recontabiliza, ni se actualizan sus textos; «Deshacer el asiento…» sí, cuando su asiento es «de banco limpio» (norma43/conciliacion 2026-11-25 15:30): la deja «Por contabilizar» con su cuenta y desde ahí se trabaja como cualquier otra (F2, Ctrl+E). Si no lo es, la opción sale desactivada y su tooltip, y el de la columna Estado, dicen el motivo (la 555 puente, una nómina, una factura…) y que se corrige desde el Mayor. El diálogo del motivo avisa de cuántas son del ERP y de las otras líneas que comparten ese asiento, que se deshacen a la vez y se refrescan en la rejilla. `LineaN43` lleva `BloqueoDeshacerErp` y `LineasMismoAsiento`; `AccionesLineasN43.ADeshacer` incluye las del ERP que se pueden deshacer y `AActualizar` solo las de ProContaVF. Selector de ejercicios múltiple de la pantalla (al abrir, el de trabajo); las líneas de ejercicios cerrados se ven en cursiva y ninguna acción las cambia.
 - 2026-11-25 15:30 · Fusionado a petición del propietario («fusiona», 2026-11-25 15:22) sin haberlo probado aún en la pantalla: queda por validar «Deshacer el asiento…» en una línea del ERP.
+- 2026-11-25 15:21 · Conciliar plataformas (norma43/conciliacion/plataformas): botón de cabecera «Conciliar plataformas…» (acción general sobre los ejercicios marcados) y, en el menú contextual, «Quitar el cobro de la reserva» para abonos con facturas enlazadas.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
@@ -92,3 +93,4 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-25 15:15 · 1. Ok
 - 2026-11-25 15:15 · 2. Ok
 - 2026-11-25 15:22 · Cuando hayas acabado, fusiona y avisa a 'Conciliar cobros de Airbnb y Booking' para que pueda proseguir el desarrollo.
+- 2026-11-25 15:21 · Derived from norma43/conciliacion/plataformas: botón de cabecera «Conciliar plataformas…» y acción contextual «Quitar el cobro de la reserva».
