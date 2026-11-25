@@ -1,4 +1,4 @@
-﻿namespace ProConta.Datos.Esquema.Migraciones;
+namespace ProConta.Datos.Esquema.Migraciones;
 
 /// <summary>
 /// Versión 1 del esquema: la maestra C:\docs\codigo\ProContaVF\ProConta\Proconta.accdb tal como
@@ -130,6 +130,8 @@ public static class CatalogoMigraciones
         MigracionesPlataforma.ConexionAws,
         MigracionesIntegridad.RelacionesPendientes,
         MigracionesModelosTributarios.CasillasJustificante,
+        MigracionesVentas.FacturaNominalHuesped,
+        MigracionesConciliacionN43.CobrosPlataformas,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

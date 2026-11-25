@@ -86,6 +86,14 @@ public interface IMotorAsientos
     /// </summary>
     Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo);
 
+    /// <summary>
+    /// Borra un asiento suelto importado de ContaSol (lote del importador, <see cref="OpcionesLote.MotorImportadorContaSol"/>), con motivo,
+    /// y deja su copia en AsientosBorrados y ApuntesBorrados como un manual (norma43/conciliacion 2026-11-25 15:30: deshacer la contabilización
+    /// de una línea N43 del ERP). No se admite si lleva libro de IVA, si su ejercicio está cerrado o si lleva una cuenta fiscal de un trimestre
+    /// cerrado. <paramref name="enLaTransaccion"/> corre en la misma transacción (Antes recibe el asiento; Despues, una lista vacía).
+    /// </summary>
+    Task<Resultado> EliminarImportadoContaSolAsync(int idAsiento, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null);
+
     /// <summary>Copias de los asientos manuales borrados de unos ejercicios, del más reciente al más antiguo, con sus apuntes.</summary>
     Task<IReadOnlyList<AsientoBorrado>> AsientosBorradosAsync(IReadOnlyCollection<int> idsSociedadEjercicio);
 
@@ -313,6 +321,35 @@ public sealed partial class MotorAsientosAccess(IBaseDatos bd, PoliticaCuadre? p
             if (!trimestre.EsCorrecto) return trimestre;
             await CopiarBorradoAsync(s, actual, actor, motivo.Trim());
             await BorrarAsync(s, actual, actor, motivo.Trim(), Guid.NewGuid());
+            await ActualizarSaldosAsync(s, actual.Contexto, actual.Apuntes.Select(a => a.CodigoCuenta));
+            return Resultado.Correcto();
+        });
+
+    public Task<Resultado> EliminarImportadoContaSolAsync(int idAsiento, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null) =>
+        bd.EnTransaccionAsync(async s =>
+        {
+            if (string.IsNullOrWhiteSpace(motivo)) return Resultado.Fallo(SinMotivo($"Asiento {idAsiento}"));
+            var actual = await CargarAsync(s, idAsiento);
+            if (actual is null) return Resultado.Fallo(NoExiste(idAsiento));
+            if (!actual.EsAutomatico || !string.Equals(actual.Lote?.MotorPropietario, OpcionesLote.MotorImportadorContaSol, StringComparison.Ordinal))
+                return Resultado.Fallo(new Error("Asientos.NoImportadoContaSol", $"El asiento {idAsiento} no es un asiento importado de ContaSol.", $"Asiento {idAsiento}",
+                    "Esta operación solo borra asientos sueltos traídos de ContaSol; los demás se borran desde su origen o desde el Diario.",
+                    "Bórralo desde su origen (o desde el Diario si es manual)."));
+            if (await TieneLibroIvaAsync(s, idAsiento))
+                return Resultado.Fallo(new Error("Asientos.ImportadoConLibroIva", $"El asiento {idAsiento} lleva libro de IVA: es el de una factura.", $"Asiento {idAsiento}",
+                    "Borrarlo dejaría el libro de IVA sin su asiento.", "Corrígelo desde el Mayor con «Asistente de corrección…» (anular y rehacer)."));
+            var abierto = await ComprobarEjercicioAbiertoAsync(s, actual.Contexto);
+            if (!abierto.EsCorrecto) return abierto;
+            var trimestre = await ComprobarTrimestreAbiertoAsync(s, actual);
+            if (!trimestre.EsCorrecto) return trimestre;
+            if (enLaTransaccion?.Antes is { } antes) await antes(s, [idAsiento]);
+            await CopiarBorradoAsync(s, actual, actor, motivo.Trim());
+            await BorrarAsync(s, actual, actor, motivo.Trim(), Guid.NewGuid());
+            if (enLaTransaccion?.Despues is { } despues)
+            {
+                var hecho = await despues(s, []);
+                if (!hecho.EsCorrecto) return hecho;
+            }
             await ActualizarSaldosAsync(s, actual.Contexto, actual.Apuntes.Select(a => a.CodigoCuenta));
             return Resultado.Correcto();
         });

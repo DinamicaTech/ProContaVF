@@ -157,7 +157,7 @@ public sealed class CuentasAnualesTests
     }
 
     [Fact]
-    public void Los_saldos_al_reves_de_deudores_y_acreedores_se_presentan_en_el_otro_lado()
+    public void Los_saldos_al_reves_solo_pasan_al_otro_lado_si_su_partida_queda_en_negativo()
     {
         // Banco en descubierto (500), cliente con anticipo (300 acreedor), socio con dividendo pagado de más (200 deudor en la 526) y proveedor con saldo deudor (100).
         var c = ServicioCuentasAnuales.Cifras(2025,
@@ -167,13 +167,14 @@ public sealed class CuentasAnualesTests
         ], Nombres);
         Assert.Equal(0m, c["12700"]);
         Assert.Equal(500m, c["32320"]);
-        Assert.Equal(300m, c["32590"]);
-        Assert.Equal(1500m, c["12382"]);
+        // El cliente con anticipo se compensa con los demás clientes: la partida sigue en positivo.
+        Assert.Equal(0m, c["32590"]);
+        Assert.Equal(1200m, c["12382"]);
         Assert.Equal(100m, c["12390"]);
         Assert.Equal(200m, c["12500"]);
         Assert.Equal(0m, c["32390"]);
         Assert.Equal(c.TotalActivo, c.TotalPatrimonioNetoYPasivo);
-        Assert.Equal(4, c.Reclasificadas.Count);
+        Assert.Equal(["4000001", "5260001", "5720002"], c.Reclasificadas.Select(x => x.Cuenta));
         var r = CalculoCuentasAnuales.Componer("S", "B0", c, c with { Ejercicio = 2024 }, cerrado: true);
         Assert.False(r.TieneErrores, string.Join(" | ", r.Comprobaciones.Where(x => x.Gravedad == GravedadComprobacion.Error).Select(x => x.Titulo)));
         Assert.Contains(r.Comprobaciones, x => x.Gravedad == GravedadComprobacion.Aviso && x.Titulo.Contains("saldo al revés"));

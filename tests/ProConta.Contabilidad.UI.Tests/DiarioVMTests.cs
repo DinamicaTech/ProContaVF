@@ -88,6 +88,7 @@ public class DiarioVMTests
             if (Conflicto) throw new ConflictoConcurrenciaException(new Error("Datos.ConflictoVersion", "Otra persona ha modificado este asiento.", $"Asiento {idAsiento}", null, "Vuelve a cargarlo."));
             return Task.FromResult(Error is { } e ? Resultado.Fallo(e) : Resultado.Correcto());
         }
+        public Task<Resultado> EliminarImportadoContaSolAsync(int idAsiento, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null) => No<Task<Resultado>>();
         public Task<IReadOnlyList<AsientoBorrado>> AsientosBorradosAsync(IReadOnlyCollection<int> idsSociedadEjercicio)
         {
             Llamadas.Add($"borrados {string.Join(",", idsSociedadEjercicio)}");

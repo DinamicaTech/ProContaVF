@@ -134,6 +134,29 @@ public sealed class FuenteSaludAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task LosClientesSinNifDeUna430CompartidaNoAvisan()
+    {
+        // facturacion/reservas 2026-11-25 14:13: los huéspedes comparten la 430 de «clientes varios» y el NIF va en cada factura.
+        await PrepararAsync();
+        var fuente = new FuenteSaludAccess(Bd);
+        var e2026 = (await fuente.EjerciciosAsync("T01")).Single(e => e.Ejercicio == 2026);
+        async Task<int> ClienteAsync(int id, string nombre, string cuenta) => await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("INSERT INTO Terceros (TipoPersona, Nombre, NombrePersona, Activo, FechaAlta, Version) VALUES ('FISICA', ?, ?, True, ?, 1)", nombre, nombre, new DateTime(2026, 1, 1));
+            var tercero = await s.UltimoIdAsync();
+            await s.EjecutarAsync("INSERT INTO Clientes (IdCliente, IdTercero, Activo, FechaAlta) VALUES (?, ?, True, ?)", id, tercero, new DateTime(2026, 1, 1));
+            var identidad = Convert.ToInt32(await s.EscalarAsync("SELECT TOP 1 IdIdentidadContable FROM CuentasContables WHERE Codigo = ?", cuenta));
+            await s.EjecutarAsync("INSERT INTO CuentasClientesSociedad (IdCliente, IdSociedad, Clase, IdIdentidadContable) VALUES (?, 'T01', 'CLIENTE', ?)", id, identidad);
+            return tercero;
+        });
+        await ClienteAsync(90001, "Huésped Uno", "4300001");
+        await ClienteAsync(90002, "Huésped Dos", "4300001");
+        var solo = await ClienteAsync(90003, "Cliente Solo", "4300002");
+        var sinNif = await fuente.TercerosSinNifAsync("T01", e2026);
+        Assert.Equal([solo], sinNif.Select(t => t.IdTercero).Distinct());
+    }
+
+    [Fact]
     public async Task LaRevisionCompletaNoFallaYSaleLoQueToca()
     {
         await PrepararAsync();

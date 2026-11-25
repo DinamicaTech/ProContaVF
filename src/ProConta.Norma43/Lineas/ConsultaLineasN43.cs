@@ -41,6 +41,15 @@ public sealed record LineaN43(
     string? CuentaOrigen, string? NombreCuentaOrigen, IReadOnlyList<DestinoLineaN43> Destinos,
     int? IdAsiento, bool AsientoPropio, string? Tipo, string? Facturas = null, int? Especial = null, int? IdExtractoDesglose = null, int? IdLineaOrigen = null)
 {
+    /// <summary>
+    /// En una línea contabilizada en el ERP, por qué su asiento no se puede deshacer desde aquí (norma43/conciliacion 2026-11-25 15:30), o null
+    /// si es «de banco limpio» y «Deshacer el asiento…» lo borra.
+    /// </summary>
+    public string? BloqueoDeshacerErp { get; init; }
+
+    /// <summary>Otras líneas contabilizadas con el mismo asiento del ERP (traspasos y cargos agrupados): se deshacen a la vez.</summary>
+    public IReadOnlyList<int> LineasMismoAsiento { get; init; } = [];
+
     /// <summary>La desglosa un extracto ficticio de recibos (remesa o devolución explotada).</summary>
     public bool Explotada => IdExtractoDesglose is not null;
 
@@ -167,8 +176,11 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             }
         }
 
+        // Asientos del ERP de las líneas contabilizadas en él: si «Deshacer el asiento…» los puede borrar (norma43/conciliacion 2026-11-25 15:30).
+        var asientosErp = await AsientosErpN43.LeerAsync(s, contabilizadas.Values.Where(c => c.Existe && !c.Propio).Select(c => c.Asiento));
+
         // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea, por su cobro, su
-        // devolución o un reintento (norma43/remesas).
+        // devolución, un reintento (norma43/remesas) o un cobro a trozos (norma43/conciliacion/plataformas).
         var facturas = new Dictionary<int, List<string>>();
         var desgloses = new Dictionary<int, int>();
         foreach (var bloque in filas.Select(f => f.Id).Chunk(300))
@@ -177,13 +189,15 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             const string venta = "SELECT {0} AS Linea, s.Prefijo, f.NumeroFactura FROM {1} WHERE {0} IN ({2})";
             const string desdeVenta = "Facturas AS f LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
             const string desdeReintento = "(ReintentosSEPA AS r INNER JOIN Facturas AS f ON r.IdFactura = f.IdFactura) LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
+            const string desdeTrozo = "(CobrosParcialesN43 AS c INNER JOIN Facturas AS f ON c.IdFactura = f.IdFactura) LEFT JOIN SeriesFacturacion AS s ON f.IdSerie = s.IdSerie";
             static (int Linea, string Numero) Venta(IFilaDatos f) => (f.Entero("Linea"), (Limpio(f.Texto("Prefijo")) ?? "") + (Limpio(f.Texto("NumeroFactura")) ?? ""));
             var enlazadas = (await s.ConsultarAsync($"SELECT LineaN43, NumeroFactura FROM FacturasCompra WHERE LineaN43 IN ({lista})",
                     f => (Linea: f.Entero("LineaN43"), Numero: Limpio(f.Texto("NumeroFactura")) ?? "(sin número)")))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43", desdeVenta, lista), Venta))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "f.LineaN43Devolucion", desdeVenta, lista), Venta))
                 .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43", desdeReintento, lista), Venta))
-                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43Devolucion", desdeReintento, lista), Venta));
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "r.LineaN43Devolucion", desdeReintento, lista), Venta))
+                .Concat(await s.ConsultarAsync(string.Format(CultureInfo.InvariantCulture, venta, "c.LineaN43", desdeTrozo, lista), Venta));
             foreach (var e in enlazadas)
             {
                 if (!facturas.TryGetValue(e.Linea, out var l)) facturas[e.Linea] = l = [];
@@ -262,7 +276,11 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
                 banco?.Codigo, banco?.Nombre, destinos, c?.Asiento, c?.Propio ?? false, tipo,
                 facturas.TryGetValue(f.Id, out var fs) ? string.Join(", ", fs.OrderBy(x => x, StringComparer.CurrentCulture)) : null,
                 destinos.Select(d => d.IdPalabraClave is int p && especiales.TryGetValue(p, out var e) ? e : (int?)null).FirstOrDefault(e => e is not null),
-                desgloses.TryGetValue(f.Id, out var desglose) ? desglose : null, f.IdLineaOrigen));
+                desgloses.TryGetValue(f.Id, out var desglose) ? desglose : null, f.IdLineaOrigen)
+            {
+                BloqueoDeshacerErp = c is { Propio: false } ce ? AsientosErpN43.Bloqueo(asientosErp.GetValueOrDefault(ce.Asiento), banco?.Codigo) : null,
+                LineasMismoAsiento = c is { Propio: false } cl && asientosErp.TryGetValue(cl.Asiento, out var ae) ? [.. ae.Lineas.Where(i => i != f.Id)] : [],
+            });
         }
         return r.OrderBy(l => l.FechaOperacion).ThenBy(l => l.Id).ToList();
     });

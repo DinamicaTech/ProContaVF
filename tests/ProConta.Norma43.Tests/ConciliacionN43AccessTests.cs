@@ -5,6 +5,7 @@ using ProConta.Contabilidad.Plantillas;
 using ProConta.Datos.Persistencia;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Importacion;
+using ProConta.Norma43.Lineas;
 using ProConta.Nucleo.Auditoria;
 using ProConta.Nucleo.Contexto;
 using ProConta.Pruebas.Access;
@@ -327,7 +328,128 @@ public sealed class ConciliacionN43AccessTests : IDisposable
         var p = Assert.Single(await Servicio.ProponerAsync("T01", ids));
         Assert.Equal("Conciliacion.ContabilizadaFuera", Assert.Single(p.Errores).Codigo);
         Assert.Equal(guardado.Valor.IdAsiento, p.IdAsientoActual);
-        Assert.Equal("Conciliacion.ContabilizadaFuera", (await Servicio.DeshacerAsync("T01", ids, _actor, "Probar")).Rechazadas[ids[0]][0].Codigo);
+        // Un asiento que no trajo ContaSol no se borra desde la línea (norma43/conciliacion 2026-11-25 15:30).
+        var deshacer = (await Servicio.DeshacerAsync("T01", ids, _actor, "Probar")).Rechazadas[ids[0]][0];
+        Assert.Equal("Conciliacion.ErpNoDeshacible", deshacer.Codigo);
+        Assert.Contains("ContaSol", deshacer.ToString());
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+    }
+
+    // ---------- deshacer los asientos del ERP (norma43/conciliacion 2026-11-25 15:30) ----------
+
+    /// <summary>Graba como el importador de ContaSol un asiento por cada lista de apuntes y enlaza cada uno con sus líneas, como la migración del ERP.</summary>
+    private async Task<int[]> ErpAsync(params (int[] Lineas, Apunte[] Apuntes)[] asientos)
+    {
+        var externos = asientos.Select((a, i) =>
+        {
+            var asiento = new Asiento(_ctx, new DateTime(2026, 11, 2), $"Asiento {i + 1} de ContaSol");
+            asiento.Apuntes.AddRange(a.Apuntes);
+            return new AsientoExterno($"2026-1-{i + 1}", asiento);
+        }).ToList();
+        var r = await new MotorAsientosAccess(Bd).CargarLibroExternoAsync(_ctx, OpcionesLote.MotorImportadorContaSol, "CONTASOL", externos, _actor, "Importación de ContaSol de pruebas");
+        Assert.True(r.EsCorrecto, string.Join(" | ", r.Errores));
+        Assert.Empty(r.Valor.Rechazados);
+        var ids = externos.Select(e => r.Valor.Ids[e.ClaveEjecucion]).ToArray();
+        for (var i = 0; i < asientos.Length; i++)
+            foreach (var linea in asientos[i].Lineas)
+            {
+                var idAsiento = ids[i];
+                await Bd.EjecutarAsync(s => s.EjecutarAsync(
+                    "INSERT INTO ContabilizacionesLineaExtracto (IdLineaExtractoBancario, IdAsiento, Estado, VersionProceso, FechaHora, Operador) VALUES (?, ?, ?, ?, ?, ?)",
+                    linea, idAsiento, "CONTABILIZADA", 1, new DateTime(2026, 11, 3), "ERP"));
+            }
+        return ids;
+    }
+
+    [Fact]
+    public async Task Deshacer_una_linea_del_erp_con_asiento_de_banco_limpio_lo_borra_con_copia_y_la_deja_pendiente_con_su_cuenta()
+    {
+        var ids = await PrepararAsync(M(11, 2, 120.50m, true, "RECIBO DEL ERP"));
+        await ImputarAsync(ids[0], "6280001", 120.50m);
+        var asiento = (await ErpAsync(([ids[0]], [Apunte.AlDebe("6280001", 120.50m), Apunte.AlHaber("5720001", 120.50m)])))[0];
+
+        var linea = Assert.Single(await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]));
+        Assert.Equal(EstadoLineaN43.ContabilizadaErp, linea.Estado);
+        Assert.Null(linea.BloqueoDeshacerErp);
+        Assert.Null(AccionesLineasN43.Evaluar([linea]).Deshacer);
+
+        Assert.Equal("Conciliacion.SinMotivo", (await Servicio.DeshacerAsync("T01", ids, _actor, " ")).Rechazadas[ids[0]][0].Codigo);
+        var r = await Servicio.DeshacerAsync("T01", ids, _actor, "La cuenta del ERP era otra");
+        Assert.Empty(r.Rechazadas);
+        Assert.Equal(asiento, r.Asientos[ids[0]]);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM AsientosBorrados WHERE IdAsiento = ? AND MotivoBorrado = ?", asiento, "La cuenta del ERP era otra"));
+        Assert.Equal(2, await ContarAsync("SELECT COUNT(*) FROM ApuntesBorrados WHERE IdAsiento = ?", asiento));
+
+        // Pendiente con su cuenta: se contabiliza con un asiento nuevo de ProContaVF.
+        linea = Assert.Single(await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]));
+        Assert.Equal(EstadoLineaN43.ConCuenta, linea.Estado);
+        Assert.Equal("6280001", linea.CuentaDestino);
+        var nuevo = await Servicio.ContabilizarLineasAsync("T01", ids, _actor);
+        Assert.Empty(nuevo.Rechazadas);
+        Assert.NotEqual(asiento, nuevo.Asientos[ids[0]]);
+        var hecho = (await new MotorAsientosAccess(Bd).ObtenerAsync(nuevo.Asientos[ids[0]]))!;
+        Assert.Equal(ServicioConciliacionN43.Lote(ids[0]), hecho.Lote);
+        Assert.Equal(hecho.TotalDebe, hecho.TotalHaber);
+    }
+
+    [Fact]
+    public async Task Un_asiento_del_erp_compartido_por_dos_lineas_se_deshace_para_las_dos()
+    {
+        var ids = await PrepararAsync(M(11, 2, 100m, true, "CARGO UNO"), M(11, 2, 50m, true, "CARGO DOS"));
+        await ImputarAsync(ids[0], "6280001", 100m);
+        await ImputarAsync(ids[1], "6290001", 50m);
+        var asiento = (await ErpAsync(([ids[0], ids[1]],
+            [Apunte.AlDebe("6280001", 100m), Apunte.AlDebe("6290001", 50m), Apunte.AlHaber("5720001", 100m), Apunte.AlHaber("5720001", 50m)])))[0];
+
+        var lineas = await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]);
+        Assert.Equal([ids[1]], lineas.Single(l => l.Id == ids[0]).LineasMismoAsiento);
+
+        var r = await Servicio.DeshacerAsync("T01", [ids[0]], _actor, "Agrupado en el ERP");
+        Assert.Empty(r.Rechazadas);
+        Assert.Equal(asiento, r.Asientos[ids[0]]);
+        Assert.Equal(asiento, r.Asientos[ids[1]]);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto"));
+        Assert.All(await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]), l => Assert.Equal(EstadoLineaN43.ConCuenta, l.Estado));
+    }
+
+    [Fact]
+    public async Task Un_asiento_del_erp_aparcado_en_la_555_se_deshace_pero_el_de_una_nomina_no_y_el_motivo_lo_dice()
+    {
+        var ids = await PrepararAsync(M(11, 2, 100m, true, "RECIBO POR LA PUENTE"), M(11, 3, 900m, true, "NOMINA FICTICIA"));
+        foreach (var (codigo, nombre) in new[] { ("5550000", "Partidas pendientes ficticias"), ("6400000", "Sueldos ficticios"), ("4650001", "Remuneraciones ficticias") })
+        {
+            var c = await new CatalogoCuentasAccess(Bd).AltaAsync(_ctx, new AltaCuenta(codigo, nombre));
+            Assert.True(c.EsCorrecto, c.Error?.ToString());
+        }
+        await ErpAsync(
+            ([ids[0]], [Apunte.AlDebe("5550000", 100m), Apunte.AlHaber("5720001", 100m)]),
+            ([ids[1]], [Apunte.AlDebe("6400000", 900m), Apunte.AlHaber("4650001", 900m)]));
+
+        var lineas = await new ConsultaLineasN43(Bd).LineasAsync("T01", [2026]);
+        // Aparcado en la puente sin cuenta (propietario 2026-11-25 16:52): se puede deshacer.
+        Assert.Null(lineas.Single(l => l.Id == ids[0]).BloqueoDeshacerErp);
+        Assert.Contains("nómina", lineas.Single(l => l.Id == ids[1]).BloqueoDeshacerErp);
+        Assert.Null(AccionesLineasN43.Evaluar([lineas.Single(l => l.Id == ids[0])]).Deshacer);
+        Assert.Contains("nómina", AccionesLineasN43.Evaluar([lineas.Single(l => l.Id == ids[1])]).Deshacer);
+
+        var r = await Servicio.DeshacerAsync("T01", ids, _actor, "Probar");
+        Assert.Equal([ids[0]], r.Asientos.Keys);
+        Assert.Contains("nómina", r.Rechazadas[ids[1]][0].ToString());
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM ContabilizacionesLineaExtracto"));
+    }
+
+    [Fact]
+    public async Task El_motor_solo_borra_sueltos_los_asientos_importados_de_contasol()
+    {
+        var ids = await PrepararAsync(M(11, 2, 120.50m, true, "RECIBO"));
+        await ImputarAsync(ids[0], "6280001", 120.50m);
+        var propio = (await Servicio.ContabilizarLineasAsync("T01", ids, _actor)).Asientos[ids[0]];
+        var motor = new MotorAsientosAccess(Bd);
+        Assert.Equal("Asientos.NoImportadoContaSol", Assert.Single((await motor.EliminarImportadoContaSolAsync(propio, _actor, "Probar")).Errores).Codigo);
         Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Asientos"));
     }
 

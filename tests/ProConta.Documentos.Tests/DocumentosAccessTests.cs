@@ -143,6 +143,35 @@ public sealed class DocumentosAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Eliminar_quitando_los_vinculos_salvo_el_justificante_de_una_presentacion()
+    {
+        await PrepararAsync();
+        var justificante = Pdf("Justificante_303_3T_2026.pdf", "Agencia Tributaria", "Justificante de presentacion", "Numero de justificante: 3036000234567");
+        var poliza = Pdf("Poliza_seguro_local.pdf", "Poliza de seguro del local", "Asegurador: SEGUROS ATALAYA SA, NIF A22222222", "Fecha de efecto 10/01/2026");
+        Assert.True((await Servicio.AnadirABandejaAsync("T01", [justificante, poliza], moverOriginal: false)).EsCorrecto);
+        var bandeja = await Servicio.ListarAsync("T01", EstadosDocumento.PorClasificar);
+        Assert.Equal(2, (await Servicio.ArchivarAsync(bandeja.Select(d => d.IdDocumento).ToList())).Valor.Archivados);
+        var j = bandeja.Single(d => d.Vigente!.NombreOriginal == "Justificante_303_3T_2026.pdf").IdDocumento;
+        var p = bandeja.Single(d => d.Vigente!.NombreOriginal == "Poliza_seguro_local.pdf").IdDocumento;
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE PresentacionesAeat SET IdDocumento = ?", j));
+        // La póliza, vinculada a tres sitios.
+        Assert.True((await Servicio.VincularAsync([p], [ServicioDocumentos.Empresa("T01", "Sociedad sintética"), Vinculo.Modelo("303", 2026, "3T")], reemplazar: false)).EsCorrecto);
+        Assert.True((await Servicio.LeerAsync(p))!.Vinculos.Count >= 2);
+
+        // Sin «quitar los vínculos», como antes, no se elimina.
+        Assert.False((await Servicio.EliminarAsync([p])).EsCorrecto);
+        Assert.Equal("modelo 303 3T 2026", (await Servicio.JustificantesAsync([j, p]))[j]);
+
+        var e = await Servicio.EliminarAsync([j, p], quitarVinculos: true);
+        Assert.False(e.EsCorrecto);
+        Assert.Contains("justificante de la presentación del modelo 303 3T 2026", e.Error!.Mensaje);
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM Documentos WHERE IdDocumento = ?", p));
+        Assert.Equal(0, await ContarAsync("SELECT COUNT(*) FROM DocumentosVinculos WHERE IdDocumento = ?", p));
+        Assert.Equal(1, await ContarAsync("SELECT COUNT(*) FROM Documentos WHERE IdDocumento = ?", j));
+        Assert.Equal(j, await ContarAsync("SELECT IdDocumento FROM PresentacionesAeat"));
+    }
+
+    [Fact]
     public async Task Soltar_en_una_ficha_vincula_y_archiva_si_esta_completo()
     {
         await PrepararAsync();

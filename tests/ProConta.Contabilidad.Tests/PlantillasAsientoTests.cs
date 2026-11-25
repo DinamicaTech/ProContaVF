@@ -375,6 +375,7 @@ public class MotorPlantillasTests
         public Task<Resultado<Asiento>> GuardarManualAsync(Asiento asiento, Actor actor, string? motivo = null) => No<Task<Resultado<Asiento>>>();
         public Task<Resultado<IReadOnlyList<int>>> GuardarManualesAsync(IReadOnlyList<Asiento> asientos, Actor actor, string motivo, OpcionesAltaManual? opciones = null) => No<Task<Resultado<IReadOnlyList<int>>>>();
         public Task<Resultado> EliminarManualAsync(int idAsiento, int versionLeida, Actor actor, string motivo) => No<Task<Resultado>>();
+        public Task<Resultado> EliminarImportadoContaSolAsync(int idAsiento, Actor actor, string motivo, TrabajoLote? enLaTransaccion = null) => No<Task<Resultado>>();
         public Task<Resultado<IReadOnlyList<int>>> ReemplazarLoteAsync(ContextoSociedadEjercicio contexto, IdentidadLote lote, IReadOnlyList<Asiento> asientos, Actor actor, string motivo,
             TrabajoLote? enLaTransaccion = null, OpcionesLote? opciones = null) => No<Task<Resultado<IReadOnlyList<int>>>>();
         public Task<Resultado<IReadOnlyList<IReadOnlyList<int>>>> ReemplazarLotesAsync(IReadOnlyList<LoteAsientos> lotes, Actor actor, string motivo,

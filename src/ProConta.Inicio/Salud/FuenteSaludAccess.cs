@@ -220,8 +220,15 @@ public sealed class FuenteSaludAccess(IBaseDatos bd) : IFuenteSalud
         }, c);
 
     public Task<IReadOnlyList<TerceroSinNif>> TercerosSinNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
-        bd.EjecutarAsync<IReadOnlyList<TerceroSinNif>>(async s => (await TercerosConApuntesAsync(s, idSociedad, ejercicio))
-            .Where(x => string.IsNullOrWhiteSpace(x.Nif)).Select(x => new TerceroSinNif(x.Tercero, x.Nombre, x.Codigo, x.EsCliente)).ToList(), c);
+        bd.EjecutarAsync<IReadOnlyList<TerceroSinNif>>(async s =>
+        {
+            var lista = await TercerosConApuntesAsync(s, idSociedad, ejercicio);
+            // Una 430 que comparten varios clientes es de «clientes varios» (los huéspedes de una plataforma, facturacion/reservas
+            // 2026-11-25 14:13): sus clientes pueden no tener NIF (factura simplificada) y el NIF va en cada factura, no en la cuenta.
+            var compartidas = lista.Where(x => x.EsCliente).GroupBy(x => x.Codigo).Where(g => g.Select(x => x.Tercero).Distinct().Count() > 1).Select(g => g.Key).ToHashSet();
+            return lista.Where(x => string.IsNullOrWhiteSpace(x.Nif) && !(x.EsCliente && compartidas.Contains(x.Codigo)))
+                .Select(x => new TerceroSinNif(x.Tercero, x.Nombre, x.Codigo, x.EsCliente)).ToList();
+        }, c);
 
     public Task<IReadOnlyList<TerceroNif>> TercerosConNifAsync(string idSociedad, EjercicioSociedad ejercicio, CancellationToken c = default) =>
         bd.EjecutarAsync<IReadOnlyList<TerceroNif>>(async s => (await TercerosConApuntesAsync(s, idSociedad, ejercicio))

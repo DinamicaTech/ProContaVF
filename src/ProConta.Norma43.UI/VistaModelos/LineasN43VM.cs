@@ -4,6 +4,7 @@ using ProConta.Norma43.Asignacion;
 using ProConta.Norma43.Busqueda;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
+using ProConta.Norma43.Plataformas;
 using ProConta.Norma43.Remesas;
 using ProConta.Norma43.Similares;
 using ProConta.Nucleo.Auditoria;
@@ -62,6 +63,8 @@ public interface IDialogosLineasN43
     EleccionSimilarN43? MovimientosSimilares(MovimientosSimilaresN43VM vm) => null;
     /// <summary>Diálogo «Compra de activo» / «Venta de activo» (modal): true si se pulsa «Conciliar» con una operación elegida.</summary>
     bool ConciliarActivo(ActivoN43VM vm) => false;
+    /// <summary>Diálogo «Conciliar plataformas» (modal): true si se pulsa «Conciliar».</summary>
+    bool ConciliarPlataformas(CobrosPlataformasN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -142,7 +145,9 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         EstadoLineaN43.SinCuenta => "Sin cuenta de destino: no se puede contabilizar todavía",
         EstadoLineaN43.ConCuenta => "Tiene cuenta y falta contabilizarla (Ctrl+E)",
         EstadoLineaN43.Contabilizada => $"Contabilizada por ProContaVF en el asiento {_datos.IdAsiento}: se puede recontabilizar, actualizar sus textos o deshacer",
-        _ => $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): solo se consulta; se corrige desde el Mayor",
+        _ => _datos.BloqueoDeshacerErp is null
+            ? $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): para cambiarla, «Deshacer el asiento…» lo borra y la deja pendiente con su cuenta"
+            : $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): solo se consulta. {_datos.BloqueoDeshacerErp}",
     } + (_datos.EjercicioCerrado ? $". El ejercicio {_datos.Ejercicio} está cerrado: solo lectura" : "");
     public string Asiento => _datos.IdAsiento?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
     public int AsientoOrden => _datos.IdAsiento ?? 0;
@@ -199,6 +204,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly IAjustesRemesaN43? _ajustes;
     private readonly ConsultaSimilaresN43? _similares;
     private readonly ServicioActivosN43? _activos;
+    private readonly ServicioCobrosPlataformasN43? _plataformas;
     /// <summary>Candidatos de «Movimientos similares» por rango de ejercicios: se leen una vez y se olvidan al volver a leer o tras una acción.</summary>
     private readonly Dictionary<(int Desde, int Hasta), IReadOnlyList<CandidatoSimilarN43>> _candidatos = [];
     private IReadOnlyList<AvanceSimilarN43VM> _avance = [];
@@ -227,8 +233,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
         IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null,
-        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null)
+        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null,
+        ServicioCobrosPlataformasN43? plataformas = null)
     {
+        _plataformas = plataformas;
         _similares = similares;
         _activos = activos;
         _busqueda = busqueda;
@@ -271,6 +279,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionPagoDividendos = new("Pago de dividendos…", "Lleva el cargo a la 526 del socio que cobra o, si son varios, lo desglosa en una línea por socio con su importe y su 526", () => _ = PagoDividendosAsync());
         AccionActivo = new("Compra de activo…", "Concilia el movimiento con una compra (cargo) o venta (abono) de un activo financiero sin conciliar: genera su asiento y la deja conciliada", () => _ = ConciliarActivoAsync());
         ExplotarPendientesCommand = new ComandoDelegado(() => _ = ExplotarPendientesAsync(), () => _remesas is not null && !Ocupado && AniosMarcados.Count > 0);
+        ConciliarPlataformasCommand = new ComandoDelegado(() => _ = ConciliarPlataformasAsync(), () => _plataformas is not null && !Ocupado && AniosMarcados.Count > 0);
+        AccionQuitarCobroPlataforma = new("Quitar el cobro de la reserva", "Deshace la conciliación con plataformas de los cobros seleccionados y de todo su cruce (los demás trozos de la misma reserva y las demás reservas del mismo cobro): las facturas vuelven a estar pendientes de cobro; la cuenta de la línea no cambia", () => _ = QuitarCobroPlataformaAsync());
         ActualizarAcciones();
     }
 
@@ -401,6 +411,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     /// <summary>Botón de cabecera: explota las remesas pendientes de los ejercicios marcados que cuadran solas (acción general, no de la selección).</summary>
     public ICommand ExplotarPendientesCommand { get; }
     public bool HayRemesas => _remesas is not null;
+    /// <summary>Botón de cabecera: concilia los cobros de Airbnb, Booking… de los ejercicios marcados con las facturas de sus reservas (norma43/conciliacion/plataformas).</summary>
+    public ICommand ConciliarPlataformasCommand { get; }
+    public bool HayPlataformas => _plataformas is not null;
+    public AccionLineasVM AccionQuitarCobroPlataforma { get; }
     public ICommand RefrescarCommand { get; }
     public ICommand QuitarFiltrosCommand { get; }
 
@@ -560,7 +574,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionAsignar.Fijar("Asignar cuenta…", a.AsignarCuenta ?? Ocupada());
         AccionContabilizar.Fijar(a.TextoContabilizar, a.Contabilizar ?? Ocupada());
         AccionDeshacer.Fijar("Deshacer el asiento…" + (a.ADeshacer.Count > 1 ? $" ({a.ADeshacer.Count})" : ""), a.Deshacer ?? Ocupada());
-        AccionTextos.Fijar("Actualizar textos del asiento" + (a.ADeshacer.Count > 1 ? $" ({a.ADeshacer.Count})" : ""), a.ActualizarTextos ?? Ocupada());
+        AccionTextos.Fijar("Actualizar textos del asiento" + (a.AActualizar.Count > 1 ? $" ({a.AActualizar.Count})" : ""), a.ActualizarTextos ?? Ocupada());
         AccionReasignar.Fijar(a.TextoReasignar, a.Reasignar ?? Ocupada());
         AccionPalabras.Fijar("Palabras clave de la línea…", a.PalabrasClave ?? Ocupada());
         AccionSimilares.Fijar("Movimientos similares…", MotivoSimilares() ?? Ocupada());
@@ -574,6 +588,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionDeshacerExplosion.Fijar("Deshacer explosión", a.DeshacerExplosion ?? sinRemesas ?? Ocupada());
         AccionPagoDividendos.Fijar("Pago de dividendos…", a.PagoDividendos ?? (_remesas is null ? "Los pagos de dividendos no están disponibles en esta pantalla." : null) ?? Ocupada());
         AccionActivo.Fijar(Seleccion is [{ EsCargo: false }] ? "Venta de activo…" : "Compra de activo…", MotivoActivo() ?? Ocupada());
+        AccionQuitarCobroPlataforma.Fijar("Quitar el cobro de la reserva" + (Seleccion.Count > 1 ? $" ({Seleccion.Count})" : ""), MotivoQuitarCobro() ?? Ocupada());
         Avisar(nameof(Resumen), nameof(Acciones));
     }
 
@@ -581,6 +596,12 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         _activos is null ? "La conciliación con activos no está disponible en esta pantalla."
         : Seleccion is not [var f] ? "Selecciona un solo movimiento del banco."
         : ServicioActivosN43.Bloqueo(f.Datos) is { } e ? e.Mensaje
+        : null;
+
+    private string? MotivoQuitarCobro() =>
+        _plataformas is null ? "La conciliación con plataformas no está disponible en esta pantalla."
+        : Seleccion.Count == 0 ? "Selecciona los cobros de la plataforma."
+        : Seleccion.Any(f => f.EsCargo || string.IsNullOrEmpty(f.Datos.Facturas)) ? "Solo para abonos enlazados con facturas."
         : null;
 
     private string? Ocupada() => _ocupado ? "Espera a que termine la acción en curso." : null;
@@ -942,6 +963,44 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
             new OpcionMensaje("Entendido", "Cierra el aviso; las que no cuadran siguen sin explotar", Principal: true, Cancelar: true));
     }, "explotar las remesas pendientes");
 
+    /// <summary>
+    /// «Conciliar plataformas» (norma43/conciliacion/plataformas): propone los cruces de los cobros de las plataformas de los ejercicios
+    /// marcados con las facturas de sus reservas y concilia los que el operador deja marcados.
+    /// </summary>
+    public Task ConciliarPlataformasAsync() => Ejecutar(async () =>
+    {
+        if (_plataformas is null || AniosMarcados.Count == 0) return;
+        var desde = new DateTime(AniosMarcados.Min(), 1, 1);
+        var hasta = new DateTime(AniosMarcados.Max(), 12, 31);
+        var propuesta = await _plataformas.ProponerAsync(_contexto.Trabajo.IdSociedad, desde, hasta);
+        var vm = new CobrosPlataformasN43VM(propuesta, TextoEjercicios.Replace("Ejercicio", "ejercicio", StringComparison.Ordinal));
+        if (!_dialogos.ConciliarPlataformas(vm) || !vm.HayMarcados) return;
+        var r = await _plataformas.ConciliarAsync(_contexto.Trabajo.IdSociedad, vm.Elegidos(), _contexto.Actor);
+        if (r.Lineas.Count > 0) await RefrescarLineasAsync(r.Lineas);
+        var texto = $"{Formatos.Plural(r.Cruces, "cruce conciliado", "cruces conciliados")}: {Formatos.Plural(r.Lineas.Count, "cobro", "cobros")} con " +
+                    $"{Formatos.Plural(r.Facturas.Count, "factura", "facturas")}.";
+        if (r.Rechazados.Count == 0 && r.Avisos.Count == 0) { _contexto.Avisar(texto); return; }
+        _dialogos.Preguntar("Conciliar plataformas", texto + " Lo que no se ha podido hacer, y por qué:",
+            r.Rechazados.Select(e => e.TextoOperador()).Concat(r.Avisos).Take(40).ToList(),
+            new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+    }, "conciliar los cobros de las plataformas");
+
+    /// <summary>Quita los cobros de las reservas de las líneas seleccionadas y de todo su cruce.</summary>
+    public Task QuitarCobroPlataformaAsync() => Ejecutar(async () =>
+    {
+        if (_plataformas is null || MotivoQuitarCobro() is not null) return;
+        if (_dialogos.Preguntar("Quitar el cobro de la reserva",
+                "Las facturas de las reservas que cobran estas líneas volverán a estar pendientes de cobro, con todo su cruce: los demás trozos de la misma " +
+                "reserva y las demás reservas del mismo cobro. La cuenta de las líneas y sus asientos no cambian.", null,
+                new OpcionMensaje("Quitar el cobro", "Deja las facturas pendientes de cobro", Principal: true),
+                new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0) return;
+        var r = await _plataformas.DeshacerAsync(_contexto.Trabajo.IdSociedad, IdsSeleccion(), _contexto.Actor);
+        if (r.Rechazados.Count > 0) { Informar("No se ha podido quitar el cobro", r.Rechazados[0]); return; }
+        await RefrescarLineasAsync(r.Lineas);
+        _contexto.Avisar(r.Facturas.Count == 0 ? "Esas líneas no cobraban ninguna reserva de las plataformas."
+            : $"{Formatos.Plural(r.Facturas.Count, "factura vuelve", "facturas vuelven")} a estar pendientes de cobro.");
+    }, "quitar el cobro de la reserva");
+
     private async Task TrasRemesaAsync(ResultadoRemesaN43 r, string tituloError)
     {
         if (!r.Hecho) { Informar(tituloError, r.Error!); return; }
@@ -980,20 +1039,27 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     {
         var ids = _acciones.ADeshacer;
         if (ids.Count == 0 || _acciones.Deshacer is not null) return;
+        // Del ERP (norma43/conciliacion 2026-11-25 15:30): su asiento de ContaSol se borra con copia en «Asientos borrados…», y las líneas que lo
+        // compartían (traspasos y cargos agrupados) vuelven a estar pendientes con ella.
+        var datos = Seleccion.Select(f => f.Datos).Where(l => ids.Contains(l.Id)).ToList();
+        var delErp = datos.Count(l => l.Estado == EstadoLineaN43.ContabilizadaErp);
+        var arrastradas = datos.SelectMany(l => l.LineasMismoAsiento).Where(i => !ids.Contains(i)).Distinct().ToList();
         var motivo = _dialogos.PedirMotivo("Deshacer el asiento",
             $"Se borrará {(ids.Count == 1 ? "el asiento" : $"el asiento de {ids.Count} líneas")} y las líneas volverán a estar pendientes de contabilizar, con su cuenta. " +
+            (delErp > 0 ? $"{(delErp == 1 ? "Una línea es del ERP: su asiento de ContaSol" : $"{delErp} líneas son del ERP: sus asientos de ContaSol")} se borra{(delErp == 1 ? "" : "n")} con copia en «Asientos borrados…»; al contabilizarla{(delErp == 1 ? "" : "s")} saldrá un asiento nuevo de ProContaVF. " : "") +
+            (arrastradas.Count > 0 ? $"{Formatos.Plural(arrastradas.Count, "otra línea comparte", "otras líneas comparten")} ese asiento del ERP y también volverá{(arrastradas.Count == 1 ? "" : "n")} a estar pendiente{(arrastradas.Count == 1 ? "" : "s")}. " : "") +
             "Queda registrado con tu nombre, la hora y el motivo. Si el asiento lleva una cuenta fiscal de un trimestre cerrado, no se podrá.", "Deshacer");
         if (motivo is null) return;
         var r = await _conciliacion.DeshacerAsync(_contexto.Trabajo.IdSociedad, ids, _contexto.Actor, motivo);
-        await RefrescarLineasAsync(ids);
-        var hecho = $"{Formatos.Plural(r.Hechas, "asiento borrado", "asientos borrados")}";
+        await RefrescarLineasAsync([.. ids.Concat(r.Asientos.Keys).Distinct()]);
+        var hecho = $"{Formatos.Plural(r.Asientos.Values.Distinct().Count(), "asiento borrado", "asientos borrados")}";
         _contexto.Avisar(hecho + ": sus líneas vuelven a estar pendientes.");
         InformarRechazos("Algunos asientos no se han borrado", r.Rechazadas, r.Hechas, hecho);
     }, "deshacer el asiento");
 
     public Task ActualizarTextosAsync() => Ejecutar(async () =>
     {
-        var ids = _acciones.ADeshacer;
+        var ids = _acciones.AActualizar;
         if (ids.Count == 0 || _acciones.ActualizarTextos is not null) return;
         var r = await _conciliacion.ActualizarTextosAsync(_contexto.Trabajo.IdSociedad, ids, _contexto.Actor);
         await RefrescarLineasAsync(ids);

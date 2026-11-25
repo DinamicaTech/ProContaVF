@@ -151,6 +151,9 @@ public sealed record AccionesLineasN43(
     string? DeshacerExplosion = "Selecciona una línea.",
     string? PagoDividendos = "Selecciona una línea.")
 {
+    /// <summary>Líneas cuyo asiento es de ProContaVF: las únicas cuyos textos se actualizan (las del ERP conservan los suyos).</summary>
+    public IReadOnlyList<int> AActualizar { get; init; } = [];
+
     private static readonly CultureInfo Es = CultureInfo.GetCultureInfo("es-ES");
 
     /// <summary>Evalúa las acciones para la selección (las filas seleccionadas que se ven).</summary>
@@ -163,7 +166,9 @@ public sealed record AccionesLineasN43(
         var soloLectura = cerrada is null ? null : $"El ejercicio {cerrada.Ejercicio} está cerrado: sus líneas solo se consultan. Quítalas de la selección o reabre el ejercicio.";
         var erp = sel.FirstOrDefault(l => l.Estado == EstadoLineaN43.ContabilizadaErp);
         var porErp = erp is null ? null
-            : $"El {Minuscula(erp.Rotulo)} se contabilizó en el ERP (asiento {erp.IdAsiento}): no se toca desde aquí. Corrígelo desde el Mayor con doble clic en su cuenta.";
+            : erp.BloqueoDeshacerErp is null
+                ? $"El {Minuscula(erp.Rotulo)} se contabilizó en el ERP (asiento {erp.IdAsiento}): deshaz antes su asiento con «Deshacer el asiento…» y vuelve a intentarlo."
+                : $"El {Minuscula(erp.Rotulo)} se contabilizó en el ERP (asiento {erp.IdAsiento}): no se toca desde aquí. Corrígelo desde el Mayor con doble clic en su cuenta.";
 
         var asignar = ninguna ?? soloLectura ?? porErp;
 
@@ -177,11 +182,17 @@ public sealed record AccionesLineasN43(
             : null);
 
         var propias = sel.Where(l => l.Estado == EstadoLineaN43.Contabilizada).Select(l => l.Id).ToList();
+        string? SinContabilizadas(string erpTexto) => erp is not null ? erpTexto
+            : n == 1 ? "La línea no está contabilizada." : "Ninguna línea seleccionada está contabilizada.";
         var sinPropias = propias.Count == 0
-            ? (erp is not null ? "Solo hay líneas contabilizadas en el ERP: su asiento no es de ProContaVF y se corrige desde el Mayor."
-                : n == 1 ? "La línea no está contabilizada." : "Ninguna línea seleccionada está contabilizada.")
+            ? SinContabilizadas("Solo hay líneas contabilizadas en el ERP: sus textos son los del ERP y no se actualizan; se corrigen desde el Mayor.")
             : null;
-        var deshacer = ninguna ?? soloLectura ?? sinPropias;
+        // Deshacer (norma43/conciliacion 2026-11-25 15:30): las de ProContaVF y las del ERP cuyo asiento es «de banco limpio».
+        var aDeshacer = sel.Where(l => l.Estado == EstadoLineaN43.Contabilizada || l is { Estado: EstadoLineaN43.ContabilizadaErp, BloqueoDeshacerErp: null })
+            .Select(l => l.Id).ToList();
+        var erpBloqueada = sel.FirstOrDefault(l => l.Estado == EstadoLineaN43.ContabilizadaErp && l.BloqueoDeshacerErp is not null);
+        var deshacer = ninguna ?? soloLectura ?? (aDeshacer.Count > 0 ? null
+            : SinContabilizadas(erpBloqueada is null ? "" : $"El {Minuscula(erpBloqueada.Rotulo)} se contabilizó en el ERP. {erpBloqueada.BloqueoDeshacerErp}"));
         var actualizar = ninguna ?? soloLectura ?? sinPropias;
 
         // Sin selección, la reasignación actúa sobre todas las pendientes sin cuenta; con selección, sobre las seleccionadas sin asiento.
@@ -201,7 +212,7 @@ public sealed record AccionesLineasN43(
                 ?? (a.Sentido == b.Sentido ? $"Las dos líneas son {(a.EsCargo ? "cargos" : "abonos")}: un traspaso es un cargo en un banco y un abono en el otro." : null)
                 ?? (a.Importe != b.Importe ? $"Los importes no coinciden ({a.Importe.ToString("N2", Es)} € y {b.Importe.ToString("N2", Es)} €): un traspaso mueve el mismo importe." : null)
                 ?? (a.IdCuentaBancaria is not null && a.IdCuentaBancaria == b.IdCuentaBancaria ? "Las dos líneas son de la misma cuenta bancaria: un traspaso va de un banco a otro." : null)
-                ?? (a.IdAsiento is not null || b.IdAsiento is not null ? "Alguna de las dos ya está contabilizada: deshaz antes su asiento (solo si lo generó ProContaVF)." : null);
+                ?? (a.IdAsiento is not null || b.IdAsiento is not null ? "Alguna de las dos ya está contabilizada: deshaz antes su asiento con «Deshacer el asiento…»." : null);
         }
 
         // Buscar por importe (norma43/busqueda-por-importe): enlazar facturas no cambia asientos, así que vale también para las contabilizadas.
@@ -227,10 +238,10 @@ public sealed record AccionesLineasN43(
         var dividendos = una ?? soloLectura ?? (l1!.EsRecibo ? "Esta línea ya es parte de un desglose: elige la línea del banco."
             : l1.Explotada ? "Este movimiento ya está desglosado: para repetirlo, usa antes «Deshacer explosión»."
             : !l1.EsCargo ? "Un pago de dividendos es un cargo del banco y esta línea es un abono."
-            : l1.IdAsiento is not null ? "La línea ya está contabilizada: deshaz antes su asiento («Deshacer el asiento…») si lo generó ProContaVF." : null);
+            : l1.IdAsiento is not null ? "La línea ya está contabilizada: deshaz antes su asiento con «Deshacer el asiento…»." : null);
 
-        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, propias, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar,
-            explotar, devueltas, deshacerExplosion, dividendos);
+        return new AccionesLineasN43(asignar, textoContabilizar, contabilizar, aContabilizar, deshacer, aDeshacer, actualizar, textoReasignar, reasignar, palabras, traspaso, verAsiento, buscar,
+            explotar, devueltas, deshacerExplosion, dividendos) { AActualizar = propias };
     }
 
     private static string Minuscula(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s[1..];

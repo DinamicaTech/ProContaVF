@@ -1,4 +1,4 @@
-﻿using ProConta.UI.Base.Preferencias;
+using ProConta.UI.Base.Preferencias;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -242,7 +242,8 @@ public partial class VentanaPrincipal : Window
             new ServicioPdfFacturas(bd, facturas, sociedades, new GeneradorPdfFastReport(), autorizador), asientosBanco);
         _facturacion = new ModuloFacturacion(serviciosFacturacion, _area, new DialogosFacturacion(apoyo, cuentas, new CatalogoCentrosCosteAccess(bd), () => this), _terceros.AbrirFicha);
         // Ventas por facturar (facturacion/reservas): reservas de Avaibook y altas manuales que se facturan por mes, cliente y activo.
-        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador);
+        var ventas = new ProConta.Facturacion.Ventas.ServicioVentas(bd, sociedades, facturas, serviciosFacturacion.Conceptos, autorizador,
+            terceros: new RepositorioTercerosAccess(bd), roles: roles);
         var clienteAvaibook = new ProConta.Facturacion.Ventas.ClienteAvaibookHttp(Http);
         // Cotizaciones de los activos financieros (activos/activos-financieros 2026-11-23): Yahoo Finance, EODHD con la clave de Integraciones y cambio del BCE.
         var clienteEodhd = new ProConta.Activos.Financieros.ClienteEodhd(Http);
@@ -347,7 +348,8 @@ public partial class VentanaPrincipal : Window
             _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd),
             new ProConta.Norma43.Remesas.ServicioRemesasN43(bd),
             new AjustesRemesaFacturacion(new AjustesCobroFacturas(facturas, serviciosFacturacion.Programadas), bd),
-            new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd), new ProConta.Norma43.Conciliacion.ServicioActivosN43(bd, conciliacionN43));
+            new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd), new ProConta.Norma43.Conciliacion.ServicioActivosN43(bd, conciliacionN43),
+            new ProConta.Norma43.Plataformas.ServicioCobrosPlataformasN43(bd));
         // Nóminas (nominas y nominas/pantallas): pantalla por periodo, pestaña Nóminas de la ficha del empleado y Excel recibidos por correo.
         var importacionNominas = new ProConta.Nominas.Importacion.ServicioImportacionNominas(bd);
         var contabilizacionNominas = new ProConta.Nominas.Contabilizacion.ServicioContabilizacionNominas(bd);

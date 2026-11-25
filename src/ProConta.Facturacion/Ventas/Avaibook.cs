@@ -25,7 +25,9 @@ public sealed record ReservaAvaibook(
     string? AccommodationName,
     decimal TotalAmount,
     decimal? PartnerFee,
-    string? TravellerName)
+    string? TravellerName,
+    string? TravellerEmail = null,
+    string? TravellerPhone = null)
 {
     public bool Cancelada => string.Equals(Status, "CANCELLED", StringComparison.OrdinalIgnoreCase);
 
@@ -104,7 +106,7 @@ public sealed class ClienteAvaibookHttp(HttpClient http) : IClienteAvaibook
             if (Fecha(b, "checkInDate") is not DateTime entrada) continue;
             r.Add(new ReservaAvaibook(Texto(b, "id") ?? "", Texto(b, "externalId"), Texto(b, "status"), Texto(b, "origin"), Texto(b, "partnerName"),
                 entrada, Fecha(b, "checkOutDate"), Texto(b, "accommodationId"), Texto(b, "accommodationName"),
-                Numero(b, "totalAmount") ?? 0m, Numero(b, "partnerFee"), Texto(b, "travellerName")));
+                Numero(b, "totalAmount") ?? 0m, Numero(b, "partnerFee"), Texto(b, "travellerName"), Texto(b, "travellerEmail"), Texto(b, "defaultLeaderPhone")));
         }
         return r;
     }
@@ -279,7 +281,14 @@ public sealed class ImportadorAvaibook
                 if (venta is not null)
                 {
                     var huella = r.Huella();
-                    if (venta.Huella == huella) { sinCambios++; continue; }
+                    if (venta.Huella == huella)
+                    {
+                        // Las importadas antes de guardar el contacto del huésped lo reciben ahora, sin contar como cambio.
+                        if (venta.EsEditable && (venta.EmailTitular is null && !string.IsNullOrWhiteSpace(r.TravellerEmail) || venta.TelefonoTitular is null && !string.IsNullOrWhiteSpace(r.TravellerPhone)))
+                            await RepositorioVentas.CompletarContactoTitularAsync(s, venta.IdVentaPorFacturar, venta.EmailTitular ?? r.TravellerEmail, venta.TelefonoTitular ?? r.TravellerPhone);
+                        sinCambios++;
+                        continue;
+                    }
                     if (!venta.EsEditable && venta.Estado != EstadoVenta.Anulada)
                     {
                         var texto = r.Cancelada
@@ -356,6 +365,11 @@ public sealed class ImportadorAvaibook
         if (delErpReconocidas > 0) informacion.Add($"{delErpReconocidas} {(delErpReconocidas == 1 ? "es una reserva que ya venía del ERP" : "son reservas que ya venían del ERP")} (mismo origen, fecha de entrada e importe): no se {(delErpReconocidas == 1 ? "duplica" : "duplican")}.");
         if (sinAlojamiento > 0) informacion.Add($"{sinAlojamiento} {(sinAlojamiento == 1 ? "espera" : "esperan")} a que su alojamiento tenga activo relacionado.");
 
+        // Con la regla «Factura nominal al huésped», cada huésped pasa a ser cliente (facturacion/reservas 2026-11-25 14:13).
+        var huespedes = await _ventas.AsegurarClientesHuespedAsync(idSociedad, actor);
+        if (huespedes.Altas > 0) informacion.Add(huespedes.Altas == 1 ? "He dado de alta 1 huésped como cliente." : $"He dado de alta {huespedes.Altas} huéspedes como clientes.");
+        incidencias.AddRange(huespedes.Incidencias);
+
         // Lo importado que aún no se puede facturar por falta de regla (cliente o concepto), por origen y activo.
         var (datos, _) = await _ventas.DatosAsync(idSociedad);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad));
@@ -410,5 +424,7 @@ public sealed class ImportadorAvaibook
         v.Comision = r.PartnerFee;
         v.Referencia = r.ExternalId is string e && e.Contains('_') ? e[(e.LastIndexOf('_') + 1)..] : r.ExternalId;
         v.Titular = r.TravellerName;
+        v.EmailTitular = string.IsNullOrWhiteSpace(r.TravellerEmail) ? v.EmailTitular : r.TravellerEmail.Trim();
+        v.TelefonoTitular = string.IsNullOrWhiteSpace(r.TravellerPhone) ? v.TelefonoTitular : r.TravellerPhone.Trim();
     }
 }

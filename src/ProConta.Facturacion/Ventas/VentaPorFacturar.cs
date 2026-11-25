@@ -40,6 +40,12 @@ public sealed class VentaPorFacturar
     public string? Descripcion { get; set; }
     public string? Referencia { get; set; }
     public string? Titular { get; set; }
+
+    /// <summary>Email del huésped que da Avaibook (dato personal): sirve para reconocer al huésped que repite al darlo de alta como cliente.</summary>
+    public string? EmailTitular { get; set; }
+
+    /// <summary>Teléfono del huésped que da Avaibook (dato personal), que pasa a su ficha de cliente.</summary>
+    public string? TelefonoTitular { get; set; }
     public bool Anulada { get; set; }
     public string? MotivoAnulacion { get; set; }
     public bool FacturadaFuera { get; set; }
@@ -109,10 +115,17 @@ public sealed record AlojamientoAvaibook(int IdAlojamientoAvaibook, string IdSoc
 /// un origen y un activo relacionado. Sin activo, vale para todos los activos del origen que no tengan regla propia.
 /// </summary>
 public sealed record ReglaVenta(int IdReglaVenta, string IdSociedad, int IdOrigenVenta, int? IdActivo, int? IdConcepto, string? CausaExencion, decimal? TipoIva, int? IdCliente, bool Activa,
-    string Agrupar = AgrupacionVentas.Mensual, bool SepararPorActivo = true, string AlFacturar = ReglaVenta.Borrador)
+    string Agrupar = AgrupacionVentas.Mensual, bool SepararPorActivo = true, string AlFacturar = ReglaVenta.Borrador,
+    bool FacturaAlHuesped = false, int? IdAcreedor = null)
 {
     public const string Borrador = "BORRADOR";
     public const string Validar = "VALIDAR";
+
+    /// <summary>
+    /// Importe máximo (IVA incluido) de una factura simplificada sin NIF del destinatario (RD 1619/2012, art. 4.1). Una
+    /// factura nominal al huésped sin NIF que no pasa de aquí sale simplificada (F2); si pasa, completa (F1) y espera al NIF.
+    /// </summary>
+    public const decimal LimiteSimplificada = 400m;
 
     /// <summary>«Facturar todo» valida y contabiliza las facturas de esta regla en vez de dejarlas en borrador.</summary>
     public bool ValidaAlFacturar => string.Equals(AlFacturar, Validar, StringComparison.OrdinalIgnoreCase);
