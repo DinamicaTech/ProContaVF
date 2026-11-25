@@ -107,6 +107,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         AnadirTipoCommand = new ComandoDelegado(() => _ficha?.AnadirTipo(), () => _ficha is { Editable: true });
         QuitarTipoCommand = new ComandoDelegado(p => { if (p is DesgloseVM d) _ficha?.QuitarTipo(d); }, _ => _ficha is { Editable: true, Desgloses.Count: > 1 });
         RefrescarCommand = new ComandoDelegado(() => _ = RefrescarAsync());
+        EliminarCommand = new ComandoDelegado(() => _ = EliminarAsync(), () => !Prueba && _puedeEditar && !Ocupado && (_seleccion.Count > 0 || _activa is not null));
         LimpiarFiltrosCommand = new ComandoDelegado(LimpiarFiltros, () => HayFiltros);
         VerPendientesCommand = new ComandoDelegado(() => PestanaLista = "pendientes");
         VerContabilizadasCommand = new ComandoDelegado(() => PestanaLista = "contabilizadas");
@@ -903,6 +904,100 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
         }
     }
 
+    /// <summary>
+    /// «Eliminar factura…» (compras/pantallas 2026-11-25): las seleccionadas (o la de la ficha), tras confirmarlo. Las exportadas en el trimestre
+    /// activo deshacen antes su exportación (se borran su asiento y su libro de IVA); las que no se pueden eliminar se dicen con qué hacer.
+    /// El PDF de cada una va a la papelera de Windows.
+    /// </summary>
+    private async Task EliminarAsync()
+    {
+        var filas = _seleccion.Count > 0 ? _seleccion.ToList() : _activa is { } a ? [a] : [];
+        if (filas.Count == 0) return;
+        IReadOnlyList<ComprobacionEliminacion> comprobadas;
+        try { comprobadas = await _s.Facturas.ComprobarEliminarAsync(filas.Select(f => f.IdRegistro).ToList()); }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _modulo.Dialogos.Preguntar("No he podido eliminar", $"No he podido comprobar las facturas: {ex.Message}", null, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+            return;
+        }
+        // Sin el contabilizador no se puede deshacer la exportación: esas se quedan.
+        var imposibles = comprobadas.Where(c => c.Clase == ClaseEliminacion.Imposible || c.Clase == ClaseEliminacion.DeshacerAntes && _s.Contabilizador is null)
+            .Select(c => c.Clase == ClaseEliminacion.Imposible ? c.Texto : $"{c.Rotulo}: está exportada y en este puesto no se puede deshacer la exportación.").ToList();
+        var eliminables = comprobadas.Where(c => c.Clase == ClaseEliminacion.Directa || c.Clase == ClaseEliminacion.DeshacerAntes && _s.Contabilizador is not null).ToList();
+        if (eliminables.Count == 0)
+        {
+            _modulo.Dialogos.Preguntar(imposibles.Count == 1 ? "No se puede eliminar la factura" : "No se puede eliminar ninguna",
+                "Estas facturas ya han dejado rastro en la contabilidad o las usa otra cosa:", imposibles, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+            return;
+        }
+        var deshacer = eliminables.Count(c => c.Clase == ClaseEliminacion.DeshacerAntes);
+        var mensaje = (eliminables.Count == 1 ? "Se elimina la factura" : $"Se eliminan {eliminables.Count} facturas") +
+                      " y su PDF va a la papelera de Windows (se puede recuperar de ahí)." +
+                      (deshacer == 0 ? "" : deshacer == eliminables.Count && deshacer == 1
+                          ? " Está exportada: antes borraré su asiento y su registro del libro de IVA; es del trimestre activo, así que no tiene consecuencias fiscales."
+                          : $" {Formatos.Plural(deshacer, "está exportada", "están exportadas")}: antes borraré su asiento y su registro del libro de IVA; son del trimestre activo, así que no tiene consecuencias fiscales.") +
+                      (imposibles.Count == 0 ? "" : $" {Formatos.Plural(imposibles.Count, "otra se queda", "otras se quedan")}: lo explico al terminar.");
+        var detalle = eliminables.Select(c => c.Clase == ClaseEliminacion.DeshacerAntes ? $"{c.Rotulo} (exportada)" : c.Rotulo).ToList();
+        if (_modulo.Dialogos.Preguntar(eliminables.Count == 1 ? "Eliminar la factura" : "Eliminar facturas", mensaje, detalle,
+                new OpcionMensaje(deshacer > 0 ? "Deshacer exportación y eliminar" : "Eliminar", "Las elimina y manda sus PDF a la papelera", Principal: true, Peligro: true),
+                new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0)
+            return;
+        // Los cambios sin guardar de la ficha: si es una de las que se eliminan, se descartan; si no, se guardan antes.
+        if (TieneCambios)
+        {
+            if (_ficha is { } fi && eliminables.Any(c => c.IdRegistro == fi.Factura.IdRegistro)) Ficha = null;
+            else if (!await GuardarFichaAsync()) return;
+        }
+
+        var actor = _s.Operador ?? new ProConta.Nucleo.Auditoria.Actor("ProContaVF");
+        var hechas = 0;
+        var problemas = new List<string>(imposibles);
+        try
+        {
+            for (var i = 0; i < eliminables.Count; i++)
+            {
+                var c = eliminables[i];
+                TextoOcupado = eliminables.Count == 1 ? "Eliminando la factura…" : $"Eliminando {i + 1} de {eliminables.Count}…";
+                if (c.Clase == ClaseEliminacion.DeshacerAntes)
+                {
+                    var f = await _s.Facturas.CargarAsync(c.IdRegistro);
+                    if (f is null) continue;
+                    var d = await _s.Contabilizador!.DeshacerAsync(f, actor);
+                    if (!d.EsCorrecto)
+                    {
+                        problemas.Add($"{c.Rotulo}: no he podido deshacer su exportación. {string.Join(" ", d.Errores.Select(e => e.AccionCorrectora is { } x ? $"{e.Mensaje} {x}" : e.Mensaje))}");
+                        continue;
+                    }
+                }
+                var r = await _s.Facturas.EliminarAsync(c.IdRegistro);
+                if (!r.EsCorrecto)
+                {
+                    problemas.Add(c.Clase == ClaseEliminacion.DeshacerAntes
+                        ? $"{string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } x ? $"{e.Mensaje} {x}" : e.Mensaje))} Su exportación sí está deshecha: ha vuelto a Pendientes."
+                        : string.Join(" ", r.Errores.Select(e => e.AccionCorrectora is { } x ? $"{e.Mensaje} {x}" : e.Mensaje)));
+                    continue;
+                }
+                hechas++;
+                if (r.Valor.AvisoPdf is { } aviso) problemas.Add($"{c.Rotulo}: eliminada. {aviso}");
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            problemas.Add($"Me he parado por un error: {ex.Message}");
+        }
+        finally
+        {
+            TextoOcupado = "";
+        }
+        var texto = $"{Formatos.Plural(hechas, "factura eliminada", "facturas eliminadas")}." + (hechas > 0 ? " Sus PDF están en la papelera de Windows." : "");
+        if (problemas.Count == 0) _modulo.Avisar(texto);
+        else _modulo.Dialogos.Preguntar("Eliminar facturas", $"{texto} Revisa lo siguiente:", problemas, new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true));
+        // Si la activa se ha eliminado, se queda la que ocupa su sitio (como al exportar).
+        var posicion = filas.Select(f => Filas.IndexOf(f)).Where(p => p >= 0).DefaultIfEmpty(0).Min();
+        await CargarAsync(null, posicion);
+        _modulo.FacturaCambiada(this);
+    }
+
     private void MostrarErrores(string titulo, IReadOnlyList<Error> errores)
     {
         TextoOcupado = "";
@@ -1341,6 +1436,7 @@ public sealed class FacturasRecibidasVM : ModeloVista, IPestanaTrabajo
     public ICommand AnadirTipoCommand { get; }
     public ICommand QuitarTipoCommand { get; }
     public ICommand RefrescarCommand { get; }
+    public ICommand EliminarCommand { get; }
     public ICommand LimpiarFiltrosCommand { get; }
     public ICommand VerPendientesCommand { get; }
     public ICommand VerContabilizadasCommand { get; }
