@@ -51,6 +51,12 @@ public interface IDialogosCompras
     ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(ProConta.Contabilidad.UI.BuscadorCuentasVM buscador, string titulo);
 
     /// <summary>
+    /// Buscador de proveedores de la ficha (compras/pantallas 2026-11-25): los proveedores de la empresa filtrados por
+    /// razón social, nombre comercial o NIF, empezando con <paramref name="texto"/>; el elegido, o null si se cancela.
+    /// </summary>
+    ProConta.Compras.Facturas.ProveedorFicha? ElegirProveedor(IReadOnlyList<ProConta.Compras.Facturas.ProveedorFicha> proveedores, string texto);
+
+    /// <summary>
     /// «Añadir texto clave…»: pide el texto y qué asigna (la cuenta, el centro o los dos, de los que se dan) y lo guarda con
     /// <paramref name="guardar"/>, que devuelve el error que se enseña en el diálogo o null. True si se guardó.
     /// </summary>

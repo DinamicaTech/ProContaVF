@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using ProConta.Compras.UI.VistaModelos;
 using ProConta.UI.Base.Controles;
@@ -27,6 +28,93 @@ public sealed class DialogosCompras(Func<Window?> ventana) : IDialogosCompras
 
     public ProConta.Contabilidad.Cuentas.CuentaContable? ElegirCuenta(ProConta.Contabilidad.UI.BuscadorCuentasVM buscador, string titulo) =>
         ProConta.Contabilidad.UI.DialogoCuentas.Elegir(ventana(), buscador, titulo);
+
+    /// <summary>
+    /// Buscador de proveedores de la ficha (compras/pantallas 2026-11-25), con el aspecto de «Buscar cuenta»: búsqueda arriba
+    /// y una línea por proveedor con razón social, nombre comercial y NIF. ↓ baja a la lista; Intro o doble clic elige.
+    /// </summary>
+    public ProConta.Compras.Facturas.ProveedorFicha? ElegirProveedor(IReadOnlyList<ProConta.Compras.Facturas.ProveedorFicha> proveedores, string texto)
+    {
+        var dialogo = new DialogoProConta { Title = "Buscar proveedor", Owner = ventana(), Width = 900, Height = 600, MinWidth = 520, MinHeight = 320,
+            SizeToContent = SizeToContent.Manual, Redimensionable = true };
+        var apagado = (System.Windows.Media.Brush)dialogo.FindResource("Pincel.Apagado");
+        var mono = (System.Windows.Media.FontFamily)dialogo.FindResource("Fuente.Mono");
+        var busqueda = new TextBox { Text = texto, ToolTip = "Parte de la razón social, del nombre comercial o del NIF; ↓ para ir a la lista, Intro para elegir" };
+        AutomationProperties.SetName(busqueda, "Buscar proveedor por nombre o NIF");
+        var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, TextWrapping = TextWrapping.Wrap };
+        var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        Grid Fila(string razon, string? comercial, string nif, bool cabecera)
+        {
+            var g = new Grid { Margin = cabecera ? new Thickness(6, 0, 6, 4) : new Thickness(0, 2, 0, 2) };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            var celdas = new[]
+            {
+                new TextBlock { Text = razon, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), ToolTip = cabecera ? null : razon },
+                new TextBlock { Text = comercial ?? "", TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), Foreground = apagado,
+                    ToolTip = cabecera || string.IsNullOrEmpty(comercial) ? null : comercial },
+                new TextBlock { Text = nif, FontFamily = cabecera ? dialogo.FontFamily : mono },
+            };
+            for (var i = 0; i < celdas.Length; i++)
+            {
+                if (cabecera) { celdas[i].Foreground = apagado; celdas[i].FontWeight = FontWeights.SemiBold; }
+                Grid.SetColumn(celdas[i], i);
+                g.Children.Add(celdas[i]);
+            }
+            return g;
+        }
+        static string Razon(ProConta.Compras.Facturas.ProveedorFicha p) => string.IsNullOrWhiteSpace(p.RazonSocial) ? p.Nombre : p.RazonSocial.Trim();
+        static string? Comercial(ProConta.Compras.Facturas.ProveedorFicha p) =>
+            p.NombreComercial is { Length: > 0 } c && !string.Equals(c.Trim(), Razon(p), StringComparison.OrdinalIgnoreCase) ? c.Trim() : null;
+        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var p = (ProConta.Compras.Facturas.ProveedorFicha)o!; return Fila(Razon(p), Comercial(p), p.Nif, cabecera: false); });
+        var cabeceraLista = Fila("Razón social", "Nombre comercial", "NIF", cabecera: true);
+        var cuerpo = new DockPanel();
+        DockPanel.SetDock(busqueda, Dock.Top);
+        DockPanel.SetDock(estado, Dock.Top);
+        DockPanel.SetDock(cabeceraLista, Dock.Top);
+        cuerpo.Children.Add(busqueda);
+        cuerpo.Children.Add(estado);
+        cuerpo.Children.Add(cabeceraLista);
+        cuerpo.Children.Add(lista);
+        dialogo.Content = cuerpo;
+
+        void Filtrar()
+        {
+            var r = BuscadorProveedoresCompra.Filtrar(proveedores, busqueda.Text);
+            lista.ItemsSource = r;
+            if (r.Count > 0) lista.SelectedIndex = 0;
+            estado.Text = proveedores.Count == 0 ? "La empresa no tiene proveedores. Escribe el NIF en la ficha y usa «Dar de alta…»."
+                : r.Count == 0 ? "Ningún proveedor de la empresa coincide. Prueba con otra parte del nombre o con el NIF; si es nuevo, escribe su NIF en la ficha y usa «Dar de alta…»."
+                : r.Count == 1 ? "1 proveedor." : $"{r.Count} proveedores.";
+        }
+
+        ProConta.Compras.Facturas.ProveedorFicha? elegido = null;
+        var elegir = new Button { Content = "Elegir", Style = (Style)dialogo.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Pone el proveedor seleccionado en la factura (también doble clic o Intro)" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "Cierra sin cambiar el proveedor" };
+        void Aceptar() { if (lista.SelectedItem is ProConta.Compras.Facturas.ProveedorFicha p) { elegido = p; dialogo.DialogResult = true; } }
+        elegir.Click += (_, _) => Aceptar();
+        cancelar.Click += (_, _) => dialogo.DialogResult = false;
+        lista.MouseDoubleClick += (_, _) => Aceptar();
+        lista.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) { Aceptar(); e.Handled = true; } };
+        dialogo.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, elegir } };
+        busqueda.TextChanged += (_, _) => Filtrar();
+        busqueda.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == System.Windows.Input.Key.Down && lista.Items.Count > 0)
+            {
+                if (lista.SelectedIndex < 0) lista.SelectedIndex = 0;
+                lista.Focus();
+                (lista.ItemContainerGenerator.ContainerFromIndex(lista.SelectedIndex) as ListBoxItem)?.Focus();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Enter) { Aceptar(); e.Handled = true; }
+        };
+        Filtrar();
+        dialogo.Loaded += (_, _) => { busqueda.Focus(); busqueda.CaretIndex = busqueda.Text.Length; };
+        return dialogo.ShowDialog() == true ? elegido : null;
+    }
 
     public bool Copiar(string texto)
     {
