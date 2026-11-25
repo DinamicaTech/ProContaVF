@@ -7,7 +7,7 @@ namespace ProConta.Contabilidad.Mayor;
 /// <param name="ConMovimientos">Solo las que tienen algún apunte en el periodo (de verdad, no por tener fila de saldos).</param>
 /// <param name="ConSaldo">Saldo distinto de cero, con la apertura.</param>
 /// <param name="ConSaldoSinApertura">Saldo de los movimientos del periodo distinto de cero, sin la apertura.</param>
-/// <param name="Texto">Código que empieza por el texto, o descripción que lo contiene (sin distinguir mayúsculas ni acentos).</param>
+/// <param name="Texto">Código que empieza por el texto, o nombre o descripción que lo contienen (sin distinguir mayúsculas ni acentos).</param>
 /// <param name="NoCuadradas">Solo las que están sin cuadrar o en curso en el ejercicio de trabajo.</param>
 public sealed record FiltroCuentasMayor(bool SoloSubcuentas = true, bool ConMovimientos = true, bool ConSaldo = false, bool ConSaldoSinApertura = false, string? Texto = null,
     bool NoCuadradas = false);
@@ -25,12 +25,12 @@ public static class SelectorCuentasMayor
         cuadre ??= ContextoCuadre.Vacio;
         var anioDe = elegidos.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
         var anios = elegidos.Select(e => e.Ejercicio).ToHashSet();
-        var cuentas = new Dictionary<string, (string Nombre, bool Imputable, int Anio)>(StringComparer.Ordinal);
+        var cuentas = new Dictionary<string, (string Nombre, bool Imputable, int Anio, string? Descripcion)>(StringComparer.Ordinal);
         foreach (var p in plan)
         {
             if (p.Codigo.Length == 0 || !anioDe.TryGetValue(p.IdSociedadEjercicio, out var anio)) continue;
             // El nombre y el tipo de la cuenta, los del ejercicio más reciente de la vista.
-            if (!cuentas.TryGetValue(p.Codigo, out var c) || c.Anio < anio) cuentas[p.Codigo] = (p.Nombre, p.EsImputable, anio);
+            if (!cuentas.TryGetValue(p.Codigo, out var c) || c.Anio < anio) cuentas[p.Codigo] = (p.Nombre, p.EsImputable, anio, p.Descripcion);
         }
         var saldos = new Dictionary<string, (decimal SinApertura, decimal Saldo, int Apuntes)>(StringComparer.Ordinal);
         foreach (var s in sumas)
@@ -41,7 +41,7 @@ public static class SelectorCuentasMayor
             var x = saldos.GetValueOrDefault(s.Cuenta);
             var importe = s.Debe - s.Haber;
             saldos[s.Cuenta] = (x.SinApertura + (apertura ? 0m : importe), x.Saldo + importe, x.Apuntes + s.Apuntes);
-            if (!cuentas.ContainsKey(s.Cuenta)) cuentas[s.Cuenta] = ("", true, anio);
+            if (!cuentas.ContainsKey(s.Cuenta)) cuentas[s.Cuenta] = ("", true, anio, null);
         }
         return cuentas.OrderBy(c => c.Key, StringComparer.Ordinal).Select(c =>
         {
@@ -52,10 +52,10 @@ public static class SelectorCuentasMayor
                 var hijas = saldos.Where(h => h.Key.Length > c.Key.Length && h.Key.StartsWith(c.Key, StringComparison.Ordinal)).ToList();
                 x = (hijas.Sum(h => h.Value.SinApertura), hijas.Sum(h => h.Value.Saldo), hijas.Sum(h => h.Value.Apuntes));
                 var (estado, resumen) = CuadresMayor.Resumen(hijas.Select(h => CuadresMayor.Ver(h.Key, cuadre)));
-                return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, false, estado, resumen);
+                return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, false, estado, resumen, c.Value.Descripcion);
             }
             var v = CuadresMayor.Ver(c.Key, cuadre);
-            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, true, v.Estado, CuadresMayor.Ayuda(v, cuadre.Trabajo));
+            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, true, v.Estado, CuadresMayor.Ayuda(v, cuadre.Trabajo), c.Value.Descripcion);
         }).ToList();
     }
 
@@ -71,7 +71,8 @@ public static class SelectorCuentasMayor
             (!f.ConSaldo || Math.Round(c.Saldo, 2) != 0) &&
             (!f.ConSaldoSinApertura || Math.Round(c.SaldoSinApertura, 2) != 0) &&
             (!f.NoCuadradas || c.Cuadre is EstadoCuadre.SinCuadrar or EstadoCuadre.EnCurso) &&
-            (t.Length == 0 || c.Codigo.StartsWith(t, StringComparison.Ordinal) || ci.IndexOf(c.Nombre, t, op) >= 0)).ToList();
+            (t.Length == 0 || c.Codigo.StartsWith(t, StringComparison.Ordinal) || ci.IndexOf(c.Nombre, t, op) >= 0
+                              || (c.Descripcion is { Length: > 0 } d && ci.IndexOf(d, t, op) >= 0))).ToList();
     }
 
     /// <summary>

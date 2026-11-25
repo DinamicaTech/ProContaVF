@@ -50,6 +50,32 @@ public sealed class BuscadorCuentasVMTests
     }
 
     [Fact]
+    public async Task Solo_con_saldo_deja_las_subcuentas_con_saldo_actual_y_dice_que_hacer_si_no_queda_ninguna()
+    {
+        var plan = new PlanFalso();
+        var i = plan.Cuentas.FindIndex(c => c.Codigo == "6280011");
+        plan.Cuentas[i] = plan.Cuentas[i] with { SaldoInicial = 10m, SaldoActual = 125.40m };
+        var j = plan.Cuentas.FindIndex(c => c.Codigo == "6299001");
+        plan.Cuentas[j] = plan.Cuentas[j] with { SaldoInicial = 50m, SaldoActual = 0.004m };   // redondea a cero
+        var vm = new BuscadorCuentasVM(plan, Ctx, ["62"]);
+        await vm.CargarAsync();
+        Assert.False(vm.SoloConSaldo);
+        Assert.Equal(3, vm.Resultados.Count);
+
+        vm.SoloConSaldo = true;
+        Assert.Equal(["6280011"], vm.Resultados.Select(c => c.Codigo));
+        Assert.Equal(125.40m, vm.Resultados[0].SaldoActual);
+        Assert.Equal(10m, vm.Resultados[0].SaldoInicial);
+
+        vm.Texto = "mensaj";
+        Assert.Empty(vm.Resultados);
+        Assert.Contains("Quita «Solo con saldo»", vm.Estado);
+
+        vm.SoloConSaldo = false;
+        Assert.Equal(["6299001"], vm.Resultados.Select(c => c.Codigo));
+    }
+
+    [Fact]
     public async Task Sin_el_filtro_la_cuenta_de_gasto_admite_inmovilizado_y_las_otras_permitidas_pero_no_el_banco()
     {
         var plan = new PlanFalso();

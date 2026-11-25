@@ -32,9 +32,9 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
         return this;
     }
 
-    public FuenteMayorMemoria Cuenta(int idEjercicio, string codigo, string nombre, bool imputable = true)
+    public FuenteMayorMemoria Cuenta(int idEjercicio, string codigo, string nombre, bool imputable = true, string? descripcion = null)
     {
-        _plan.Add(new PlanCuenta(codigo, nombre, imputable, idEjercicio));
+        _plan.Add(new PlanCuenta(codigo, nombre, imputable, idEjercicio, descripcion));
         return this;
     }
 

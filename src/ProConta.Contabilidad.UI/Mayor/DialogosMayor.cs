@@ -18,8 +18,8 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
 {
     public string? ElegirCuenta(SelectorCuentasVM vm, string titulo)
     {
-        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 1000, Height = 680, MinWidth = 640, MinHeight = 360, SizeToContent = SizeToContent.Manual, Redimensionable = true };
-        var busqueda = new TextBox { ToolTip = "Código (empieza por) o parte de la descripción. Un código corto, como 572, se puede elegir tal cual para ver todas sus subcuentas. ↓: ir a la lista · Intro: elegir" };
+        var d = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 1200, Height = 680, MinWidth = 640, MinHeight = 360, SizeToContent = SizeToContent.Manual, Redimensionable = true };
+        var busqueda = new TextBox { ToolTip = "Código (empieza por) o parte del nombre o de la descripción. Un código corto, como 572, se puede elegir tal cual para ver todas sus subcuentas. ↓: ir a la lista · Intro: elegir" };
         busqueda.SetBinding(TextBox.TextProperty, new Binding(nameof(SelectorCuentasVM.Texto)) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged, Delay = 150 });
         CheckBox Casilla(string texto, string propiedad, string ayuda)
         {
@@ -53,9 +53,18 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
             return c;
         }
         tabla.Columns.Add(Col("Cuenta", nameof(CuentaSelectorVM.Codigo), 100, "cta", "Texto.Celda.Mono"));
-        var desc = Col("Descripción", nameof(CuentaSelectorVM.Nombre), 0, "nom", "Texto.Celda");
-        desc.MinWidth = 260;
-        TablaProConta.SetSiempreVisible(desc, true);
+        var nombre = Col("Nombre", nameof(CuentaSelectorVM.Nombre), 0, "nom", "Texto.Celda");
+        nombre.MinWidth = 220;
+        TablaProConta.SetSiempreVisible(nombre, true);
+        tabla.Columns.Add(nombre);
+        // La descripción de la subcuenta (para qué se usa), en su columna y apagada, con el texto entero en la ayuda.
+        var desc = Col("Descripción", nameof(CuentaSelectorVM.Descripcion), 0, "desc", "Texto.Celda");
+        desc.MinWidth = 160;
+        var estiloDesc = new Style(typeof(TextBlock), (Style)d.FindResource("Texto.Celda"));
+        estiloDesc.Setters.Add(new Setter(TextBlock.ForegroundProperty, d.FindResource("Pincel.Apagado")));
+        estiloDesc.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis));
+        estiloDesc.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(nameof(CuentaSelectorVM.Descripcion))));
+        desc.ElementStyle = estiloDesc;
         tabla.Columns.Add(desc);
         tabla.Columns.Add(Col("Saldo sin apertura", nameof(CuentaSelectorVM.SaldoSinApertura), 140, "ssa", "Texto.Celda.Importe", importe, true));
         tabla.Columns.Add(Col("Saldo", nameof(CuentaSelectorVM.Saldo), 130, "sal", "Texto.Celda.Importe", importe, true));

@@ -162,8 +162,9 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
         }, cancelacion);
 
     private static async Task<IReadOnlyList<PlanCuenta>> LeerPlanAsync(ISesionDatos s, string en) =>
-        (await s.ConsultarAsync($"SELECT Codigo, Nombre, EsImputable, IdSociedadEjercicio FROM CuentasContables WHERE IdSociedadEjercicio IN ({en})",
-            f => new PlanCuenta((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim(), !f.EsNulo("EsImputable") && f.Logico("EsImputable"), f.Entero("IdSociedadEjercicio"))))
+        (await s.ConsultarAsync($"SELECT Codigo, Nombre, EsImputable, IdSociedadEjercicio, Descripcion FROM CuentasContables WHERE IdSociedadEjercicio IN ({en})",
+            f => new PlanCuenta((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim(), !f.EsNulo("EsImputable") && f.Logico("EsImputable"), f.Entero("IdSociedadEjercicio"),
+                string.IsNullOrWhiteSpace(f.Texto("Descripcion")) ? null : f.Texto("Descripcion")!.Trim())))
         .Where(p => p.Codigo.Length > 0).ToList();
 
     /// <summary>Lista de ids para IN (enteros: no hay inyección posible).</summary>

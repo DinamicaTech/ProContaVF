@@ -283,6 +283,23 @@ public sealed class MayorTests
     }
 
     [Fact]
+    public async Task ElSelectorTraeLaDescripcionDelPlanAparteDelNombreYBuscaEnElla()
+    {
+        var fuente = DatosMayorSinteticos.Fuente()
+            .Cuenta(1, "6290001", "Gastos varios", descripcion: "Descripción antigua")
+            .Cuenta(2, "6290001", "Gastos varios", descripcion: "Mensajería y paquetería");
+        var s = await DatosMayorSinteticos.SesionAsync(fuente, 2024, 2025);
+        var gasto = s.Catalogo.Single(c => c.Codigo == "6290001");
+        Assert.Equal("Gastos varios", gasto.Nombre);
+        Assert.Equal("Mensajería y paquetería", gasto.Descripcion);   // la del ejercicio más reciente de la vista
+        Assert.Null(s.Catalogo.Single(c => c.Codigo == "5720001").Descripcion);
+
+        var porDescripcion = SelectorCuentasMayor.Filtrar(s.Catalogo, new FiltroCuentasMayor(ConMovimientos: false, Texto: "paqueteria"));
+        Assert.Equal(["6290001"], porDescripcion.Select(c => c.Codigo));
+        Assert.Equal(["6290001"], SelectorCuentasMayor.Filtrar(s.Catalogo, new FiltroCuentasMayor(ConMovimientos: false, Texto: "gastos")).Select(c => c.Codigo));
+    }
+
+    [Fact]
     public async Task CadaVistaHaceUnaSolaCargaYCambiarDeVistaNoVuelveALeer()
     {
         var fuente = DatosMayorSinteticos.Fuente();
