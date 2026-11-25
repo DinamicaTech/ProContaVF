@@ -7,12 +7,13 @@ using ProConta.Contabilidad.CentrosCoste;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Nucleo.Resultados;
 using ProConta.UI.Base.Controles;
+using ProConta.UI.Base.Formato;
 
 namespace ProConta.Contabilidad.UI;
 
 /// <summary>
 /// Ventana del buscador de cuentas (contabilidad/cuenta-contable 2026-11-06) con <see cref="DialogoProConta"/>: búsqueda,
-/// casilla del filtro de grupos, lista con código, nombre y descripción, y «Crear subcuenta…» en dos pasos (cuenta de
+/// casillas del filtro de grupos y «Solo con saldo», lista con código, nombre, descripción, saldo inicial y saldo actual del ejercicio de trabajo, y «Crear subcuenta…» en dos pasos (cuenta de
 /// 3 a 6 cifras y, después, código, nombre, descripción y centro de coste).
 /// </summary>
 public static class DialogoCuentas
@@ -26,24 +27,40 @@ public static class DialogoCuentas
         var busqueda = new TextBox { Text = vm.Texto, ToolTip = "Código (628.11 = 6280011) o parte del nombre o de la descripción; ↓ para ir a la lista, Intro para elegir" };
         var soloGrupos = new CheckBox
         {
-            Content = vm.TextoGrupos, IsChecked = vm.SoloGrupos, Margin = new Thickness(0, 8, 0, 0),
+            Content = vm.TextoGrupos, IsChecked = vm.SoloGrupos, Margin = new Thickness(0, 8, 16, 0),
             Visibility = vm.HayGrupos ? Visibility.Visible : Visibility.Collapsed,
             ToolTip = vm.AyudaGrupos,
         };
+        var soloConSaldo = new CheckBox
+        {
+            Content = "Solo con saldo", IsChecked = vm.SoloConSaldo, Margin = new Thickness(0, 8, 0, 0),
+            ToolTip = "Deja solo las subcuentas con saldo actual distinto de cero en el ejercicio de trabajo",
+        };
+        var casillas = new WrapPanel { Children = { soloGrupos, soloConSaldo } };
         var estado = new TextBlock { Margin = new Thickness(0, 8, 0, 8), Foreground = apagado, Text = vm.Estado, TextWrapping = TextWrapping.Wrap };
         var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch, ItemsSource = vm.Resultados };
         // Una línea por cuenta, con la descripción en su columna: caben más cuentas a la vista.
-        Grid Fila(string codigo, string nombre, string? descripcion, bool cabecera)
+        // Saldos del ejercicio de trabajo: el inicial (apertura) y el actual, alineados a la derecha.
+        Grid Fila(string codigo, string nombre, string? descripcion, string saldoInicial, string saldoActual, bool cabecera)
         {
             var g = new Grid { Margin = cabecera ? new Thickness(6, 0, 6, 4) : new Thickness(0, 2, 0, 2) };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            TextBlock Saldo(string texto, string ayuda) => new()
+            {
+                Text = texto, TextAlignment = TextAlignment.Right, FontFamily = cabecera ? dialogo.FontFamily : mono, Margin = new Thickness(12, 0, 0, 0),
+                ToolTip = cabecera ? ayuda : null,
+            };
             var celdas = new[]
             {
                 new TextBlock { Text = codigo, FontFamily = cabecera ? dialogo.FontFamily : mono },
                 new TextBlock { Text = nombre, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), ToolTip = cabecera ? null : nombre },
                 new TextBlock { Text = descripcion ?? "", TextTrimming = TextTrimming.CharacterEllipsis, Foreground = apagado, ToolTip = string.IsNullOrEmpty(descripcion) || cabecera ? null : descripcion },
+                Saldo(saldoInicial, "Saldo de apertura de la subcuenta en el ejercicio de trabajo"),
+                Saldo(saldoActual, "Saldo de la subcuenta hoy en el ejercicio de trabajo, con la apertura y todos sus apuntes"),
             };
             for (var i = 0; i < celdas.Length; i++)
             {
@@ -53,15 +70,15 @@ public static class DialogoCuentas
             }
             return g;
         }
-        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var c = (CuentaContable)o!; return Fila(c.Codigo, c.Nombre, c.Descripcion, cabecera: false); });
-        var cabeceraLista = Fila("Código", "Nombre", "Descripción", cabecera: true);
+        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var c = (CuentaContable)o!; return Fila(c.Codigo, c.Nombre, c.Descripcion, Formatos.ImporteOVacio(c.SaldoInicial), Formatos.ImporteOVacio(c.SaldoActual), cabecera: false); });
+        var cabeceraLista = Fila("Código", "Nombre", "Descripción", "Saldo inicial", "Saldo actual", cabecera: true);
         var cuerpo = new DockPanel();
         DockPanel.SetDock(busqueda, Dock.Top);
-        DockPanel.SetDock(soloGrupos, Dock.Top);
+        DockPanel.SetDock(casillas, Dock.Top);
         DockPanel.SetDock(estado, Dock.Top);
         DockPanel.SetDock(cabeceraLista, Dock.Top);
         cuerpo.Children.Add(busqueda);
-        cuerpo.Children.Add(soloGrupos);
+        cuerpo.Children.Add(casillas);
         cuerpo.Children.Add(estado);
         cuerpo.Children.Add(cabeceraLista);
         cuerpo.Children.Add(lista);
@@ -99,6 +116,7 @@ public static class DialogoCuentas
         lista.SelectionChanged += (_, _) => { if (lista.SelectedItem is CuentaContable c) vm.Seleccionada = c; };
         busqueda.TextChanged += (_, _) => vm.Texto = busqueda.Text;
         soloGrupos.Click += (_, _) => vm.SoloGrupos = soloGrupos.IsChecked == true;
+        soloConSaldo.Click += (_, _) => vm.SoloConSaldo = soloConSaldo.IsChecked == true;
         busqueda.PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.Down && lista.Items.Count > 0)

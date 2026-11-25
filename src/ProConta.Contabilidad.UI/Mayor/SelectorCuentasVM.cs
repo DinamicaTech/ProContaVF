@@ -10,6 +10,7 @@ public sealed class CuentaSelectorVM(CuentaMayor c)
     public CuentaMayor Cuenta { get; } = c;
     public string Codigo => Cuenta.Codigo;
     public string Nombre => Cuenta.Nombre;
+    public string Descripcion => Cuenta.Descripcion ?? "";
     public decimal SaldoSinApertura => Cuenta.SaldoSinApertura;
     public decimal Saldo => Cuenta.Saldo;
     public int Apuntes => Cuenta.Apuntes;
