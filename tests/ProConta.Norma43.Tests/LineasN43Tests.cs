@@ -227,6 +227,46 @@ public sealed class LineasN43Tests
     }
 
     [Fact]
+    public void El_refresco_tras_una_accion_cambia_las_filas_en_su_sitio_sin_sustituir_la_coleccion()
+    {
+        // Sustituir la colección hacía que la rejilla perdiera su orden y su posición (norma43/pantallas 2026-11-25 20:40).
+        var vm = Pantalla(L(1, 10m), L(2, 20m), L(3, 30m), L(4, 40m));
+        vm.EstadoFiltro = vm.Estados.Single(e => e.Valor == FiltroEstadoN43.Pendientes);
+        var coleccion = vm.Filas;
+        var fila3 = vm.Filas[2];
+        vm.CambiarSeleccion([fila3]);
+
+        // A la 3 se le asigna cuenta: sigue pendiente, la misma fila, en el mismo sitio y seleccionada.
+        fila3.Datos = L(3, 30m, cuenta: true);
+        vm.Filtrar(enSitio: true);
+        Assert.Same(coleccion, vm.Filas);
+        Assert.Equal([1, 2, 3, 4], vm.Filas.Select(f => f.Id));
+        Assert.Same(fila3, vm.Filas[2]);
+        Assert.Equal([3], vm.Seleccion.Select(f => f.Id));
+
+        // La 2 se contabiliza: deja de cumplir el filtro y sale sin mover las demás.
+        vm.Filas[1].Datos = L(2, 20m, asiento: 9);
+        vm.Filtrar(enSitio: true);
+        Assert.Same(coleccion, vm.Filas);
+        Assert.Equal([1, 3, 4], vm.Filas.Select(f => f.Id));
+
+        // Cambiar un filtro sí sustituye las filas (la tabla común conserva su orden, plataforma/ui-base).
+        vm.QuitarFiltros();
+        Assert.NotSame(coleccion, vm.Filas);
+    }
+
+    [Fact]
+    public void Sincronizar_filas_quita_las_que_sobran_y_mete_las_nuevas_en_su_orden()
+    {
+        var f = Enumerable.Range(1, 5).Select(i => new FilaLineaN43VM(L(i, i))).ToArray();
+        var filas = new System.Collections.ObjectModel.ObservableCollection<FilaLineaN43VM>([f[0], f[2], f[3]]);
+        LineasN43VM.SincronizarFilas(filas, [f[0], f[1], f[3], f[4]]);
+        Assert.Equal([1, 2, 4, 5], filas.Select(x => x.Id));
+        LineasN43VM.SincronizarFilas(filas, []);
+        Assert.Empty(filas);
+    }
+
+    [Fact]
     public void Las_acciones_de_la_pantalla_siguen_a_la_seleccion_y_los_filtros_de_estado_y_banco()
     {
         var vm = Pantalla(L(1, 10m, cuenta: true), L(2, 20m, asiento: 5), L(3, 30m, banco: 2));

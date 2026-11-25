@@ -1,16 +1,18 @@
 ---
 title: Pantalla de líneas bancarias
-depends_on: [norma43, plataforma/contenedor, norma43/busqueda-por-importe, norma43/movimientos-similares, norma43/conciliacion, norma43/asignacion-cuentas, contabilidad/mayor]
+depends_on: [norma43, plataforma/contenedor, norma43/busqueda-por-importe, norma43/movimientos-similares, norma43/conciliacion, norma43/asignacion-cuentas, contabilidad/mayor, plataforma/ui-base]
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
   - 2026-10-29 10:15 · Validar prototipos de pantallas principales | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGPu88XoVeXWyHsuxbrF2kK
   - 2026-10-31 16:58 · Cerrar preguntas pendientes del proyecto | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G7UyrP5eDJV4Ds6CCBozdbu
   - 2026-11-13 12:15 · Pantalla de líneas N43 (PR 1) | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GGpRojcCHMpPdN8vRsxN2PS
   - 2026-11-25 15:30 · Deshacer asientos del ERP en líneas N43 | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRje3j3KyXx6NUe69tuemPG
+  - 2026-11-25 20:40 · Conservar orden al asignar cuenta en N43 | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GWk1G33yZ4yyBCpFyY1tFRF
 ---
 ## Summary
 Tabla densa de líneas bancarias con filtros, detalle y acciones (también las de conciliación). El menú contextual tiene también «Pago de dividendos…» para un cargo sin contabilizar ni desglosar.
 Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N43» (menú Bancos › Líneas N43) en `src/ProConta.Norma43.UI` (`LineasN43VM`, `VistaLineasN43`, `PalabrasClaveN43VM`, `DialogosLineasN43`, `ModuloLineasN43`) sobre `src/ProConta.Norma43/Lineas` (`ConsultaLineasN43`, `FiltroLineasN43` con `AccionesLineasN43`, `ServicioLineasN43`): rejilla con selección múltiple por Id, ejercicios múltiples, filtros en Y con fichas, detalle lateral y, en el menú contextual, asignar cuenta, reasignar por palabras clave, palabras clave de la línea, traspaso entre bancos, contabilizar o recontabilizar, ver el asiento, actualizar textos, deshacer el asiento (desde el 2026-11-25 también el del ERP si es «de banco limpio») y exportar a Excel. Doble clic: el asiento (o el propuesto); en una cuenta, su Mayor. Sin cambios de esquema. Pruebas en `tests/ProConta.Norma43.Tests` (LineasN43Tests sin BD y LineasN43AccessTests). Fuera de la PR 1: «Movimientos similares» y «Buscar por importe» (sus nodos), dividir la línea, explotar remesa y «Remesas…» (norma43/remesas).
+Desde el 2026-11-25 (pendiente de la prueba del propietario) el refresco tras una acción conserva el orden, el desplazamiento y la selección de la rejilla.
 **Aceptación:** búsqueda y orden mantienen la selección por ID; las acciones indican su alcance real.
 
 ## Decisions
@@ -48,6 +50,8 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-25 15:30 · Fusionado a petición del propietario («fusiona», 2026-11-25 15:22) sin haberlo probado aún en la pantalla: queda por validar «Deshacer el asiento…» en una línea del ERP.
 - 2026-11-25 15:21 · Conciliar plataformas (norma43/conciliacion/plataformas): botón de cabecera «Conciliar plataformas…» (acción general sobre los ejercicios marcados) y, en el menú contextual, «Quitar el cobro de la reserva» para abonos con facturas enlazadas.
 - 2026-11-25 17:00 · Estados: «Sin cuenta», «Por contabilizar» (con cuenta, sin asiento), «Contabilizada» (asiento de ProContaVF) y «Contabilizada en el ERP». Una del ERP no se reasigna, ni se le cambia la cuenta, ni se recontabiliza, ni se actualizan sus textos; «Deshacer el asiento…» sí, cuando su asiento es «de banco limpio» (norma43/conciliacion 2026-11-25 15:30): la deja «Por contabilizar» con su cuenta y desde ahí se trabaja como cualquier otra (F2, Ctrl+E). Si no lo es, la opción sale desactivada y su tooltip, y el de la columna Estado, dicen el motivo (una nómina, una factura, una parte de un movimiento dividido en el ERP…; la 555 puente como contrapartida ya no lo impide, norma43/conciliacion 2026-11-25 17:00) y que se corrige desde el Mayor. El diálogo del motivo avisa de cuántas son del ERP y de las otras líneas que comparten ese asiento, que se deshacen a la vez y se refrescan en la rejilla. `LineaN43` lleva `BloqueoDeshacerErp` y `LineasMismoAsiento`; `AccionesLineasN43.ADeshacer` incluye las del ERP que se pueden deshacer y `AActualizar` solo las de ProContaVF. Selector de ejercicios múltiple de la pantalla (al abrir, el de trabajo); las líneas de ejercicios cerrados se ven en cursiva y ninguna acción las cambia.
+- 2026-11-25 20:40 · Refresco sin perder el orden (propietario 2026-11-25 20:25, opciones 1 y 2 a las 20:30): tras una acción del menú contextual (asignar cuenta, contabilizar, deshacer, palabras clave, traspaso…) la pantalla vuelve a leer solo las líneas afectadas y las cambia en su sitio, sin sustituir la colección de la rejilla (`LineasN43VM.Filtrar(enSitio: true)` y `SincronizarFilas`): se conservan la columna y el sentido de la ordenación, el desplazamiento y la selección. La fila cambiada se queda donde estaba aunque su valor nuevo la llevaría a otro sitio (la rejilla no reordena en vivo; F5 o un clic en la cabecera la recolocan); si deja de cumplir los filtros, sale sin mover las demás. Al cambiar un filtro o al releer con F5 las filas sí se sustituyen, y la ordenación se conserva gracias a la tabla común (plataforma/ui-base 2026-11-25 20:40); la posición vuelve a la línea actual. Pruebas sin BD en LineasN43Tests. Sigue pendiente de la prueba del propietario en la pantalla.
+- 2026-11-25 20:45 · Fusionado e instalado a petición del propietario («Cuando acabes, fusiona, compila y actualiza el entorno de producción», 2026-11-25 20:31) sin haberlo probado aún: queda por comprobar en la pantalla el orden y la posición tras asignar cuenta y al filtrar.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 19 RF-N43-03, 04: pantalla fiel a maqueta, selección explícita
@@ -95,3 +99,6 @@ Hecha la PR 1 y validada por el propietario el 2026-11-13: pestaña «Líneas N4
 - 2026-11-25 15:15 · 2. Ok
 - 2026-11-25 15:22 · Cuando hayas acabado, fusiona y avisa a 'Conciliar cobros de Airbnb y Booking' para que pueda proseguir el desarrollo.
 - 2026-11-25 15:21 · Derived from norma43/conciliacion/plataformas: botón de cabecera «Conciliar plataformas…» y acción contextual «Quitar el cobro de la reserva».
+- 2026-11-25 20:25 · Cuando asigno una subcuenta a una línea N43, se refresca la grid (bien) pero pierde el criterio de ordenación y la posición en la que estaba. Vuelve a la ordenación por defecto.
+- 2026-11-25 20:30 · 1 y 2 Adelante
+- 2026-11-25 20:31 · Cuando acabes, fusiona, compila y actualiza el entorno de producción
