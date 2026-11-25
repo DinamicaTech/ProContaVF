@@ -41,6 +41,15 @@ public sealed record LineaN43(
     string? CuentaOrigen, string? NombreCuentaOrigen, IReadOnlyList<DestinoLineaN43> Destinos,
     int? IdAsiento, bool AsientoPropio, string? Tipo, string? Facturas = null, int? Especial = null, int? IdExtractoDesglose = null, int? IdLineaOrigen = null)
 {
+    /// <summary>
+    /// En una línea contabilizada en el ERP, por qué su asiento no se puede deshacer desde aquí (norma43/conciliacion 2026-11-25 15:30), o null
+    /// si es «de banco limpio» y «Deshacer el asiento…» lo borra.
+    /// </summary>
+    public string? BloqueoDeshacerErp { get; init; }
+
+    /// <summary>Otras líneas contabilizadas con el mismo asiento del ERP (traspasos y cargos agrupados): se deshacen a la vez.</summary>
+    public IReadOnlyList<int> LineasMismoAsiento { get; init; } = [];
+
     /// <summary>La desglosa un extracto ficticio de recibos (remesa o devolución explotada).</summary>
     public bool Explotada => IdExtractoDesglose is not null;
 
@@ -167,6 +176,9 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
             }
         }
 
+        // Asientos del ERP de las líneas contabilizadas en él: si «Deshacer el asiento…» los puede borrar (norma43/conciliacion 2026-11-25 15:30).
+        var asientosErp = await AsientosErpN43.LeerAsync(s, contabilizadas.Values.Where(c => c.Existe && !c.Propio).Select(c => c.Asiento));
+
         // Facturas enlazadas (norma43/busqueda-por-importe): las de compra y las de venta que apuntan a la línea, por su cobro, su
         // devolución o un reintento (norma43/remesas).
         var facturas = new Dictionary<int, List<string>>();
@@ -262,7 +274,11 @@ public sealed class ConsultaLineasN43(IBaseDatos bd)
                 banco?.Codigo, banco?.Nombre, destinos, c?.Asiento, c?.Propio ?? false, tipo,
                 facturas.TryGetValue(f.Id, out var fs) ? string.Join(", ", fs.OrderBy(x => x, StringComparer.CurrentCulture)) : null,
                 destinos.Select(d => d.IdPalabraClave is int p && especiales.TryGetValue(p, out var e) ? e : (int?)null).FirstOrDefault(e => e is not null),
-                desgloses.TryGetValue(f.Id, out var desglose) ? desglose : null, f.IdLineaOrigen));
+                desgloses.TryGetValue(f.Id, out var desglose) ? desglose : null, f.IdLineaOrigen)
+            {
+                BloqueoDeshacerErp = c is { Propio: false } ce ? AsientosErpN43.Bloqueo(asientosErp.GetValueOrDefault(ce.Asiento), banco?.Codigo) : null,
+                LineasMismoAsiento = c is { Propio: false } cl && asientosErp.TryGetValue(cl.Asiento, out var ae) ? [.. ae.Lineas.Where(i => i != f.Id)] : [],
+            });
         }
         return r.OrderBy(l => l.FechaOperacion).ThenBy(l => l.Id).ToList();
     });

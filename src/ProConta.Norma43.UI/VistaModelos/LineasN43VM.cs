@@ -142,7 +142,9 @@ public sealed class FilaLineaN43VM(LineaN43 datos) : ModeloVista
         EstadoLineaN43.SinCuenta => "Sin cuenta de destino: no se puede contabilizar todavía",
         EstadoLineaN43.ConCuenta => "Tiene cuenta y falta contabilizarla (Ctrl+E)",
         EstadoLineaN43.Contabilizada => $"Contabilizada por ProContaVF en el asiento {_datos.IdAsiento}: se puede recontabilizar, actualizar sus textos o deshacer",
-        _ => $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): solo se consulta; se corrige desde el Mayor",
+        _ => _datos.BloqueoDeshacerErp is null
+            ? $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): para cambiarla, «Deshacer el asiento…» lo borra y la deja pendiente con su cuenta"
+            : $"Contabilizada en el ERP (asiento {_datos.IdAsiento}): solo se consulta. {_datos.BloqueoDeshacerErp}",
     } + (_datos.EjercicioCerrado ? $". El ejercicio {_datos.Ejercicio} está cerrado: solo lectura" : "");
     public string Asiento => _datos.IdAsiento?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
     public int AsientoOrden => _datos.IdAsiento ?? 0;
@@ -560,7 +562,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionAsignar.Fijar("Asignar cuenta…", a.AsignarCuenta ?? Ocupada());
         AccionContabilizar.Fijar(a.TextoContabilizar, a.Contabilizar ?? Ocupada());
         AccionDeshacer.Fijar("Deshacer el asiento…" + (a.ADeshacer.Count > 1 ? $" ({a.ADeshacer.Count})" : ""), a.Deshacer ?? Ocupada());
-        AccionTextos.Fijar("Actualizar textos del asiento" + (a.ADeshacer.Count > 1 ? $" ({a.ADeshacer.Count})" : ""), a.ActualizarTextos ?? Ocupada());
+        AccionTextos.Fijar("Actualizar textos del asiento" + (a.AActualizar.Count > 1 ? $" ({a.AActualizar.Count})" : ""), a.ActualizarTextos ?? Ocupada());
         AccionReasignar.Fijar(a.TextoReasignar, a.Reasignar ?? Ocupada());
         AccionPalabras.Fijar("Palabras clave de la línea…", a.PalabrasClave ?? Ocupada());
         AccionSimilares.Fijar("Movimientos similares…", MotivoSimilares() ?? Ocupada());
@@ -980,20 +982,27 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     {
         var ids = _acciones.ADeshacer;
         if (ids.Count == 0 || _acciones.Deshacer is not null) return;
+        // Del ERP (norma43/conciliacion 2026-11-25 15:30): su asiento de ContaSol se borra con copia en «Asientos borrados…», y las líneas que lo
+        // compartían (traspasos y cargos agrupados) vuelven a estar pendientes con ella.
+        var datos = Seleccion.Select(f => f.Datos).Where(l => ids.Contains(l.Id)).ToList();
+        var delErp = datos.Count(l => l.Estado == EstadoLineaN43.ContabilizadaErp);
+        var arrastradas = datos.SelectMany(l => l.LineasMismoAsiento).Where(i => !ids.Contains(i)).Distinct().ToList();
         var motivo = _dialogos.PedirMotivo("Deshacer el asiento",
             $"Se borrará {(ids.Count == 1 ? "el asiento" : $"el asiento de {ids.Count} líneas")} y las líneas volverán a estar pendientes de contabilizar, con su cuenta. " +
+            (delErp > 0 ? $"{(delErp == 1 ? "Una línea es del ERP: su asiento de ContaSol" : $"{delErp} líneas son del ERP: sus asientos de ContaSol")} se borra{(delErp == 1 ? "" : "n")} con copia en «Asientos borrados…»; al contabilizarla{(delErp == 1 ? "" : "s")} saldrá un asiento nuevo de ProContaVF. " : "") +
+            (arrastradas.Count > 0 ? $"{Formatos.Plural(arrastradas.Count, "otra línea comparte", "otras líneas comparten")} ese asiento del ERP y también volverá{(arrastradas.Count == 1 ? "" : "n")} a estar pendiente{(arrastradas.Count == 1 ? "" : "s")}. " : "") +
             "Queda registrado con tu nombre, la hora y el motivo. Si el asiento lleva una cuenta fiscal de un trimestre cerrado, no se podrá.", "Deshacer");
         if (motivo is null) return;
         var r = await _conciliacion.DeshacerAsync(_contexto.Trabajo.IdSociedad, ids, _contexto.Actor, motivo);
-        await RefrescarLineasAsync(ids);
-        var hecho = $"{Formatos.Plural(r.Hechas, "asiento borrado", "asientos borrados")}";
+        await RefrescarLineasAsync([.. ids.Concat(r.Asientos.Keys).Distinct()]);
+        var hecho = $"{Formatos.Plural(r.Asientos.Values.Distinct().Count(), "asiento borrado", "asientos borrados")}";
         _contexto.Avisar(hecho + ": sus líneas vuelven a estar pendientes.");
         InformarRechazos("Algunos asientos no se han borrado", r.Rechazadas, r.Hechas, hecho);
     }, "deshacer el asiento");
 
     public Task ActualizarTextosAsync() => Ejecutar(async () =>
     {
-        var ids = _acciones.ADeshacer;
+        var ids = _acciones.AActualizar;
         if (ids.Count == 0 || _acciones.ActualizarTextos is not null) return;
         var r = await _conciliacion.ActualizarTextosAsync(_contexto.Trabajo.IdSociedad, ids, _contexto.Actor);
         await RefrescarLineasAsync(ids);

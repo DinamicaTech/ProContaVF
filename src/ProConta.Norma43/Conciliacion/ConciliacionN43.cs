@@ -63,7 +63,7 @@ public sealed record ResultadoConciliacionN43(IReadOnlyDictionary<int, int> Asie
 /// plantilla de sistema «Movimiento bancario (Norma 43)» (proceso <see cref="ClaveProceso"/>) con el motor de plantillas; primero se
 /// proponen, sin grabar nada, y después se contabilizan. Una línea sin cuenta no se contabiliza (no hay cuenta puente). Cada asiento es un
 /// lote automático propio de la línea: contabilizarla otra vez lo sustituye con el mismo número, y deshacer lo borra. Las líneas
-/// contabilizadas en el ERP (su asiento es de ContaSol) no se tocan.
+/// contabilizadas en el ERP (su asiento es de ContaSol) no se regeneran; solo se deshacen si su asiento es «de banco limpio» (AsientosErpN43).
 /// </summary>
 public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor, ServicioPlantillasAsiento plantillas, IReloj? reloj = null,
     IFacturasLineaN43? facturas = null)
@@ -561,8 +561,8 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
 
     /// <summary>
     /// Deshace la contabilización de las líneas: borra su asiento (con el motor, que lo registra con el motivo) y su fila de
-    /// ContabilizacionesLineaExtracto; la línea vuelve a estar pendiente. Solo las contabilizadas por ProContaVF y si el trimestre del asiento
-    /// está abierto (si no, el motor lo rechaza y lo dice).
+    /// ContabilizacionesLineaExtracto; la línea vuelve a estar pendiente. Las de ProContaVF y las del ERP con asiento «de banco limpio» (este con copia en «Asientos borrados…»,
+    /// y con él las demás líneas que lo compartían), si el trimestre lo permite (si no, el motor lo rechaza y lo dice).
     /// </summary>
     public async Task<ResultadoConciliacionN43> DeshacerAsync(string idSociedad, IReadOnlyCollection<int> idsLineas, Actor actor, string motivo)
     {
@@ -577,6 +577,10 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
             return new ResultadoConciliacionN43(hechas, rechazadas);
         }
         var lineas = await LeerLineasAsync(idsLineas);
+        var erp = await bd.EjecutarAsync(s => AsientosErpN43.LeerAsync(s,
+            lineas.Values.Where(l => l.IdAsiento is not null && !l.AsientoEsDeLaLinea).Select(l => l.IdAsiento!.Value)));
+        // Asientos del ERP ya borrados en esta llamada: las demás líneas que los compartían ya están deshechas.
+        var borradosErp = new HashSet<int>();
         foreach (var id in idsLineas)
         {
             if (!lineas.TryGetValue(id, out var l) || !string.Equals(l.IdSociedad, idSociedad, StringComparison.OrdinalIgnoreCase))
@@ -590,29 +594,66 @@ public sealed class ServicioConciliacionN43(IBaseDatos bd, IMotorAsientos motor,
                 rechazadas[id] = [new Error("Conciliacion.NoContabilizada", "Este movimiento no está contabilizado.", registro, null, "No hay nada que deshacer.")];
                 continue;
             }
-            if (!l.AsientoEsDeLaLinea || l.IdSociedadEjercicioAsiento is not int idEj || l.EjercicioAsiento is not int anio)
+            if (!l.AsientoEsDeLaLinea)
             {
-                rechazadas[id] = [new Error("Conciliacion.ContabilizadaFuera", $"El asiento {actual} de este movimiento no lo generó ProContaVF.", registro,
-                    "Se contabilizó en el ERP (o en ContaSol) y ese asiento no se borra desde aquí.",
-                    "Si hay que corregirlo, hazlo desde el Mayor con una plantilla de corrección o un asiento manual.")];
+                if (borradosErp.Contains(actual)) { hechas[id] = actual; continue; }
+                var hechasErp = await DeshacerErpAsync(l, actual, erp.GetValueOrDefault(actual), registro, actor, motivo.Trim());
+                if (hechasErp.EsCorrecto)
+                {
+                    borradosErp.Add(actual);
+                    foreach (var otra in hechasErp.Valor) hechas[otra] = actual;
+                }
+                else rechazadas[id] = hechasErp.Errores;
+                continue;
+            }
+            if (l.IdSociedadEjercicioAsiento is not int idEj || l.EjercicioAsiento is not int anio)
+            {
+                rechazadas[id] = SinLinea(id).Errores;
                 continue;
             }
             var ctx = new ContextoSociedadEjercicio(l.IdSociedad, idEj, anio);
-            var r = await motor.EliminarLoteAsync(ctx, Lote(id), actor, motivo.Trim(), new TrabajoLote(
-                Despues: async (s, _) =>
-                {
-                    await s.EjecutarAsync("DELETE FROM ContabilizacionesLineaExtracto WHERE IdLineaExtractoBancario = ?", id);
-                    // Una compra o venta de activo conciliada con la línea vuelve a estar pendiente, con su importe anterior (activos/activos-financieros
-                    // 2026-11-24 09:14), y la línea pierde las cuentas del activo: se vuelve a conciliar con «Compra/Venta de activo…».
-                    if (await ProConta.Activos.Financieros.ConciliacionOperacionesInversion.DesmarcarLineaAsync(s, id) > 0)
-                        await s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE IdLineaExtractoBancario = ? AND Origen = ? AND Estado <> 'DESCARTADA'",
-                            id, ServicioActivosN43.OrigenActivo);
-                    return Resultado.Correcto();
-                }));
+            var r = await motor.EliminarLoteAsync(ctx, Lote(id), actor, motivo.Trim(), new TrabajoLote(Despues: async (s, _) =>
+            {
+                await QuitarContabilizacionAsync(s, id);
+                return Resultado.Correcto();
+            }));
             if (r.EsCorrecto) hechas[id] = actual;
             else rechazadas[id] = r.Errores;
         }
         return new ResultadoConciliacionN43(hechas, rechazadas);
+    }
+
+    /// <summary>
+    /// Deshace una línea contabilizada en el ERP (norma43/conciliacion 2026-11-25 15:30): si su asiento de ContaSol es «de banco limpio»
+    /// (<see cref="AsientosErpN43.Bloqueo"/>), lo borra con el motor (copia en «Asientos borrados…») y todas las líneas que lo compartían vuelven a
+    /// estar pendientes, con la cuenta que tenían. Devuelve esas líneas.
+    /// </summary>
+    private async Task<Resultado<IReadOnlyList<int>>> DeshacerErpAsync(LineaLeida l, int idAsiento, AsientoErpN43? asiento, string registro, Actor actor, string motivo)
+    {
+        string? banco = null;
+        if (l.IdCuentaBancaria is int cb && l.IdSociedadEjercicioAsiento is int idEj && l.EjercicioAsiento is int anio
+            && await IdentidadBancoAsync(cb, l.FechaValor) is int identidad)
+            banco = (await CuentaAsync(new ContextoSociedadEjercicio(l.IdSociedad, idEj, anio), identidad))?.Codigo;
+        if (AsientosErpN43.Bloqueo(asiento, banco) is { } porQue)
+            return Resultado<IReadOnlyList<int>>.Fallo(new Error("Conciliacion.ErpNoDeshacible", $"El asiento {idAsiento} de este movimiento, del ERP, no se borra desde aquí.", registro,
+                porQue, "Corrígelo desde el Mayor (doble clic en su cuenta) con «Asistente de corrección…» o «Modificar el asiento…»."));
+        var todas = asiento!.Lineas.Count > 0 ? asiento.Lineas : [l.Id];
+        var r = await motor.EliminarImportadoContaSolAsync(idAsiento, actor, motivo, new TrabajoLote(Despues: async (s, _) =>
+        {
+            foreach (var otra in todas) await QuitarContabilizacionAsync(s, otra);
+            return Resultado.Correcto();
+        }));
+        return r.EsCorrecto ? Resultado<IReadOnlyList<int>>.Correcto(todas) : Resultado<IReadOnlyList<int>>.Fallo(r.Errores);
+    }
+
+    private static async Task QuitarContabilizacionAsync(ISesionDatos s, int id)
+    {
+        await s.EjecutarAsync("DELETE FROM ContabilizacionesLineaExtracto WHERE IdLineaExtractoBancario = ?", id);
+        // Una compra o venta de activo conciliada con la línea vuelve a estar pendiente, con su importe anterior (activos/activos-financieros
+        // 2026-11-24 09:14), y la línea pierde las cuentas del activo: se vuelve a conciliar con «Compra/Venta de activo…».
+        if (await ProConta.Activos.Financieros.ConciliacionOperacionesInversion.DesmarcarLineaAsync(s, id) > 0)
+            await s.EjecutarAsync("UPDATE ImputacionesLineaExtractoBancario SET Estado = 'DESCARTADA' WHERE IdLineaExtractoBancario = ? AND Origen = ? AND Estado <> 'DESCARTADA'",
+                id, ServicioActivosN43.OrigenActivo);
     }
 
     // ---------- lecturas ----------
