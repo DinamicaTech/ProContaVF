@@ -102,6 +102,9 @@ public static class CalculoCuentasAnuales
         var sin = new List<SubcuentaSinPartida>();
         var reclasificadas = new List<SubcuentaReclasificada>();
 
+        // Primero cada subcuenta a su partida; después, solo en las partidas que en neto quedan con el signo que el modelo no admite, sus
+        // subcuentas de deudores y acreedores con el saldo al revés pasan al otro lado (como hizo la gestoría con 2025: compensa dentro de la partida).
+        var clasificadas = new List<(SaldoSubcuenta S, decimal Saldo, string Clave)>();
         foreach (var s in balance)
         {
             var saldo = Math.Round(s.SaldoDeudor, 2, MidpointRounding.AwayFromZero);
@@ -112,12 +115,17 @@ public static class CalculoCuentasAnuales
                 sin.Add(new SubcuentaSinPartida(s.Cuenta, s.Nombre, saldo, false));
                 continue;
             }
-            var clave = regla.Clave;
-            var reclasificada = Reclasificacion(clave, s.Cuenta, saldo);
-            if (reclasificada is not null)
+            clasificadas.Add((s, saldo, regla.Clave));
+        }
+        var netas = clasificadas.GroupBy(x => x.Clave).ToDictionary(g => g.Key,
+            g => g.Sum(x => ModeloPymes.PorClave[g.Key].Estado == EstadoCuentas.Activo ? x.Saldo : -x.Saldo), StringComparer.Ordinal);
+        foreach (var (s, saldo, regla) in clasificadas)
+        {
+            var clave = regla;
+            if (SignoAlReves(clave, netas[clave]) && Reclasificacion(clave, s.Cuenta, saldo) is { } hacia)
             {
-                reclasificadas.Add(new SubcuentaReclasificada(s.Cuenta, s.Nombre, clave, reclasificada, Math.Abs(saldo)));
-                clave = reclasificada;
+                reclasificadas.Add(new SubcuentaReclasificada(s.Cuenta, s.Nombre, clave, hacia, Math.Abs(saldo)));
+                clave = hacia;
             }
             var partida = ModeloPymes.PorClave[clave];
             var importe = partida.Estado == EstadoCuentas.Activo ? saldo : -saldo;
@@ -153,9 +161,15 @@ public static class CalculoCuentasAnuales
         };
     }
 
+    /// <summary>La partida del balance con ese importe tiene el signo que la taxonomía del ICAC no admite.</summary>
+    public static bool SignoAlReves(string clave, decimal importe) =>
+        ModeloPymes.PorClave[clave].Estado != EstadoCuentas.PerdidasYGanancias && !ModeloPymes.PorClave[clave].EsTotal && !AmbosSignos.Contains(clave)
+        && (SiempreNegativas.Contains(clave) ? importe > 0m : importe < 0m);
+
     /// <summary>
     /// Saldos al revés de deudores y acreedores (cuentas de los grupos 4 y 5, sin las correctoras): una subcuenta que la correspondencia lleva al
-    /// activo con saldo acreedor se presenta en el pasivo, y una del pasivo con saldo deudor, en el activo, como pide el PGC (un cliente con
+    /// activo con saldo acreedor se presenta en el pasivo, y una del pasivo con saldo deudor, en el activo, cuando su partida queda en neto con el
+    /// signo que el modelo no admite (si no, se compensa dentro de la partida, como hace la gestoría) (un cliente con
     /// anticipo es un acreedor; un banco en descubierto, una deuda con entidades de crédito). Así ninguna partida de la taxonomía del ICAC que
     /// solo admite importes positivos queda en negativo. Devuelve la partida de destino, o null si se queda donde está.
     /// </summary>
