@@ -261,6 +261,24 @@ public sealed class RecepcionAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task Lo_que_reenvia_el_operador_desde_responder_a_se_procesa_y_lo_que_envio_el_programa_no()
+    {
+        // Propietario 2026-11-25 09:47: el «Responder a» de la cuenta es el correo del operador, que reenvía facturas desde ahí.
+        var cuenta = _cuenta with { ResponderA = Autorizado };
+        _buzon.Mensajes["u1"] = BuzonFalso.Mime(Autorizado, "Fwd: Factura", ("F1.pdf", Pdf));
+        await _recepcion.SondearCuentaAsync(cuenta);
+        Assert.Equal(EstadoRecibido.Procesado, (await UnicoAsync()).Estado);
+
+        // La respuesta que envió el programa, si vuelve al buzón, se reconoce por su Message-ID y no se procesa.
+        var enviada = Assert.Single(_smtp.Enviados);
+        _buzon.Mensajes["u2"] = BuzonFalso.Mime(Autorizado, "Re: Fwd: Factura", m => m.MessageId = enviada.MessageId);
+        await _recepcion.SondearCuentaAsync(cuenta);
+        var lista = await _recepcion.ListarAsync(Ejercicio);
+        Assert.Equal(EstadoRecibido.Ignorado, lista.Single(f => f.Asunto == "Re: Fwd: Factura").Estado);
+        Assert.Single(_smtp.Enviados);
+    }
+
+    [Fact]
     public async Task Respuestas_automaticas_y_correo_propio_se_ignoran()
     {
         _buzon.Mensajes["u1"] = BuzonFalso.Mime(Autorizado, "Fuera de la oficina", m => m.Headers.Add("Auto-Submitted", "auto-replied"));
