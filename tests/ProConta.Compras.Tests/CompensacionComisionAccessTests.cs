@@ -260,4 +260,35 @@ public sealed class CompensacionComisionAccessTests : IDisposable
         Assert.Empty(await CompensacionesAsync(f.IdRegistro));
         Assert.Single(await Compensacion().PendientesAsync("T01", 9001));
     }
+
+    [Fact]
+    public async Task Con_el_acreedor_en_la_regla_compensa_aunque_cliente_y_acreedor_sean_terceros_distintos()
+    {
+        // facturacion/reservas 2026-11-25 14:13: el cliente de la regla («clientes varios», sin NIF) y el acreedor que factura la comisión son fichas distintas.
+        await EmpresaAsync();
+        var prov = await PlataformaAsync(esPlataforma: false);
+        var cuentas = new CatalogoCuentasAccess(Bd);
+        var roles = new ServicioRoles(Bd, cuentas);
+        var varios = await new RepositorioTercerosAccess(Bd).GuardarAsync(new Tercero { TipoPersona = TipoPersona.Juridica, RazonSocial = "Clientes varios Ficticia" }, _actor);
+        Assert.True(varios.EsCorrecto, varios.Error?.ToString());
+        var cliente = (await roles.AsegurarClienteAsync(varios.Valor.IdTercero)).Valor;
+        var identidad = (await cuentas.ResolverAsync(_ctx, "4300001")).Valor.IdIdentidadContable;
+        await Bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync("DELETE FROM CuentasClientesSociedad WHERE IdCliente = ? AND IdSociedad = ?", cliente, "T01");
+            await s.EjecutarAsync("INSERT INTO CuentasClientesSociedad (IdCliente, IdSociedad, Clase, IdIdentidadContable) VALUES (?, ?, ?, ?)", cliente, "T01", "CLIENTE", identidad);
+            await s.EjecutarAsync("INSERT INTO OrigenesVenta (IdSociedad, Codigo, Nombre, TextosImportacion, EsDirecta, Activo) VALUES (?, ?, ?, ?, ?, ?)",
+                "T01", "FICTICIA", "Ficticia", "Ficticia", false, true);
+            var origen = Convert.ToInt32(await s.EscalarAsync("SELECT MAX(IdOrigenVenta) FROM OrigenesVenta"));
+            await s.EjecutarAsync("INSERT INTO ReglasVenta (IdSociedad, IdOrigenVenta, IdCliente, Activa, Agrupar, AlFacturar, FacturaAlHuesped, IdAcreedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "T01", origen, cliente, true, "MENSUAL", "BORRADOR", true, prov.IdProveedor);
+            return true;
+        });
+
+        var f = await ExportarAsync(await FacturaAsync(prov), "He compensado su 410 contra la 4300001");
+        Assert.Single(await CompensacionesAsync(f.IdRegistro));
+        Assert.Equal(0m, await SaldoAsync(prov.Cuenta));
+        Assert.Equal(-66.19m, await SaldoAsync("4300001"));
+        Assert.Empty(await Compensacion().PendientesAsync("T01", 9001));
+    }
 }

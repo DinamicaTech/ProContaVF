@@ -1,4 +1,4 @@
-using ProConta.Contabilidad.Asientos;
+﻿using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.Cuentas;
 using ProConta.Datos.Persistencia;
 using ProConta.Facturacion.Conceptos;
@@ -381,4 +381,71 @@ public sealed class VentasAccessTests : IDisposable
             return await s.UltimoIdAsync();
         });
     }
-}
+
+    // ---------- factura nominal al huésped (facturacion/reservas 2026-11-25 14:13) ----------
+
+    private ServicioVentas ServicioConHuespedes() => new(Bd, new ServicioSociedadesAccess(Bd), Facturas(), new CatalogoConceptos(Bd, Cuentas), reloj: _reloj,
+        terceros: new RepositorioTercerosAccess(Bd, _reloj), roles: Roles);
+
+    private async Task<int?> IdentidadClienteAsync(int idCliente) => await Bd.EjecutarAsync(s => s.ConsultarPrimeroAsync(
+        "SELECT IdIdentidadContable FROM CuentasClientesSociedad WHERE IdCliente = ? AND IdSociedad = 'T01' AND Clase = 'CLIENTE'", f => (int?)f.Entero("IdIdentidadContable"), idCliente));
+
+    [Fact]
+    public async Task FacturaNominalAlHuespedDaDeAltaAlClienteConLa430DeLaReglaYEligeCompletaOSimplificada()
+    {
+        await PrepararAsync();
+        await Bd.EjecutarAsync(async s =>
+        {
+            if (Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM TiposFactura WHERE TipoFactura = 'F2'")) == 0)
+                await s.EjecutarAsync("INSERT INTO TiposFactura (TipoFactura, Descripcion, EsRectificativa) VALUES ('F2', 'Factura simplificada', False)");
+            return 0;
+        });
+        var servicio = ServicioConHuespedes();
+        var airbnb = await OrigenAsync(servicio, "AIRBNB");
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE ReglasVenta SET FacturaAlHuesped = True, AlFacturar = 'VALIDAR' WHERE IdOrigenVenta = ?", airbnb.IdOrigenVenta));
+        var importador = new ImportadorAvaibook(Bd, servicio, new SinRed(), reloj: _reloj);
+        await importador.AplicarAsync("T01", [Reserva("H0", "Airbnb", new DateTime(2026, 1, 2), 2, 100m)], _actor);
+        var idActivo = await ActivoAsync();
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE AlojamientosAvaibook SET IdActivo = ? WHERE IdExterno = '377813'", idActivo));
+
+        // Dos reservas de la misma huésped (mismo email) y una de otro huésped que pasa de 400 €.
+        var reservas = new[]
+        {
+            Reserva("H1", "Airbnb", new DateTime(2026, 1, 5), 2, 300m) with { TravellerName = "Ana Sintética", TravellerEmail = "ana@ejemplo.test", TravellerPhone = "+34 600 000 001" },
+            Reserva("H2", "Airbnb", new DateTime(2026, 1, 12), 3, 350m) with { TravellerName = "Ana Sintética", TravellerEmail = "ana@ejemplo.test" },
+            Reserva("H3", "Airbnb", new DateTime(2026, 1, 20), 6, 900m) with { TravellerName = "Luis Sintético", TravellerEmail = "luis@ejemplo.test" },
+        };
+        var imp = await importador.AplicarAsync("T01", reservas, _actor);
+        Assert.Equal(3, imp.Nuevas);
+        Assert.Contains(imp.Informacion, i => i.Contains("2 huéspedes"));
+        var ventas = (await servicio.ListarAsync("T01")).Where(v => v.IdExterno is "H1" or "H2" or "H3").OrderBy(v => v.IdExterno).ToList();
+        Assert.All(ventas, v => Assert.NotNull(v.IdCliente));
+        Assert.Equal(ventas[0].IdCliente, ventas[1].IdCliente);
+        Assert.NotEqual(ventas[0].IdCliente, ventas[2].IdCliente);
+        Assert.Equal("ana@ejemplo.test", ventas[0].EmailTitular);
+        // Los huéspedes comparten la 430 del cliente de la regla (la plataforma) y no tienen NIF.
+        var identidadPlataforma = await IdentidadClienteAsync(_idPlataforma);
+        Assert.Equal(identidadPlataforma, await IdentidadClienteAsync(ventas[0].IdCliente!.Value));
+        Assert.Equal(identidadPlataforma, await IdentidadClienteAsync(ventas[2].IdCliente!.Value));
+        Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Terceros WHERE Email IN ('ana@ejemplo.test', 'luis@ejemplo.test') AND NIF IS NULL"));
+        Assert.Equal("+34 600 000 001", await Bd.EjecutarAsync(s => s.EscalarAsync("SELECT Telefono FROM Terceros WHERE Email = 'ana@ejemplo.test'")));
+        // Repetir la importación no da de alta a nadie más.
+        await importador.AplicarAsync("T01", reservas, _actor);
+        Assert.Equal(2, await Contar("SELECT COUNT(*) FROM Terceros WHERE Email IN ('ana@ejemplo.test', 'luis@ejemplo.test')"));
+
+        // Una factura por reserva: sin NIF y hasta 400 €, simplificada y validada; la de 900 €, completa y en borrador a falta del NIF.
+        var r = await servicio.FacturarAsync("T01", _actor, ventas.Select(v => v.IdVentaPorFacturar).ToHashSet());
+        Assert.Equal(3, r.Valor.Facturas.Count);
+        var tipos = await Bd.EjecutarAsync(s => s.ConsultarAsync("SELECT f.TipoFactura, f.EstadoFactura, f.ImporteTotal FROM Facturas AS f ORDER BY f.ImporteTotal",
+            x => (Tipo: x.Texto("TipoFactura")!.Trim(), Estado: x.Entero("EstadoFactura"), Total: x.Decimal("ImporteTotal"))));
+        Assert.Equal([("F2", 300m), ("F2", 350m), ("F1", 900m)], tipos.Select(x => (x.Tipo, x.Total)).ToArray());
+        Assert.Equal(2, r.Valor.Facturas.Count(x => x.Validada));
+        Assert.Contains(r.Valor.Incidencias, i => i.Contains("NIF"));
+
+        // Con el NIF en la ficha del huésped, el borrador se valida como factura completa con su NIF.
+        var borrador = r.Valor.Facturas.Single(x => !x.Validada);
+        await Bd.EjecutarAsync(s => s.EjecutarAsync("UPDATE Terceros SET NIF = '12345678Z' WHERE Email = 'luis@ejemplo.test'"));
+        var leida = await Facturas().ObtenerAsync(borrador.IdFactura);
+        var validada = await Facturas().ValidarAsync(borrador.IdFactura, leida!.Version, _actor, aceptarAvisos: true);
+        Assert.True(validada.Validada, string.Join(" | ", validada.Incidencias.Select(i => i.Mensaje)));
+    }}
