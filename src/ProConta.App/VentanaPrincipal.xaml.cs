@@ -286,6 +286,7 @@ public partial class VentanaPrincipal : Window
             new ProConta.Documentos.UI.ContextoDocumentos(servicioDocumentos, contexto.Contexto.IdSociedad, contexto.RazonSocial, Avisar)
             {
                 AbrirDestino = AbrirDestinoDocumento,
+                TrasAnadir = (destino, docs) => RegistrarJustificantesAsync(contexto.Contexto, sesion.NombreOperador, destino, docs),
                 EnviarACompras = async ruta =>
                 {
                     var carpeta = await facturasCompra.CarpetaComprasAsync(contexto.Contexto);
@@ -1164,6 +1165,44 @@ public partial class VentanaPrincipal : Window
         cerrar.Click += (_, _) => d.Close();
         d.Botones = cerrar;
         d.ShowDialog();
+    }
+
+    /// <summary>
+    /// PDF arrastrados a los documentos de un periodo de un modelo (contabilidad/modelos-tributarios/presentacion 2026-11-25): si alguno es el
+    /// justificante de la AEAT de ese periodo, registra la presentación con sus importes y casillas y dice si coincide con lo calculado. Los
+    /// PDF que no son justificantes se quedan como documentos sin más.
+    /// </summary>
+    private async Task RegistrarJustificantesAsync(ProConta.Nucleo.Contexto.ContextoSociedadEjercicio trabajo, string operador, ProConta.Documentos.Vinculo destino,
+        IReadOnlyList<ProConta.Documentos.DocumentoListado> docs)
+    {
+        if (destino.TipoEntidad != ProConta.Documentos.TiposEntidad.Modelo || destino.Clave?.Split('|') is not [var modelo, var anio, var periodo]) return;
+        if (!ProConta.Contabilidad.Modelos.ComparacionJustificante.Lee(modelo) || _modelos is null) return;
+        if (!int.TryParse(anio, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ejercicio)) return;
+        var ctx = ejercicio == trabajo.Ejercicio ? trabajo : trabajo with { Ejercicio = ejercicio };
+        foreach (var d in docs)
+        {
+            if (d.Vigente?.RutaCompleta is not { } ruta || !ruta.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) continue;
+            byte[] pdf;
+            try { pdf = await System.IO.File.ReadAllBytesAsync(ruta); }
+            catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException) { continue; }
+            if (ProConta.Contabilidad.Presentacion.LectorJustificanteAeat.Leer(pdf) is null) continue;
+            var r = await _modelos.Servicio.RegistrarJustificanteAsync(ctx, modelo, periodo, pdf, operador, d.IdDocumento, ruta, comparar: ctx.Ejercicio == trabajo.Ejercicio);
+            if (!r.EsCorrecto)
+            {
+                ServicioMensajes.Preguntar(this, "Justificante de otro periodo", string.Join(Environment.NewLine, r.Errores.Select(e => e.TextoOperador())) +
+                    $"{Environment.NewLine}{Environment.NewLine}El PDF queda vinculado a {destino.Etiqueta} como documento, pero no se ha registrado ninguna presentación.", null,
+                    new OpcionMensaje("Aceptar", "Cierra el mensaje", Principal: true));
+                continue;
+            }
+            // En otro ejercicio no se compara aquí (el cálculo es del de trabajo): se ve al abrir los modelos en ese ejercicio.
+            var texto = r.Valor.Texto;
+            if (r.Valor.Diferencias is { Count: > 0 })
+                ServicioMensajes.Preguntar(this, $"El {modelo} presentado no coincide con lo calculado", texto +
+                    $"{Environment.NewLine}{Environment.NewLine}El periodo queda «Desactualizado». Revisa la contabilidad del periodo; si lo presentado estaba mal, presenta una complementaria.",
+                    [.. r.Valor.Diferencias.Select(x => x.Texto)], new OpcionMensaje("Aceptar", "Cierra el mensaje", Principal: true));
+            else Avisar(texto);
+            _modelos.Refrescar(modelo, periodo);
+        }
     }
 
     private async Task AbrirModelosAsync(string? modelo, string? periodo)

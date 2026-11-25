@@ -176,6 +176,23 @@ public static class MigracionesModelosTributarios
         ],
     };
 
+    /// <summary>
+    /// Casillas del justificante de la AEAT (esquema 84; contabilidad/modelos-tributarios/presentacion 2026-11-25): al arrastrar el PDF justificante
+    /// a los documentos de un periodo, o al leerlo desde «Registrar presentado fuera del programa…», se guardan sus casillas con importe para
+    /// compararlas con lo que calcula el programa. Solo añade una columna opcional.
+    /// </summary>
+    public static Migracion CasillasJustificante { get; } = new(
+        "20261125_1000_CASILLAS_JUSTIFICANTE_AEAT", 261125001,
+        "Casillas leídas del PDF justificante de la AEAT de cada presentación, para compararlas con lo calculado.",
+        "contabilidad/modelos-tributarios/presentacion",
+        new AnadirColumna("PresentacionesAeat", "CasillasJustificante", "LONGTEXT"))
+    {
+        Descripciones =
+        [
+            new("PresentacionesAeat", "CasillasJustificante", "Casillas con importe leídas del PDF justificante de la AEAT («27=2384.87;45=404.53», punto decimal); vacía si no se ha leído. Se comparan con lo calculado: si alguna difiere, el periodo sale «Desactualizado»."),
+        ],
+    };
+
     /// <summary>Clave de la línea del 200 de un ajuste por su descripción (la regla que usaba el 200 antes del esquema 72).</summary>
     public static string Linea200(string? descripcion) =>
         Regex.IsMatch(descripcion ?? "", @"\bart(\.|[íi]culo)?\s*21\b|exenci[óo]n", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) ? "EXENCION_ART21" : "OTRAS";

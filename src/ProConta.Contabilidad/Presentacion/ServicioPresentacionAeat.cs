@@ -55,7 +55,7 @@ public sealed record BorradorAeat(DeclaracionAeat Declaracion, EntornoAeat Entor
 /// <summary>Una presentación guardada en PresentacionesAeat.</summary>
 public sealed record PresentacionGuardada(int Id, string IdSociedad, string Modelo, int Ejercicio, string Periodo, string Entorno, DateTime FechaHora, string Csv,
     string? Expediente, string Justificante, string? ComplementariaDe, string? FormaPago, decimal Importe, decimal Resultado, string? NifPresentador,
-    string? Presentador, string? Operador, string? Avisos, string? UrlPdf, string? RutaPdf, string? Origen = null)
+    string? Presentador, string? Operador, string? Avisos, string? UrlPdf, string? RutaPdf, string? Origen = null, string? CasillasJustificante = null)
 {
     /// <summary>Origen de una presentación traída por «Consultar a la AEAT» (hecha fuera del programa, por ejemplo por la gestoría).</summary>
     public const string OrigenAeat = "AEAT";
@@ -67,11 +67,34 @@ public sealed record PresentacionGuardada(int Id, string IdSociedad, string Mode
     /// <summary>Presentada fuera del programa: la consulta de la AEAT no da su importe ni su fichero.</summary>
     public bool EsExterna => Origen == OrigenAeat;
 
+    /// <summary>Se ha leído su PDF justificante: se conocen sus casillas (y, en una de fuera, su importe y su resultado).</summary>
+    public bool ConJustificante => !string.IsNullOrWhiteSpace(CasillasJustificante);
+
+    /// <summary>Se conoce lo presentado: hecha desde el programa o, si es de fuera, con su justificante leído.</summary>
+    public bool ConImporte => !EsExterna || ConJustificante;
+
+    /// <summary>Las casillas leídas del justificante (vacío si no se ha leído).</summary>
+    public IReadOnlyDictionary<string, decimal> Casillas => LeerCasillas(CasillasJustificante);
+
     /// <summary>
-    /// Si lo presentado no coincide con lo que se calcula ahora (estado «Desactualizado»). Una presentada fuera del programa no se compara:
-    /// la consulta de la AEAT no da su importe.
+    /// Si lo presentado no coincide con lo que se calcula ahora (estado «Desactualizado»). Una presentada fuera del programa solo se compara
+    /// si se ha leído su justificante: la consulta de la AEAT no da su importe.
     /// </summary>
-    public bool DistintoDe(decimal calculado) => !EsExterna && Resultado != calculado;
+    public bool DistintoDe(decimal calculado) => ConImporte && Resultado != calculado;
+
+    /// <summary>Casillas en texto para PresentacionesAeat.CasillasJustificante: «27=2384.87;45=404.53» (punto decimal).</summary>
+    public static string EscribirCasillas(IReadOnlyDictionary<string, decimal> casillas) =>
+        string.Join(";", casillas.Select(kv => $"{kv.Key}={kv.Value.ToString(CultureInfo.InvariantCulture)}"));
+
+    /// <summary>Lo contrario de <see cref="EscribirCasillas"/>; ignora lo que no entiende.</summary>
+    public static IReadOnlyDictionary<string, decimal> LeerCasillas(string? texto)
+    {
+        var r = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var parte in (texto ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            if (parte.Split('=') is [var k, var v] && decimal.TryParse(v, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
+                r.TryAdd(k.Trim(), d);
+        return r;
+    }
 }
 
 /// <summary>Resultado de presentar: lo guardado, si el PDF justificante quedó archivado y los avisos (de la AEAT y propios).</summary>
@@ -321,6 +344,62 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
         return g with { Id = id };
     }
 
+    /// <summary>
+    /// Guarda lo leído del PDF justificante (contabilidad/modelos-tributarios/presentacion 2026-11-25). Si la presentación ya está (mismo
+    /// justificante o mismo CSV) la completa: las casillas siempre y, si es de fuera del programa, también el importe a ingresar y el resultado
+    /// (las del programa ya los tienen). Si no está, la guarda como presentada fuera del programa (origen AEAT) con sus importes.
+    /// Con <paramref name="idDocumento"/>, la presentación apunta a ese documento (y a su fichero).
+    /// </summary>
+    /// <returns>La presentación como queda y si es nueva.</returns>
+    public async Task<(PresentacionGuardada Guardada, bool Nueva)> GuardarJustificanteAsync(string idSociedad, JustificanteAeat j, int ejercicio, string periodo,
+        decimal resultado, string operador, int? idDocumento, string? rutaPdf, CancellationToken cancelacion = default)
+    {
+        var casillas = PresentacionGuardada.EscribirCasillas(j.Casillas);
+        var ya = (await PresentadasAsync(idSociedad, j.Modelo, ejercicio, cancelacion))
+            .LastOrDefault(p => p.Justificante.Trim() == j.Justificante || string.Equals(p.Csv.Trim(), j.Csv, StringComparison.OrdinalIgnoreCase));
+        if (ya is not null)
+        {
+            var externa = ya.EsExterna;
+            await bd.EjecutarAsync(async s =>
+            {
+                var conDocumento = s.LeerEsquema().ExisteColumna("PresentacionesAeat", "IdDocumento");
+                if (externa)
+                    await s.EjecutarAsync("UPDATE PresentacionesAeat SET Importe = ?, Resultado = ?, CasillasJustificante = ? WHERE IdPresentacionAeat = ?",
+                        j.ImporteAIngresar, resultado, casillas, ya.Id);
+                else
+                    await s.EjecutarAsync("UPDATE PresentacionesAeat SET CasillasJustificante = ? WHERE IdPresentacionAeat = ?", casillas, ya.Id);
+                if (rutaPdf is not null && string.IsNullOrWhiteSpace(ya.RutaPdf))
+                    await s.EjecutarAsync("UPDATE PresentacionesAeat SET RutaPdf = ? WHERE IdPresentacionAeat = ?", Recortar(rutaPdf, 255), ya.Id);
+                if (idDocumento is int doc && conDocumento && await s.EscalarAsync("SELECT IdDocumento FROM PresentacionesAeat WHERE IdPresentacionAeat = ?", ya.Id) is null or DBNull)
+                    await s.EjecutarAsync("UPDATE PresentacionesAeat SET IdDocumento = ? WHERE IdPresentacionAeat = ?", doc, ya.Id);
+                return true;
+            }, cancelacion);
+            return (ya with
+            {
+                Importe = externa ? j.ImporteAIngresar : ya.Importe, Resultado = externa ? resultado : ya.Resultado, CasillasJustificante = casillas,
+                RutaPdf = string.IsNullOrWhiteSpace(ya.RutaPdf) ? rutaPdf : ya.RutaPdf,
+            }, false);
+        }
+        var entorno = await EntornoAsync(cancelacion);
+        var g = new PresentacionGuardada(0, idSociedad, j.Modelo, ejercicio, periodo, ServiciosAeat.Codigo(entorno), j.FechaHora ?? _reloj.Ahora, j.Csv, j.Expediente,
+            j.Justificante, null, null, j.ImporteAIngresar, resultado, j.NifPresentador, j.Presentador, operador,
+            "Presentada fuera del programa y registrada con su justificante en PDF.", null, rutaPdf, PresentacionGuardada.OrigenAeat, casillas);
+        var id = await bd.EjecutarAsync(async s =>
+        {
+            await s.EjecutarAsync(
+                "INSERT INTO PresentacionesAeat (IdSociedad, Modelo, Ejercicio, Periodo, Entorno, FechaHora, Csv, Expediente, Justificante, ComplementariaDe, FormaPago, Importe, Resultado, " +
+                "NifPresentador, Presentador, Operador, Fichero, Respuesta, Avisos, UrlPdf, RutaPdf, Origen, CasillasJustificante) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                g.IdSociedad, Recortar(g.Modelo, 3), (short)g.Ejercicio, Recortar(g.Periodo, 2), g.Entorno, g.FechaHora, Recortar(g.Csv, 16), Recortar(g.Expediente, 25),
+                Recortar(g.Justificante, 13), null, null, g.Importe, g.Resultado, Recortar(g.NifPresentador, 9), g.Presentador, g.Operador, "(presentada fuera del programa)", null,
+                g.Avisos, null, Recortar(rutaPdf, 255), PresentacionGuardada.OrigenAeat, casillas);
+            var nuevo = await s.UltimoIdAsync();
+            if (idDocumento is int doc && s.LeerEsquema().ExisteColumna("PresentacionesAeat", "IdDocumento"))
+                await s.EjecutarAsync("UPDATE PresentacionesAeat SET IdDocumento = ? WHERE IdPresentacionAeat = ?", doc, nuevo);
+            return nuevo;
+        }, cancelacion);
+        return (g with { Id = id }, true);
+    }
+
     // ---------- lecturas y escrituras ----------
 
     public Task<IReadOnlyList<PresentacionGuardada>> PresentadasAsync(string idSociedad, string modelo, int ejercicio, CancellationToken cancelacion = default) =>
@@ -328,11 +407,12 @@ public sealed class ServicioPresentacionAeat(IBaseDatos bd, IClienteAeat cliente
             ? await s.ConsultarAsync(
                 "SELECT IdPresentacionAeat, IdSociedad, Modelo, Ejercicio, Periodo, Entorno, FechaHora, Csv, Expediente, Justificante, ComplementariaDe, FormaPago, Importe, Resultado, " +
                 "NifPresentador, Presentador, Operador, Avisos, UrlPdf, RutaPdf" + (s.LeerEsquema().ExisteColumna("PresentacionesAeat", "Origen") ? ", Origen" : ", Null AS Origen") +
+                (s.LeerEsquema().ExisteColumna("PresentacionesAeat", "CasillasJustificante") ? ", CasillasJustificante" : ", Null AS CasillasJustificante") +
                 " FROM PresentacionesAeat WHERE IdSociedad = ? AND Modelo = ? AND Ejercicio = ? ORDER BY FechaHora, IdPresentacionAeat",
                 f => new PresentacionGuardada(f.Entero("IdPresentacionAeat"), f.Texto("IdSociedad") ?? "", f.Texto("Modelo") ?? "", f.Entero("Ejercicio"), f.Texto("Periodo") ?? "",
                     f.Texto("Entorno") ?? "", f.Fecha("FechaHora"), f.Texto("Csv") ?? "", f.Texto("Expediente"), f.Texto("Justificante") ?? "", f.Texto("ComplementariaDe"),
                     f.Texto("FormaPago"), f.DecimalNulo("Importe") ?? 0m, f.DecimalNulo("Resultado") ?? 0m, f.Texto("NifPresentador"), f.Texto("Presentador"), f.Texto("Operador"),
-                    f.Texto("Avisos"), f.Texto("UrlPdf"), f.Texto("RutaPdf"), f.Texto("Origen")),
+                    f.Texto("Avisos"), f.Texto("UrlPdf"), f.Texto("RutaPdf"), f.Texto("Origen"), f.Texto("CasillasJustificante")),
                 idSociedad, modelo, (short)ejercicio)
             : (IReadOnlyList<PresentacionGuardada>)[], cancelacion);
 

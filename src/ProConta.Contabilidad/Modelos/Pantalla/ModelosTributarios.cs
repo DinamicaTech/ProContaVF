@@ -42,6 +42,13 @@ public interface IModeloTributario
     Task<IReadOnlyList<PeriodoModelo>> PeriodosAsync(ContextoSociedadEjercicio ctx, CancellationToken c = default);
     Task<Resultado<DeclaracionGenerada>> GenerarAsync(ContextoSociedadEjercicio ctx, string periodo, bool complementaria, string? nrc = null, CancellationToken c = default);
     Task<DetalleModelo> DetalleAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default);
+
+    /// <summary>
+    /// Lo que calcula ahora el programa en las casillas que se comparan con el justificante (<see cref="ComparacionJustificante"/>); null si
+    /// este modelo no lee justificantes o no se puede calcular el periodo.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default) =>
+        Task.FromResult<IReadOnlyDictionary<string, decimal>?>(null);
 }
 
 /// <summary>Piezas comunes de los adaptadores.</summary>
@@ -101,6 +108,12 @@ public sealed class Modelo303Tributario(Servicio303 s) : IModeloTributario
             Adaptador.Casillas(Modelo303.Conceptos, d.Casilla, new HashSet<int> { 27, 45, 46, 69, 71 }, n => n == 65 ? $"{d.Casilla(65):0.00} %" : Adaptador.Euros(d.Casilla(n))),
             t.Bloqueos, t.Avisos, $"Forma de pago: {r.Valor.Aeat.TextoFormaPago}. Resultado de la autoliquidación: {Adaptador.Euros(t.ResultadoAutoliquidacion)}.");
     }
+
+    public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
+    {
+        var r = await s.DeclaracionAsync(ctx, Adaptador.Numero(periodo), false, null, c);
+        return r.EsCorrecto ? ComparacionJustificante.DeNumeros("303", r.Valor.Declaracion.Casilla) : null;
+    }
 }
 
 /// <summary>Modelos 111 y 115 (<see cref="ServicioRetenciones"/>).</summary>
@@ -124,6 +137,12 @@ public sealed class RetencionesTributario(ServicioRetenciones s) : IModeloTribut
         var r = await s.DeclaracionAsync(ctx, t.Trimestre, false, null, c);
         if (!r.EsCorrecto) return Adaptador.Error(titulo, r.Error!);
         return new DetalleModelo(titulo, Adaptador.Casillas(s.Conceptos, r.Valor.Declaracion.Casilla), t.Bloqueos, t.Avisos, $"Forma de pago: {r.Valor.Aeat.TextoFormaPago}.");
+    }
+
+    public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
+    {
+        var r = await s.DeclaracionAsync(ctx, Adaptador.Numero(periodo), false, null, c);
+        return r.EsCorrecto ? ComparacionJustificante.DeNumeros(s.Modelo, r.Valor.Declaracion.Casilla) : null;
     }
 }
 
@@ -196,6 +215,13 @@ public sealed class Modelo390Tributario(Servicio390 s) : IModeloTributario
         if (!r.EsCorrecto) return new DetalleModelo(titulo, [], [r.Error!.TextoOperador(), .. e.Bloqueos], e.Avisos);
         return new DetalleModelo(titulo, Adaptador.Casillas(s.Conceptos, r.Valor.Declaracion.Casilla), e.Bloqueos, e.Avisos);
     }
+
+    public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
+    {
+        if (SoloConsulta(ctx.Ejercicio) is not null) return null;
+        var r = await s.DeclaracionAsync(ctx, null, false, c);
+        return r.EsCorrecto ? ComparacionJustificante.DeNumeros("390", r.Valor.Declaracion.Casilla) : null;
+    }
 }
 
 /// <summary>Modelo 200 (<see cref="Servicio200"/>): solo el ejercicio 2025, el del diseño que tiene el programa; se calcula cuando ha terminado el ejercicio.</summary>
@@ -245,6 +271,13 @@ public sealed class Modelo200Tributario(Servicio200 s, ServicioPresentacionAeat 
             .ToList();
         return new DetalleModelo(titulo, casillas, d.Errores, d.Avisos, $"Resultado: {Adaptador.Euros(d.Resultado)}. Tipo de declaración {d.TipoDeclaracion}.");
     }
+
+    public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
+    {
+        if (SoloConsulta(ctx.Ejercicio) is not null || hoy.Date <= new DateTime(ctx.Ejercicio, 12, 31)) return null;
+        var r = await s.DeclaracionAsync(ctx, c: c);
+        return r.EsCorrecto ? new Dictionary<string, decimal> { ["01586"] = r.Valor.Declaracion.Resultado } : null;
+    }
 }
 
 /// <summary>Modelo 349 (<see cref="Servicio349"/>).</summary>
@@ -264,6 +297,12 @@ public sealed class Modelo349Tributario(Servicio349 s) : IModeloTributario
         return new DetalleModelo($"Operadores del 349 del {periodo} de {ctx.Ejercicio}",
             [.. d.Operadores.Select(o => new CasillaModelo($"{o.Pais} {o.Numero}", $"{o.Nombre} · clave {o.Clave}", Adaptador.Euros(o.Base))),
                 new CasillaModelo("", "Total", Adaptador.Euros(d.Total), true)], d.Errores, d.Avisos);
+    }
+
+    public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
+    {
+        var d = await s.CalcularAsync(ctx, Adaptador.Numero(periodo), c);
+        return new Dictionary<string, decimal> { ["01"] = d.Operadores.Count, ["02"] = d.Total };
     }
 }
 
@@ -330,6 +369,30 @@ public sealed class ResumenRetencionesTributario(ServicioResumenRetenciones s, s
         return new DetalleModelo($"Arrendadores del 180 de {ctx.Ejercicio}",
             [.. a.Arrendadores.Select(x => new CasillaModelo(x.Arrendador.Nif, $"{x.Arrendador.Nombre} · base {Adaptador.Euros(x.Base)}{(x.Inmueble is { } i ? $" · {i.Activo}" : "")}", Adaptador.Euros(x.Retenciones))),
                 new CasillaModelo("", "Total retenido", Adaptador.Euros(a.TotalRetenciones), true)], a.Errores, a.Avisos);
+    }
+}
+
+/// <summary>
+/// Lo que ha hecho <see cref="ServicioModelosTributarios.RegistrarJustificanteAsync"/>: la presentación como queda, lo leído del PDF, si es
+/// nueva (no constaba) y las casillas en las que lo presentado no coincide con lo que calcula ahora el programa.
+/// </summary>
+public sealed record JustificanteRegistrado(PresentacionGuardada Presentacion, JustificanteAeat Leido, bool Nueva, IReadOnlyList<DiferenciaCasilla>? Diferencias)
+{
+    /// <summary>Algo que no ha ido del todo bien (el PDF no se ha podido guardar en los documentos); null si nada.</summary>
+    public string? Aviso { get; init; }
+
+    /// <summary>Resumen para la barra de estado o un mensaje.</summary>
+    public string Texto
+    {
+        get
+        {
+            var p = Presentacion;
+            var que = $"{p.Modelo} {PlazosModelos.Nombre(p.Periodo)} {p.Ejercicio}";
+            var hecho = Nueva ? $"{que} registrado como presentado el {p.FechaHora:dd/MM/yyyy} (justificante {p.Justificante})" : $"{que}: justificante {p.Justificante} leído y guardado con la presentación";
+            return Diferencias is null ? $"{hecho}." : Diferencias.Count == 0
+                ? $"{hecho}. Sus casillas coinciden con lo que calcula el programa."
+                : $"{hecho}. No coincide con lo que calcula el programa: {string.Join("; ", Diferencias.Select(d => d.Texto))}.";
+        }
     }
 }
 
@@ -414,6 +477,86 @@ public sealed class ServicioModelosTributarios
         var g = await Presentacion.GuardarExternaAsync(ctx.IdSociedad, p, await Tgvi.EntornoAsync(c), c, operador,
             "Presentada fuera del programa y registrada a mano (las informativas de TGVI no se pueden consultar a la AEAT).");
         return Resultado<PresentacionGuardada>.Correcto(g);
+    }
+
+    /// <summary>
+    /// Los periodos de un modelo calculados por su servicio y, en los que tienen el justificante de la AEAT leído, comparados casilla a casilla
+    /// con lo que calcula el programa (contabilidad/modelos-tributarios/presentacion 2026-11-25): si alguna casilla difiere, el periodo queda
+    /// «Desactualizado» con sus <see cref="PeriodoModelo.Diferencias"/>; si todas coinciden, «Presentado».
+    /// </summary>
+    public async Task<IReadOnlyList<PeriodoModelo>> PeriodosAsync(ContextoSociedadEjercicio ctx, string modelo, CancellationToken c = default)
+    {
+        var m = Modelo(modelo);
+        var periodos = await m.PeriodosAsync(ctx, c);
+        if (!ComparacionJustificante.Lee(modelo)) return periodos;
+        var r = new List<PeriodoModelo>(periodos.Count);
+        foreach (var p in periodos)
+        {
+            if (p.Ultima is not { ConJustificante: true } u || p.SoloConsulta is not null || p.EstadoServicio is not (Estado303.Presentado or Estado303.Desactualizado))
+            {
+                r.Add(p);
+                continue;
+            }
+            IReadOnlyDictionary<string, decimal>? calculadas;
+            try { calculadas = await m.CasillasCalculadasAsync(ctx, p.Periodo, c); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { calculadas = null; }
+            if (calculadas is null) { r.Add(p); continue; }
+            var dif = ComparacionJustificante.Diferencias(modelo, u.Casillas, calculadas);
+            r.Add(p with { EstadoServicio = dif.Count > 0 ? Estado303.Desactualizado : Estado303.Presentado, Diferencias = dif });
+        }
+        return r;
+    }
+
+    /// <summary>
+    /// Registra el PDF justificante de la AEAT de un periodo (contabilidad/modelos-tributarios/presentacion 2026-11-25): al arrastrarlo a los
+    /// documentos del periodo (<paramref name="idDocumento"/>: el documento ya guardado) o al elegirlo en «Registrar presentado fuera del
+    /// programa…» (sin documento: se archiva en el gestor documental con <paramref name="archivar"/>). Comprueba que sea un justificante del
+    /// modelo, ejercicio y periodo y del NIF de la sociedad; guarda sus casillas y, si es de fuera del programa, su importe y su resultado.
+    /// </summary>
+    public async Task<Resultado<JustificanteRegistrado>> RegistrarJustificanteAsync(ContextoSociedadEjercicio ctx, string modelo, string periodo, byte[] pdf, string operador,
+        int? idDocumento = null, string? rutaPdf = null, bool archivar = false, bool comparar = true, CancellationToken c = default)
+    {
+        var registro = $"Modelo {modelo} {PlazosModelos.Nombre(periodo)} {ctx.Ejercicio}";
+        var j = LectorJustificanteAeat.Leer(pdf);
+        if (j is null)
+            return Resultado<JustificanteRegistrado>.Fallo(new Error("Modelos.NoEsJustificante", "El PDF no es un justificante de presentación de la AEAT: no tiene su hoja «Información de la presentación» con el CSV y el número de justificante.",
+                registro, null, "Descarga el justificante en la Sede de la AEAT con su CSV (o pídeselo a la gestoría) y vuelve a intentarlo."));
+        var nifSociedad = await _bd.EjecutarAsync(async s => ((await s.EscalarAsync("SELECT CIF FROM Sociedades WHERE IdSociedad = ?", ctx.IdSociedad)) as string ?? "").Trim().ToUpperInvariant(), c);
+        if (ErrorJustificante(j, modelo, ctx.Ejercicio, periodo, nifSociedad) is { } e)
+            return Resultado<JustificanteRegistrado>.Fallo(new Error("Modelos.JustificanteDeOtro", e, registro, null,
+                "Arrástralo a los documentos de su periodo (menú del periodo › Documentos…) o elige el justificante correcto."));
+        var (g, nueva) = await Presentacion.GuardarJustificanteAsync(ctx.IdSociedad, j, ctx.Ejercicio, periodo, ComparacionJustificante.Resultado(j), operador, idDocumento, rutaPdf, c);
+        string? aviso = null;
+        if (archivar && idDocumento is null && string.IsNullOrWhiteSpace(g.RutaPdf))
+        {
+            try
+            {
+                var ruta = await JustificantesModelos.ArchivarAsync(_bd, operador, _reloj, ctx.IdSociedad, modelo, ctx.Ejercicio, periodo, g.Justificante,
+                    g.EsPruebas ? EntornoAeat.Pruebas : EntornoAeat.Produccion, g.FechaHora, g.Id, pdf, c);
+                g = g with { RutaPdf = ruta };
+            }
+            catch (IOException ex) { aviso = $"El PDF no se ha guardado en los documentos ({ex.Message}): arrástralo a los documentos del periodo."; }
+        }
+        IReadOnlyList<DiferenciaCasilla>? dif = null;
+        try
+        {
+            if (comparar && await Modelo(modelo).CasillasCalculadasAsync(ctx, periodo, c) is { } calc) dif = ComparacionJustificante.Diferencias(modelo, j.Casillas, calc);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException) { }
+        return Resultado<JustificanteRegistrado>.Correcto(new JustificanteRegistrado(g, j, nueva, dif) { Aviso = aviso });
+    }
+
+    /// <summary>Por qué el justificante no es de este periodo de la sociedad (null si lo es).</summary>
+    public static string? ErrorJustificante(JustificanteAeat j, string modelo, int ejercicio, string periodo, string? nifSociedad)
+    {
+        var de = $"del {j.Modelo}" + (j.Ejercicio is int a ? (j.Periodo is { } p && p != "0A" ? $" del {p} de {a}" : $" de {a}") : "");
+        var esperado = periodo == "0A" ? $"del {modelo} de {ejercicio}" : $"del {modelo} del {periodo} de {ejercicio}";
+        if (j.Modelo != modelo || (j.Ejercicio is int e && e != ejercicio) || (j.Periodo is { } per && per != periodo))
+            return $"Es el justificante {de} (número {j.Justificante}) y aquí va el {esperado}.";
+        var propio = (nifSociedad ?? "").Trim().ToUpperInvariant();
+        if (j.Nif is { } nif && propio.Length > 0 && nif != propio)
+            return $"El justificante es del NIF {nif} y el de la sociedad es {propio}: es de otra empresa.";
+        return null;
     }
 
     /// <summary>

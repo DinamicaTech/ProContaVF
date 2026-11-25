@@ -239,6 +239,76 @@ public sealed class DialogosModelosTributarios(Func<Window?> propietario) : IDia
         return dlg.ShowDialog() == true ? resultado : null;
     }
 
+    public (DateTime Fecha, string Justificante, string Csv, string? Pdf)? PedirJustificante(string titulo, string explicacion, Func<DateTime?, string, string, string?> validar,
+        Func<string, LecturaJustificantePdf> leerPdf, bool soloPdf)
+    {
+        var dlg = new DialogoProConta { Title = titulo, Owner = propietario(), Width = 640, SizeToContent = SizeToContent.Height };
+        var cuerpo = new StackPanel();
+        cuerpo.Children.Add(new TextBox { Text = explicacion, IsReadOnly = true, BorderThickness = new Thickness(0), Background = Brushes.Transparent, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
+        var leer = new Button
+        {
+            Content = "Leer el justificante (PDF)…", Style = (Style)dlg.FindResource("Boton"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6),
+            ToolTip = "Elige el PDF justificante de la AEAT: rellena la fecha, el justificante y el CSV, y al registrar se guardan sus casillas para compararlas con lo calculado",
+        };
+        cuerpo.Children.Add(leer);
+        var leido = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = (Brush)dlg.FindResource("Pincel.Apagado"), Margin = new Thickness(0, 0, 0, 4) };
+        cuerpo.Children.Add(leido);
+        TextBox Campo(string etiqueta, int largo, double ancho, string ayuda)
+        {
+            cuerpo.Children.Add(new TextBlock { Text = etiqueta, Margin = new Thickness(0, 6, 0, 2) });
+            var t = new TextBox { MaxLength = largo, Width = ancho, HorizontalAlignment = HorizontalAlignment.Left, FontFamily = new FontFamily("Consolas"), ToolTip = ayuda, IsReadOnly = soloPdf };
+            cuerpo.Children.Add(t);
+            return t;
+        }
+        var fecha = Campo("Fecha de presentación", 10, 110, soloPdf ? "Sale del justificante en PDF" : "Día en que se presentó, como dd/mm/aaaa (o léelo del PDF)");
+        var justificante = Campo("Número de justificante", 13, 150, soloPdf ? "Sale del justificante en PDF" : "Las 13 cifras del número de justificante, en la primera página del justificante de la AEAT");
+        var csv = Campo("CSV", 16, 190, soloPdf ? "Sale del justificante en PDF" : "Código seguro de verificación: 16 letras o cifras, en el justificante de la AEAT");
+        var error = new TextBlock { Foreground = (Brush)dlg.FindResource("Pincel.RojoError"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+        cuerpo.Children.Add(error);
+        dlg.Content = cuerpo;
+        string? pdf = null;
+        // Si se escribe a mano después de leer un PDF, ya no es ese PDF.
+        var rellenando = false;
+        void Cambio(object? _, TextChangedEventArgs __) { if (!rellenando && !soloPdf) { pdf = null; leido.Text = ""; } }
+        leer.Click += (_, _) =>
+        {
+            if (ElegirPdf("Justificante de la AEAT") is not { } ruta) return;
+            var l = leerPdf(ruta);
+            rellenando = true;
+            fecha.Text = l.Fecha is DateTime f ? f.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : "";
+            justificante.Text = l.Justificante ?? "";
+            csv.Text = l.Csv ?? "";
+            rellenando = false;
+            error.Text = l.Error ?? "";
+            leido.Text = l.Resumen ?? "";
+            pdf = l.Error is null ? ruta : null;
+        };
+        fecha.TextChanged += Cambio; justificante.TextChanged += Cambio; csv.TextChanged += Cambio;
+        (DateTime, string, string, string?)? resultado = null;
+        var aceptar = new Button { Content = "Registrar", Style = (Style)dlg.FindResource("Boton.Primario"), Margin = new Thickness(8, 0, 0, 0), IsDefault = true,
+            ToolTip = "Lo deja como presentado con estos datos (y, si has leído el PDF, con sus casillas)" };
+        var cancelar = new Button { Content = "Cancelar", IsCancel = true, ToolTip = "No registra nada" };
+        aceptar.Click += (_, _) =>
+        {
+            if (soloPdf && pdf is null) { error.Text = "Pulsa «Leer el justificante (PDF)…» y elige el justificante de este periodo."; return; }
+            DateTime? f = DateTime.TryParseExact(fecha.Text.Trim(), ["dd/MM/yyyy", "d/M/yyyy"], System.Globalization.CultureInfo.GetCultureInfo("es-ES"),
+                System.Globalization.DateTimeStyles.None, out var v) ? v : null;
+            if (validar(f, justificante.Text, csv.Text) is { } e) { error.Text = e; return; }
+            resultado = (f!.Value, justificante.Text.Trim(), csv.Text.Trim().ToUpperInvariant(), pdf);
+            dlg.DialogResult = true;
+        };
+        cancelar.Click += (_, _) => dlg.DialogResult = false;
+        dlg.Botones = new StackPanel { Orientation = Orientation.Horizontal, Children = { cancelar, aceptar } };
+        dlg.Loaded += (_, _) => leer.Focus();
+        return dlg.ShowDialog() == true ? resultado : null;
+    }
+
+    public string? ElegirPdf(string titulo)
+    {
+        var d = new Microsoft.Win32.OpenFileDialog { Title = titulo, Filter = "PDF (*.pdf)|*.pdf|Todos los ficheros (*.*)|*.*", CheckFileExists = true };
+        return d.ShowDialog(propietario()) == true ? d.FileName : null;
+    }
+
     public IReadOnlyCollection<string>? ElegirModelos(IReadOnlyList<(DefinicionModelo Modelo, bool Marcado)> modelos)
     {
         var dlg = new DialogoProConta { Title = "Modelos de la sociedad", Owner = propietario(), Width = 660, SizeToContent = SizeToContent.Height };
@@ -305,4 +375,13 @@ public sealed class ModuloModelosTributarios(ContextoModelosTributarios contexto
         anfitrion.Abrir(_vm);
         _ = _vm.CargarAsync(modelo, periodo, consultaDelDia: true);
     }
+
+    /// <summary>Si la pantalla está abierta, la vuelve a calcular (tras registrar un justificante desde los documentos de un periodo).</summary>
+    public void Refrescar(string? modelo = null, string? periodo = null)
+    {
+        if (_vm is not null) _ = _vm.CargarAsync(modelo, periodo);
+    }
+
+    /// <summary>El servicio de los modelos (para registrar un justificante arrastrado a los documentos de un periodo).</summary>
+    public ServicioModelosTributarios Servicio => contexto.Servicio;
 }

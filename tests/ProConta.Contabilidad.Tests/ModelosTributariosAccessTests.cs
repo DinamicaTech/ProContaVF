@@ -155,9 +155,55 @@ public sealed class ModelosTributariosAccessTests : IDisposable
         Assert.Equal("ABCD1234EFGH5678", r.Valor.Csv);
         var t2 = (await s.Modelo("349").PeriodosAsync(_ctx)).Single(p => p.Periodo == "2T");
         Assert.Equal(EstadoPeriodoModelo.Presentado, t2.Estado(Hoy));
-        Assert.Equal("Ya consta presentado", AccionesPeriodos.De([t2], Hoy, true).Single(a => a.Accion == AccionModelo.RegistrarExterna).NoSePuede);
+        Assert.Equal("Leer el justificante (PDF)…", AccionesPeriodos.De([t2], Hoy, true).Single(a => a.Accion == AccionModelo.RegistrarExterna).Texto);
 
         Assert.False((await s.RegistrarExternaAsync(_ctx, "349", "3T", new DateTime(2026, 10, 15), "3492602000001", "ABCD1234EFGH5678", "ronald")).EsCorrecto); // justificante repetido
         Assert.False((await s.RegistrarExternaAsync(_ctx, "303", "3T", new DateTime(2026, 10, 15), "3030000000009", "ABCD1234EFGH5679", "ronald")).EsCorrecto); // el 303 se consulta
+    }
+
+    [Fact]
+    public async Task El_justificante_en_PDF_completa_lo_de_la_gestoria_y_se_compara_con_lo_calculado()
+    {
+        // contabilidad/modelos-tributarios/presentacion 2026-11-25: el PDF del justificante da el importe que la consulta de la AEAT no da.
+        await SociedadAsync();
+        var cliente = new ClienteSimulado();
+        cliente.EnLaAeat.Add(new("2026", "111", "3T", "B12345674", "CSVGESTORIA00001", "2026111EXP", "1110000000003", null, new DateTime(2026, 10, 13, 16, 30, 0)));
+        var s = Servicio(cliente);
+        await s.ConsultarAeatAsync(_ctx, ["111"]);
+        var antes = (await s.PeriodosAsync(_ctx, "111")).Single(p => p.Periodo == "3T");
+        Assert.Equal(EstadoPeriodoModelo.Presentado, antes.Estado(Hoy));        // sin importe: no se compara
+
+        // El justificante de la gestoría: 2.860,09 de retenciones; el programa no calcula ninguna (no hay nóminas ni facturas con retención).
+        var pdf = JustificanteSintetico.Pdf(JustificanteSintetico.Cabecera("111", "1110000000003", "CSVGESTORIA00001", "13-10-2026 a las 16:30:00", 2860.09m),
+            JustificanteSintetico.Hoja(2026, "3T", "B12345674", ("01", "3"), ("02", "11.512,24"), ("03", "2.860,09"), ("28", "2.860,09"), ("30", "2.860,09")));
+        var r = await s.RegistrarJustificanteAsync(_ctx, "111", "3T", pdf, "ronald", archivar: false);
+        Assert.True(r.EsCorrecto, r.Error?.ToString());
+        Assert.False(r.Valor.Nueva);                                            // completa la traída por la consulta
+        Assert.Equal((2860.09m, 2860.09m), (r.Valor.Presentacion.Importe, r.Valor.Presentacion.Resultado));
+        Assert.Equal(["03", "28"], r.Valor.Diferencias!.Select(d => d.Casilla));
+        var guardada = (await s.Presentacion.PresentadasAsync("T01", "111", 2026)).Single();
+        Assert.Equal((2860.09m, 2860.09m, PresentacionGuardada.OrigenAeat), (guardada.Importe, guardada.Resultado, guardada.Origen));
+        Assert.Equal(2860.09m, guardada.Casillas["28"]);
+
+        var despues = (await s.PeriodosAsync(_ctx, "111")).Single(p => p.Periodo == "3T");
+        Assert.Equal(EstadoPeriodoModelo.Desactualizado, despues.Estado(Hoy));
+        Assert.Contains("casilla 28 (suma de retenciones): presentado 2.860,09 €, calculado 0,00 €", despues.AyudaEstado(Hoy));
+
+        // Un 115 que no constaba se crea como presentado fuera del programa, con sus importes; el mismo PDF otra vez no duplica.
+        var pdf115 = JustificanteSintetico.Pdf(JustificanteSintetico.Cabecera("115", "1150000000002", "CSVGESTORIA00115", "15-07-2026 a las 09:00:00"),
+            JustificanteSintetico.Hoja(2026, "2T", "B12345674", ("01", "1"), ("02", "0,00"), ("03", "0,00")));
+        var n = await s.RegistrarJustificanteAsync(_ctx, "115", "2T", pdf115, "ronald");
+        Assert.True(n.EsCorrecto, n.Error?.ToString());
+        Assert.True(n.Valor.Nueva);
+        Assert.Empty(n.Valor.Diferencias!);
+        Assert.True((await s.RegistrarJustificanteAsync(_ctx, "115", "2T", pdf115, "ronald")).EsCorrecto);
+        Assert.Single(await s.Presentacion.PresentadasAsync("T01", "115", 2026));
+        Assert.Equal(EstadoPeriodoModelo.Presentado, (await s.PeriodosAsync(_ctx, "115")).Single(p => p.Periodo == "2T").Estado(Hoy));
+
+        // De otro periodo o que no es un justificante: no registra nada.
+        var otro = await s.RegistrarJustificanteAsync(_ctx, "115", "3T", pdf115, "ronald");
+        Assert.Equal("Modelos.JustificanteDeOtro", otro.Error!.Codigo);
+        Assert.Equal("Modelos.NoEsJustificante", (await s.RegistrarJustificanteAsync(_ctx, "115", "3T", "%PDF-1.4 roto"u8.ToArray(), "ronald")).Error!.Codigo);
+        Assert.Single(await s.Presentacion.PresentadasAsync("T01", "115", 2026));
     }
 }
