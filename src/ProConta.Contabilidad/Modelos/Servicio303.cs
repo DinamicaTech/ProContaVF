@@ -95,6 +95,18 @@ public sealed class Servicio303(IBaseDatos bd, ServicioPresentacionAeat presenta
     }
 
     /// <summary>
+    /// Las casillas del trimestre como las calcula el programa, sin generar el fichero ni mirar si ha terminado: para compararlas con el
+    /// justificante de la AEAT (contabilidad/modelos-tributarios/presentacion 2026-11-25), también de ejercicios cuyo fichero no se genera.
+    /// </summary>
+    public async Task<Declaracion303> CalcularAsync(ContextoSociedadEjercicio ctx, int trimestre, CancellationToken c = default)
+    {
+        var (_, _, _, iva) = await new LectorLineasIva(bd).CalcularAsync(ctx, c);
+        var declarante = await DeclaranteAsync(ctx);
+        var pendiente = await PendienteCompensarAsync(ctx, trimestre);
+        return Modelo303.Calcular(iva.Modelo303, ctx.Ejercicio, trimestre, declarante, pendiente, Rectificativa(null));
+    }
+
+    /// <summary>
     /// La declaración del trimestre con sus casillas y su fichero. Con <paramref name="complementaria"/>, una rectificativa de la última
     /// presentada (su justificante y lo que salió a ingresar van en la página 3).
     /// </summary>

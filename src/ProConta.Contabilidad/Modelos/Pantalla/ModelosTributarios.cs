@@ -111,8 +111,8 @@ public sealed class Modelo303Tributario(Servicio303 s) : IModeloTributario
 
     public async Task<IReadOnlyDictionary<string, decimal>?> CasillasCalculadasAsync(ContextoSociedadEjercicio ctx, string periodo, CancellationToken c = default)
     {
-        var r = await s.DeclaracionAsync(ctx, Adaptador.Numero(periodo), false, null, c);
-        return r.EsCorrecto ? ComparacionJustificante.DeNumeros("303", r.Valor.Declaracion.Casilla) : null;
+        var d = await s.CalcularAsync(ctx, Adaptador.Numero(periodo), c);
+        return ComparacionJustificante.DeNumeros("303", d.Casilla);
     }
 }
 
