@@ -94,9 +94,11 @@ public sealed class ModelosTributariosTests
         var hoy = new DateTime(2026, 11, 24);
         AccionPeriodo? R(PeriodoModelo p) => AccionesPeriodos.De([p], hoy, true).SingleOrDefault(x => x.Accion == AccionModelo.RegistrarExterna);
         Assert.True(R(Periodo("349", "2T"))!.Disponible);
-        Assert.Equal("Ya consta presentado", R(Periodo("349", "2T", Estado303.Presentado, 100m, Presentada("349", "2T", 0m, PresentacionGuardada.OrigenAeat)))!.NoSePuede);
+        // Ya registrada sin su PDF: se ofrece leer el justificante (2026-11-25).
+        Assert.Equal("Leer el justificante (PDF)…", R(Periodo("349", "2T", Estado303.Presentado, 100m, Presentada("349", "2T", 0m, PresentacionGuardada.OrigenAeat)))!.Texto);
+        Assert.Equal("Ya consta presentado", R(Periodo("190", "0A", Estado303.Presentado, 100m, Presentada("190", "0A", 0m, PresentacionGuardada.OrigenAeat)))!.NoSePuede);
         Assert.Equal("El plazo empieza el 01/01/2027", R(Periodo("349", "4T"))!.NoSePuede);
-        Assert.Null(R(Periodo("303", "3T")));   // el 303 se trae con «Consultar a la AEAT»
+        Assert.True(R(Periodo("303", "3T"))!.Disponible);   // desde el 2026-11-25 también el 303, con su justificante en PDF
 
         Assert.Null(ServicioModelosTributarios.ErrorPresentacionExterna(new DateTime(2026, 7, 15), "3492602000001", "abcd1234efgh5678", hoy));
         Assert.Contains("fecha", ServicioModelosTributarios.ErrorPresentacionExterna(null, "3492602000001", "ABCD1234EFGH5678", hoy));

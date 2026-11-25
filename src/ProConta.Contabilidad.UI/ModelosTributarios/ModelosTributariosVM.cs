@@ -45,6 +45,16 @@ public interface IDialogosModelosTributarios
     /// enseñar o null si valen. Null si se cancela.
     /// </summary>
     (DateTime Fecha, string Justificante, string Csv)? PedirPresentacionExterna(string titulo, string explicacion, Func<DateTime?, string, string, string?> validar);
+    /// <summary>
+    /// Pide los datos de una presentación hecha fuera del programa con el botón «Leer el justificante (PDF)…», que rellena la fecha, el
+    /// justificante y el CSV con lo que devuelve <paramref name="leerPdf"/> (o enseña su error). Sin <paramref name="soloPdf"/> también se pueden
+    /// escribir a mano (informativas); con él, hace falta el PDF. Devuelve los datos y la ruta del PDF elegido (null si se escribieron a mano),
+    /// o null si se cancela.
+    /// </summary>
+    (DateTime Fecha, string Justificante, string Csv, string? Pdf)? PedirJustificante(string titulo, string explicacion, Func<DateTime?, string, string, string?> validar,
+        Func<string, LecturaJustificantePdf> leerPdf, bool soloPdf);
+    /// <summary>Elige un PDF (el justificante de la AEAT); null si se cancela.</summary>
+    string? ElegirPdf(string titulo);
     /// <summary>«Modelos de la sociedad…»: los modelos con su marca. Devuelve los marcados, o null si se cancela.</summary>
     IReadOnlyCollection<string>? ElegirModelos(IReadOnlyList<(DefinicionModelo Modelo, bool Marcado)> modelos);
     /// <summary>Dónde guardar un fichero (propone carpeta y nombre). Null si se cancela.</summary>
@@ -52,6 +62,9 @@ public interface IDialogosModelosTributarios
     void Informar(string titulo, string mensaje, IReadOnlyList<string>? detalles = null);
     void Error(string titulo, string mensaje);
 }
+
+/// <summary>Lo leído de un PDF justificante para rellenar el diálogo: los datos, o el error que enseñar; y un resumen de lo leído.</summary>
+public sealed record LecturaJustificantePdf(DateTime? Fecha, string? Justificante, string? Csv, string? Error, string? Resumen);
 
 /// <summary>Ficha de un periodo en la lista de modelos o en la franja de plazos: va al periodo.</summary>
 public sealed record FichaPeriodoVM(string Texto, string Detalle, string Clase, string Ayuda, ICommand Ir);
@@ -88,12 +101,15 @@ public sealed class FilaPeriodoVM(PeriodoModelo datos, DateTime hoy, Action alMa
     public string ClaseEstado => EstadoPeriodo.ToString().ToUpperInvariant();
     public string AyudaEstado => Datos.AyudaEstado(hoy) + (Datos.Bloqueos.Count > 0 && !Datos.Presentado && hoy.Date >= Datos.PlazoDesde ? $" Antes hay que resolver: {Datos.Bloqueos[0]}" : "");
     public string Origen => Datos.Ultima is null ? "" : Datos.Ultima.EsExterna ? "gestoría" : "programa";
-    public string AyudaOrigen => Datos.Ultima is null ? "" : Datos.Ultima.EsExterna ? "Presentado fuera del programa; lo devuelve la consulta de la AEAT" : "Presentado desde el programa";
+    public string AyudaOrigen => Datos.Ultima is null ? "" : !Datos.Ultima.EsExterna ? "Presentado desde el programa"
+        : Datos.Ultima.ConJustificante ? "Presentado fuera del programa; su importe sale del justificante en PDF" : "Presentado fuera del programa; lo devuelve la consulta de la AEAT";
     public bool Provisional => hoy.Date < Datos.PlazoDesde;
     public string Calculado => Datos.SoloConsulta is not null ? "—" : Datos.Calculado is decimal c ? Formatos.Importe(c) : Datos.TextoCalculado ?? "";
     public string AyudaCalculado => Datos.SoloConsulta ?? (Provisional ? "Provisional: el periodo no ha terminado o su plazo no ha empezado" : Datos.TextoCalculado ?? "Lo que calcula el programa ahora");
-    public string Presentado => Datos.Ultima is null ? "" : Datos.Ultima.EsExterna ? "—" : Formatos.Importe(Datos.Ultima.Resultado);
-    public string AyudaPresentado => Datos.Ultima?.EsExterna == true ? "La consulta de la AEAT no da el importe de lo presentado fuera del programa" : "";
+    public string Presentado => Datos.Ultima is null ? "" : !Datos.Ultima.ConImporte ? "—" : Formatos.Importe(Datos.Ultima.Resultado);
+    public string AyudaPresentado => Datos.Ultima is { ConImporte: false }
+        ? "La consulta de la AEAT no da el importe de lo presentado fuera del programa: arrastra su justificante en PDF a los documentos del periodo, o «Leer el justificante (PDF)…» en su menú"
+        : Datos.Diferencias is { Count: > 0 } d ? "No coincide con lo calculado: " + string.Join("; ", d.Select(x => x.Texto)) : "";
     public string Fecha => Datos.Ultima is { } u ? Formatos.Fecha(u.FechaHora) : "";
     public string Csv => Datos.Ultima?.Csv ?? "";
 
@@ -279,9 +295,8 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
                 var orden = DefinicionModelo.Todos.Where(d => _visibles.Contains(d.Id)).Concat(_elegidos ? [] : DefinicionModelo.Todos.Where(d => !_visibles.Contains(d.Id)));
                 foreach (var def in orden)
                 {
-                    var m = _ctx.Servicio.Modelo(def.Id);
                     IReadOnlyList<PeriodoModelo> calculados;
-                    try { calculados = await m.PeriodosAsync(_ctx.Trabajo); }
+                    try { calculados = await _ctx.Servicio.PeriodosAsync(_ctx.Trabajo, def.Id); }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
                         errores.Add($"{def.Id}: {ex.Message}");
@@ -536,9 +551,18 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
         }
     }
 
-    /// <summary>«Registrar presentado fuera del programa…» de una informativa (propietario 2026-11-24 21:22).</summary>
+    /// <summary>
+    /// «Registrar presentado fuera del programa…» (propietario 2026-11-24 21:22, informativas) y lectura del PDF justificante (2026-11-25): en los
+    /// modelos cuyo justificante lee el programa se elige el PDF (en las informativas también se pueden escribir los datos a mano); si ya consta
+    /// presentado fuera del programa sin importe, «Leer el justificante (PDF)…» solo pide el PDF.
+    /// </summary>
     private async Task RegistrarExternaAsync(FilaPeriodoVM fila)
     {
+        if (ComparacionJustificante.Lee(fila.Id))
+        {
+            await RegistrarConJustificanteAsync(fila);
+            return;
+        }
         var titulo = $"{fila.Id} del {fila.Periodo} presentado fuera del programa";
         var datos = _dialogos.PedirPresentacionExterna(titulo,
             $"Escribe los datos del justificante del {fila.Id} del {fila.Periodo} que presentó la gestoría (o se presentó en la Sede). " +
@@ -554,6 +578,70 @@ public sealed class ModelosTributariosVM : ModeloVista, IPestanaTrabajo
         }
         finally { Ocupado = false; }
         await CargarAsync(fila.Id, fila.Datos.Periodo);
+    }
+
+    private async Task RegistrarConJustificanteAsync(FilaPeriodoVM fila)
+    {
+        string? pdf;
+        (DateTime Fecha, string Justificante, string Csv)? manual = null;
+        if (fila.Datos.Ultima is { EsExterna: true, ConJustificante: false })
+            pdf = _dialogos.ElegirPdf($"Justificante del {fila.Id} del {fila.Periodo} de {fila.Datos.Ejercicio}");
+        else
+        {
+            var informativa = fila.Modelo.Informativa;
+            var r = _dialogos.PedirJustificante($"{fila.Id} del {fila.Periodo} presentado fuera del programa",
+                $"Pulsa «Leer el justificante (PDF)…» y elige el PDF del {fila.Id} del {fila.Periodo} que presentó la gestoría (o se descargó de la Sede): " +
+                "se rellenan la fecha, el justificante y el CSV, y al registrarlo se guardan sus casillas y se comparan con lo que calcula el programa." +
+                (informativa ? " Si no tienes el PDF, escribe los datos a mano: quedará presentado sin importe." : ""),
+                (f, j, c) => ServicioModelosTributarios.ErrorPresentacionExterna(f, j, c, Hoy),
+                ruta => LeerParaDialogo(fila, ruta), soloPdf: !informativa);
+            if (r is not { } d) return;
+            pdf = d.Pdf;
+            if (pdf is null) manual = (d.Fecha, d.Justificante, d.Csv);
+        }
+        if (pdf is null && manual is null) return;
+        Ocupado = true;
+        try
+        {
+            if (manual is { } m)
+            {
+                var r = await _ctx.Servicio.RegistrarExternaAsync(_ctx.Trabajo, fila.Id, fila.Datos.Periodo, m.Fecha, m.Justificante, m.Csv, _ctx.Actor.Nombre);
+                if (!r.EsCorrecto) { _dialogos.Error($"No se ha registrado el {fila.Id} del {fila.Periodo}", string.Join(Environment.NewLine, r.Errores.Select(e => e.TextoOperador()))); return; }
+                _ctx.Avisar($"{fila.Id} {fila.Periodo} registrado como presentado: justificante {r.Valor.Justificante}.");
+            }
+            else
+            {
+                byte[] bytes;
+                try { bytes = await File.ReadAllBytesAsync(pdf!); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _dialogos.Error("No he podido leer el PDF", $"{ex.Message} Comprueba que no esté abierto en otro programa y vuelve a intentarlo."); return; }
+                var r = await _ctx.Servicio.RegistrarJustificanteAsync(_ctx.Trabajo, fila.Id, fila.Datos.Periodo, bytes, _ctx.Actor.Nombre, archivar: true);
+                if (!r.EsCorrecto) { _dialogos.Error($"No se ha registrado el justificante del {fila.Id} del {fila.Periodo}", string.Join(Environment.NewLine, r.Errores.Select(e => e.TextoOperador()))); return; }
+                var aviso = r.Valor.Aviso is { } av ? " " + av : "";
+                if (r.Valor.Diferencias is { Count: > 0 })
+                    _dialogos.Informar($"El {fila.Id} del {fila.Periodo} presentado no coincide con lo calculado",
+                        $"{r.Valor.Texto}{aviso}{Environment.NewLine}{Environment.NewLine}El periodo queda «Desactualizado». Revisa la contabilidad del periodo; si lo presentado estaba mal, presenta una complementaria.",
+                        [.. r.Valor.Diferencias.Select(x => x.Texto)]);
+                else _ctx.Avisar(r.Valor.Texto + aviso);
+            }
+        }
+        finally { Ocupado = false; }
+        await CargarAsync(fila.Id, fila.Datos.Periodo);
+    }
+
+    /// <summary>Lee el PDF elegido en el diálogo y dice si es el justificante de este periodo.</summary>
+    private LecturaJustificantePdf LeerParaDialogo(FilaPeriodoVM fila, string ruta)
+    {
+        byte[] bytes;
+        try { bytes = File.ReadAllBytes(ruta); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return new(null, null, null, $"No he podido leer el PDF: {ex.Message}", null); }
+        if (LectorJustificanteAeat.Leer(bytes) is not { } j)
+            return new(null, null, null, "Ese PDF no es un justificante de presentación de la AEAT (no tiene la hoja con el CSV y el número de justificante). Elige el justificante.", null);
+        if (ServicioModelosTributarios.ErrorJustificante(j, fila.Id, fila.Datos.Ejercicio, fila.Datos.Periodo, null) is { } e)
+            return new(j.FechaHora, j.Justificante, j.Csv, e, null);
+        var resultado = ComparacionJustificante.Resultado(j);
+        return new(j.FechaHora?.Date, j.Justificante, j.Csv, null,
+            $"Leído: presentado el {j.FechaHora:dd/MM/yyyy} por {j.Presentador ?? j.NifPresentador ?? "—"}, {j.Casillas.Count} casillas con importe, resultado {Formatos.Importe(resultado)} €" +
+            (j.ImporteAIngresar != 0m ? $", a ingresar {Formatos.Importe(j.ImporteAIngresar)} €." : "."));
     }
 
     private void AbrirProceso(DefinicionModelo def, string periodo) => _ctx.AbrirProceso?.Invoke(def.Proceso, def.Id, periodo);

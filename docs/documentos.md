@@ -51,6 +51,7 @@ Gestor documental de cada sociedad: un catálogo único de documentos en la BD (
 - 2026-11-18 18:06 · He añadido un documento a un tercero, me aparece 'Sin clasificar', pero tampoco me ofrece la opción de clasificarlo. En la pantalla de documentos sí puedo poner un Tipo, pero parece que eso no implica clasificarlo
 - 2026-11-18 18:31 · Ok, ahora está perfecto. Ya puedes fusionar.
 - 2026-11-18 20:20 · Derived from contabilidad/balances/sumas-y-saldos: tipo de documento «Informe contable» para guardar el balance de sumas y saldos vinculado al ejercicio.
+- 2026-11-25 10:15 · Derived from contabilidad/modelos-tributarios/presentacion: tras añadir ficheros al panel de documentos de un registro, el contenedor puede procesarlos (`ContextoDocumentos.TrasAnadir`); los PDF arrastrados a los documentos de un periodo de un modelo que son justificantes de la AEAT registran la presentación.
 
 ## Hand-over
 - 2026-11-18 19:20 · Hecho (PR d, rama claude/gestor-documental-d sobre la c): correo enviado y recibido, nóminas e informe para la gestoría por la capa común, con pruebas. Con esto todo el guardado de documentos del programa pasa por el gestor; queda la validación del propietario de las cuatro PR, que se fusionan en orden (a, b, c, d).

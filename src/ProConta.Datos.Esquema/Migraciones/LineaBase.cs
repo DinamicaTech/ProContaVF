@@ -129,6 +129,7 @@ public static class CatalogoMigraciones
         MigracionesSeguridad.OperadoresTerceros,
         MigracionesPlataforma.ConexionAws,
         MigracionesIntegridad.RelacionesPendientes,
+        MigracionesModelosTributarios.CasillasJustificante,
     ];
 
     /// <summary>Versión del esquema que espera esta versión del programa.</summary>

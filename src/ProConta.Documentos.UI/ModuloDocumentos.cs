@@ -15,6 +15,12 @@ public sealed record ContextoDocumentos(ServicioDocumentos Servicio, string IdSo
     /// Devuelve null si ha ido bien o el error que hay que enseñar.
     /// </summary>
     public Func<string, Task<string?>>? EnviarACompras { get; init; }
+
+    /// <summary>
+    /// Después de añadir documentos al panel de un registro (el vínculo y los documentos añadidos): por ejemplo, registrar el justificante de la
+    /// AEAT arrastrado a los documentos de un periodo de un modelo. Lo conecta el contenedor; null si no hay nada que hacer.
+    /// </summary>
+    public Func<Vinculo, IReadOnlyList<DocumentoListado>, Task>? TrasAnadir { get; init; }
 }
 
 /// <summary>Diálogos del gestor documental (en pruebas se sustituyen por respuestas fijas).</summary>
@@ -138,6 +144,11 @@ public sealed class ModuloDocumentos(ContextoDocumentos contexto, IAnfitrionPest
                 contexto.Avisar(pendientes == 0
                     ? $"{Plural(v.Anadidos.Count, "documento archivado", "documentos archivados")} y vinculado{(v.Anadidos.Count == 1 ? "" : "s")} a {destino.Etiqueta}."
                     : $"Vinculado{(v.Anadidos.Count == 1 ? "" : "s")} a {destino.Etiqueta}. {Plural(pendientes, "queda", "quedan")} en Documentos › Por clasificar porque falta el tipo o la fecha.");
+                if (contexto.TrasAnadir is { } tras)
+                {
+                    try { await tras(destino, [.. docs.Where(d => v.Anadidos.Contains(d.IdDocumento))]); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException) { contexto.Avisar($"Documentos añadidos, pero no he podido terminar de procesarlos: {ex.Message}"); }
+                }
             }
         }
         if (detalles.Count > 0)

@@ -188,7 +188,7 @@ public enum EstadoPeriodoModelo
 /// <param name="SoloConsulta">Por qué el programa no genera este periodo (diseño del ejercicio no disponible…); null si lo genera.</param>
 public sealed record PeriodoModelo(string Modelo, int Ejercicio, string Periodo, DateTime PlazoDesde, DateTime PlazoHasta, Estado303 EstadoServicio, decimal? Calculado,
     string? TextoCalculado, PresentacionGuardada? Ultima, IReadOnlyList<PresentacionGuardada> Presentaciones, IReadOnlyList<string> Bloqueos, IReadOnlyList<string> Avisos,
-    string? SoloConsulta = null, bool Calculando = false)
+    string? SoloConsulta = null, bool Calculando = false, IReadOnlyList<DiferenciaCasilla>? Diferencias = null)
 {
     public string Clave => $"{Modelo}|{Ejercicio}|{Periodo}";
     public string Nombre => PlazosModelos.Nombre(Periodo);
@@ -222,8 +222,11 @@ public sealed record PeriodoModelo(string Modelo, int Ejercicio, string Periodo,
     /// <summary>Explicación del estado (tooltip).</summary>
     public string AyudaEstado(DateTime hoy) => Estado(hoy) switch
     {
-        EstadoPeriodoModelo.Presentado => $"Presentado el {Ultima!.FechaHora:dd/MM/yyyy}" + (Ultima.EsExterna ? " fuera del programa (lo devuelve la consulta de la AEAT)" : " desde el programa") +
+        EstadoPeriodoModelo.Presentado => $"Presentado el {Ultima!.FechaHora:dd/MM/yyyy}" +
+            (!Ultima.EsExterna ? " desde el programa" : Ultima.ConJustificante ? " fuera del programa; su justificante coincide con lo que calcula el programa" : " fuera del programa (lo devuelve la consulta de la AEAT)") +
             $", CSV {Ultima.Csv}.",
+        EstadoPeriodoModelo.Desactualizado when Diferencias is { Count: > 0 } d =>
+            $"Lo presentado no coincide con lo que el programa calcula ahora: {string.Join("; ", d.Select(x => x.Texto))}. Revisa la contabilidad del periodo; si lo presentado estaba mal, presenta una complementaria.",
         EstadoPeriodoModelo.Desactualizado => $"Lo presentado ({Euros(Ultima!.Resultado)}) ya no coincide con lo que el programa calcula ahora ({Euros(Calculado ?? 0m)}). Si procede, presenta una complementaria.",
         EstadoPeriodoModelo.AunNoAbre => $"El plazo va del {PlazoDesde:dd/MM/yyyy} al {PlazoHasta:dd/MM/yyyy}. Hasta entonces el importe es provisional.",
         EstadoPeriodoModelo.Calculando => "El programa está calculando este periodo: en unos segundos se ve su importe y su estado.",
@@ -299,10 +302,16 @@ public static class AccionesPeriodos
             new(AccionModelo.CopiarCsv, "Copiar el CSV", sinPres),
             new(AccionModelo.AbrirCasillas, def.Informativa ? $"Abrir los registros del {p.Modelo} de {p.Nombre}" : $"Abrir las casillas del {p.Modelo} de {p.Nombre}", noGen),
         };
-        if (def.Informativa)
+        var leeJustificante = ComparacionJustificante.Lee(p.Modelo);
+        if (leeJustificante && p.Ultima is { EsExterna: true, ConJustificante: false })
+            lista.Add(new(AccionModelo.RegistrarExterna, "Leer el justificante (PDF)…", sinPermiso,
+                "Elige el PDF justificante que presentó la gestoría: guarda su importe y sus casillas y las compara con lo que calcula el programa"));
+        else if (def.Informativa || leeJustificante)
             lista.Add(new(AccionModelo.RegistrarExterna, "Registrar presentado fuera del programa…",
                 (p.Presentado ? "Ya consta presentado" : null) ?? noAbre ?? sinPermiso,
-                "Si lo presentó la gestoría: escribe su fecha, justificante y CSV. Las informativas de TGVI no se pueden consultar a la AEAT."));
+                def.Informativa
+                    ? "Si lo presentó la gestoría: elige su justificante en PDF o escribe su fecha, justificante y CSV. Las informativas de TGVI no se pueden consultar a la AEAT."
+                    : "Si lo presentó la gestoría: elige su justificante en PDF; se guardan su importe y sus casillas y se comparan con lo que calcula el programa."));
         if (def.Proceso != ProcesoModelo.Ninguno) lista.Add(new(AccionModelo.AbrirProceso, $"Abrir «{def.TextoProceso}»", null));
         lista.Add(new(AccionModelo.Documentos, $"Documentos del {p.Modelo} de {p.Nombre}…", null,
             "Justificantes, notificaciones de Hacienda y demás documentos de este periodo en el gestor documental; arrastra ficheros para vincularlos"));
