@@ -4,6 +4,7 @@ using ProConta.Norma43.Asignacion;
 using ProConta.Norma43.Busqueda;
 using ProConta.Norma43.Conciliacion;
 using ProConta.Norma43.Lineas;
+using ProConta.Norma43.Plataformas;
 using ProConta.Norma43.Remesas;
 using ProConta.Norma43.Similares;
 using ProConta.Nucleo.Auditoria;
@@ -62,6 +63,8 @@ public interface IDialogosLineasN43
     EleccionSimilarN43? MovimientosSimilares(MovimientosSimilaresN43VM vm) => null;
     /// <summary>Diálogo «Compra de activo» / «Venta de activo» (modal): true si se pulsa «Conciliar» con una operación elegida.</summary>
     bool ConciliarActivo(ActivoN43VM vm) => false;
+    /// <summary>Diálogo «Conciliar plataformas» (modal): true si se pulsa «Conciliar».</summary>
+    bool ConciliarPlataformas(CobrosPlataformasN43VM vm) => false;
 }
 
 /// <summary>Una acción del menú contextual: su texto, si se puede y, si no, por qué (en el tooltip).</summary>
@@ -201,6 +204,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     private readonly IAjustesRemesaN43? _ajustes;
     private readonly ConsultaSimilaresN43? _similares;
     private readonly ServicioActivosN43? _activos;
+    private readonly ServicioCobrosPlataformasN43? _plataformas;
     /// <summary>Candidatos de «Movimientos similares» por rango de ejercicios: se leen una vez y se olvidan al volver a leer o tras una acción.</summary>
     private readonly Dictionary<(int Desde, int Hasta), IReadOnlyList<CandidatoSimilarN43>> _candidatos = [];
     private IReadOnlyList<AvanceSimilarN43VM> _avance = [];
@@ -229,8 +233,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
 
     public LineasN43VM(ConsultaLineasN43 consulta, ServicioLineasN43 servicio, ServicioConciliacionN43 conciliacion, AsignadorCuentasN43 asignador,
         IDialogosLineasN43 dialogos, ContextoLineasN43 contexto, Action? alCerrar = null, BusquedaPorImporteN43? busqueda = null, ServicioRemesasN43? remesas = null,
-        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null)
+        IAjustesRemesaN43? ajustes = null, ConsultaSimilaresN43? similares = null, ServicioActivosN43? activos = null,
+        ServicioCobrosPlataformasN43? plataformas = null)
     {
+        _plataformas = plataformas;
         _similares = similares;
         _activos = activos;
         _busqueda = busqueda;
@@ -273,6 +279,8 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionPagoDividendos = new("Pago de dividendos…", "Lleva el cargo a la 526 del socio que cobra o, si son varios, lo desglosa en una línea por socio con su importe y su 526", () => _ = PagoDividendosAsync());
         AccionActivo = new("Compra de activo…", "Concilia el movimiento con una compra (cargo) o venta (abono) de un activo financiero sin conciliar: genera su asiento y la deja conciliada", () => _ = ConciliarActivoAsync());
         ExplotarPendientesCommand = new ComandoDelegado(() => _ = ExplotarPendientesAsync(), () => _remesas is not null && !Ocupado && AniosMarcados.Count > 0);
+        ConciliarPlataformasCommand = new ComandoDelegado(() => _ = ConciliarPlataformasAsync(), () => _plataformas is not null && !Ocupado && AniosMarcados.Count > 0);
+        AccionQuitarCobroPlataforma = new("Quitar el cobro de la reserva", "Deshace la conciliación con plataformas de los cobros seleccionados y de todo su cruce (los demás trozos de la misma reserva y las demás reservas del mismo cobro): las facturas vuelven a estar pendientes de cobro; la cuenta de la línea no cambia", () => _ = QuitarCobroPlataformaAsync());
         ActualizarAcciones();
     }
 
@@ -403,6 +411,10 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
     /// <summary>Botón de cabecera: explota las remesas pendientes de los ejercicios marcados que cuadran solas (acción general, no de la selección).</summary>
     public ICommand ExplotarPendientesCommand { get; }
     public bool HayRemesas => _remesas is not null;
+    /// <summary>Botón de cabecera: concilia los cobros de Airbnb, Booking… de los ejercicios marcados con las facturas de sus reservas (norma43/conciliacion/plataformas).</summary>
+    public ICommand ConciliarPlataformasCommand { get; }
+    public bool HayPlataformas => _plataformas is not null;
+    public AccionLineasVM AccionQuitarCobroPlataforma { get; }
     public ICommand RefrescarCommand { get; }
     public ICommand QuitarFiltrosCommand { get; }
 
@@ -576,6 +588,7 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         AccionDeshacerExplosion.Fijar("Deshacer explosión", a.DeshacerExplosion ?? sinRemesas ?? Ocupada());
         AccionPagoDividendos.Fijar("Pago de dividendos…", a.PagoDividendos ?? (_remesas is null ? "Los pagos de dividendos no están disponibles en esta pantalla." : null) ?? Ocupada());
         AccionActivo.Fijar(Seleccion is [{ EsCargo: false }] ? "Venta de activo…" : "Compra de activo…", MotivoActivo() ?? Ocupada());
+        AccionQuitarCobroPlataforma.Fijar("Quitar el cobro de la reserva" + (Seleccion.Count > 1 ? $" ({Seleccion.Count})" : ""), MotivoQuitarCobro() ?? Ocupada());
         Avisar(nameof(Resumen), nameof(Acciones));
     }
 
@@ -583,6 +596,12 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         _activos is null ? "La conciliación con activos no está disponible en esta pantalla."
         : Seleccion is not [var f] ? "Selecciona un solo movimiento del banco."
         : ServicioActivosN43.Bloqueo(f.Datos) is { } e ? e.Mensaje
+        : null;
+
+    private string? MotivoQuitarCobro() =>
+        _plataformas is null ? "La conciliación con plataformas no está disponible en esta pantalla."
+        : Seleccion.Count == 0 ? "Selecciona los cobros de la plataforma."
+        : Seleccion.Any(f => f.EsCargo || string.IsNullOrEmpty(f.Datos.Facturas)) ? "Solo para abonos enlazados con facturas."
         : null;
 
     private string? Ocupada() => _ocupado ? "Espera a que termine la acción en curso." : null;
@@ -943,6 +962,44 @@ public sealed class LineasN43VM : ModeloVista, IPestanaTrabajo
         _dialogos.Preguntar("Remesas pendientes de explotar", r.Texto, r.Pendientes.Values.ToList(),
             new OpcionMensaje("Entendido", "Cierra el aviso; las que no cuadran siguen sin explotar", Principal: true, Cancelar: true));
     }, "explotar las remesas pendientes");
+
+    /// <summary>
+    /// «Conciliar plataformas» (norma43/conciliacion/plataformas): propone los cruces de los cobros de las plataformas de los ejercicios
+    /// marcados con las facturas de sus reservas y concilia los que el operador deja marcados.
+    /// </summary>
+    public Task ConciliarPlataformasAsync() => Ejecutar(async () =>
+    {
+        if (_plataformas is null || AniosMarcados.Count == 0) return;
+        var desde = new DateTime(AniosMarcados.Min(), 1, 1);
+        var hasta = new DateTime(AniosMarcados.Max(), 12, 31);
+        var propuesta = await _plataformas.ProponerAsync(_contexto.Trabajo.IdSociedad, desde, hasta);
+        var vm = new CobrosPlataformasN43VM(propuesta, TextoEjercicios.Replace("Ejercicio", "ejercicio", StringComparison.Ordinal));
+        if (!_dialogos.ConciliarPlataformas(vm) || !vm.HayMarcados) return;
+        var r = await _plataformas.ConciliarAsync(_contexto.Trabajo.IdSociedad, vm.Elegidos(), _contexto.Actor);
+        if (r.Lineas.Count > 0) await RefrescarLineasAsync(r.Lineas);
+        var texto = $"{Formatos.Plural(r.Cruces, "cruce conciliado", "cruces conciliados")}: {Formatos.Plural(r.Lineas.Count, "cobro", "cobros")} con " +
+                    $"{Formatos.Plural(r.Facturas.Count, "factura", "facturas")}.";
+        if (r.Rechazados.Count == 0 && r.Avisos.Count == 0) { _contexto.Avisar(texto); return; }
+        _dialogos.Preguntar("Conciliar plataformas", texto + " Lo que no se ha podido hacer, y por qué:",
+            r.Rechazados.Select(e => e.TextoOperador()).Concat(r.Avisos).Take(40).ToList(),
+            new OpcionMensaje("Entendido", "Cierra el aviso", Principal: true, Cancelar: true));
+    }, "conciliar los cobros de las plataformas");
+
+    /// <summary>Quita los cobros de las reservas de las líneas seleccionadas y de todo su cruce.</summary>
+    public Task QuitarCobroPlataformaAsync() => Ejecutar(async () =>
+    {
+        if (_plataformas is null || MotivoQuitarCobro() is not null) return;
+        if (_dialogos.Preguntar("Quitar el cobro de la reserva",
+                "Las facturas de las reservas que cobran estas líneas volverán a estar pendientes de cobro, con todo su cruce: los demás trozos de la misma " +
+                "reserva y las demás reservas del mismo cobro. La cuenta de las líneas y sus asientos no cambian.", null,
+                new OpcionMensaje("Quitar el cobro", "Deja las facturas pendientes de cobro", Principal: true),
+                new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0) return;
+        var r = await _plataformas.DeshacerAsync(_contexto.Trabajo.IdSociedad, IdsSeleccion(), _contexto.Actor);
+        if (r.Rechazados.Count > 0) { Informar("No se ha podido quitar el cobro", r.Rechazados[0]); return; }
+        await RefrescarLineasAsync(r.Lineas);
+        _contexto.Avisar(r.Facturas.Count == 0 ? "Esas líneas no cobraban ninguna reserva de las plataformas."
+            : $"{Formatos.Plural(r.Facturas.Count, "factura vuelve", "facturas vuelven")} a estar pendientes de cobro.");
+    }, "quitar el cobro de la reserva");
 
     private async Task TrasRemesaAsync(ResultadoRemesaN43 r, string tituloError)
     {

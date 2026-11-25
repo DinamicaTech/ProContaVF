@@ -328,7 +328,10 @@ public sealed class ServicioCobrosPlataformasN43(IBaseDatos bd)
             while (pendientes.Count > 0)
             {
                 var id = pendientes.Dequeue();
-                var nuevas = (await s.ConsultarAsync("SELECT IdFactura FROM Facturas WHERE LineaN43 = ?", f => f.Entero("IdFactura"), id))
+                // Solo las facturas de reservas de las plataformas: los recibos de remesas y lo enlazado a mano se quitan desde sus acciones.
+                var nuevas = (await s.ConsultarAsync(
+                        "SELECT f.IdFactura FROM (Facturas AS f INNER JOIN VentasPorFacturar AS v ON f.IdFactura = v.IdFactura) " +
+                        "INNER JOIN OrigenesVenta AS o ON v.IdOrigenVenta = o.IdOrigenVenta WHERE o.EsDirecta = False AND f.LineaN43 = ?", f => f.Entero("IdFactura"), id))
                     .Concat(await s.ConsultarAsync("SELECT IdFactura FROM CobrosParcialesN43 WHERE LineaN43 = ?", f => f.Entero("IdFactura"), id))
                     .Where(facturas.Add).ToList();
                 foreach (var f in nuevas)
