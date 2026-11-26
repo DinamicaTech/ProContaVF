@@ -76,13 +76,13 @@
     </Style>
 
     <ContextMenu x:Key="Menu.Cartera">
-      <MenuItem Header="Ver su análisis" Command="{Binding VerAnalisisCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                ToolTip="Cotización histórica, lotes, operaciones y proyección del activo (también con doble clic)" />
-      <MenuItem Header="Abrir la ficha del activo" Command="{Binding AbrirFichaCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                ToolTip="Abre la ficha del activo en Datos maestros › Activos, en el apartado Operaciones, para cambiar el coste de un lote" />
+      <MenuItem Header="Abrir su ficha" Command="{Binding AbrirFichaCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                ToolTip="Abre la ficha del activo en su pestaña: cotización, lotes, operaciones, proyección y sus datos (también con doble clic)" />
       <Separator />
       <MenuItem Header="Nueva compra…" Command="{Binding NuevaCompraCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                 ToolTipService.ShowOnDisabled="True" ToolTip="Anota otra compra de participaciones de este activo; el precio del día se consulta solo (no para activos de baja)" />
+      <MenuItem Header="Vender…" Command="{Binding VenderCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                ToolTipService.ShowOnDisabled="True" ToolTip="Anota una venta de participaciones de este activo; si no le quedan, pasa a inactivo (no para activos vendidos o de baja)" />
     </ContextMenu>
   </UserControl.Resources>
 
@@ -92,10 +92,12 @@
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <TextBlock Text="{Binding EstadoCotizaciones}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <Button Content="Nuevo activo financiero…" Style="{StaticResource Boton.Primario}" Command="{Binding NuevoActivoCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
+                  ToolTip="Da de alta un ETF, un fondo o unas acciones por su ISIN, con su primera compra" />
           <Button Content="Actualizar cotizaciones" Style="{StaticResource Boton}" Command="{Binding ActualizarCommand}" Margin="0,0,8,0" VerticalAlignment="Center"
                   ToolTip="Completa el histórico con Yahoo Finance y pide la cotización del momento. La primera vez del día, el precio sale de EODHD y se guarda; después, de Yahoo. También se hace al abrir la pantalla" />
           <Button Content="Listado de activos" Style="{StaticResource Boton}" Command="{Binding AbrirListadoCommand}" VerticalAlignment="Center"
-                  ToolTip="Abre Datos maestros › Activos, donde se dan de alta los activos financieros por ISIN y se anotan sus compras" />
+                  ToolTip="Abre Datos maestros › Activos, con todos los activos de la sociedad" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="Activos financieros" Style="{StaticResource Texto.TituloPantalla}" VerticalAlignment="Center" Margin="0,0,12,0" />
@@ -113,11 +115,12 @@
     <pc:VistaEstado Estado="{Binding Estado}" Mensaje="{Binding MensajeEstado}" TextoAccion="Abrir el listado de activos" ComandoAccion="{Binding AbrirListadoCommand}">
       <Grid>
         <!-- ===================== CARTERA ===================== -->
-        <Grid Margin="14,10,14,8" Visibility="{Binding VerCartera, Converter={StaticResource Visible}}">
+        <!-- La tabla ocupa lo que piden sus filas (como mucho, algo más de la mitad: VistaCarteraFinanciera.xaml.cs) y los gráficos el resto. -->
+        <Grid x:Name="Rejilla" Margin="14,10,14,8">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="2*" MinHeight="230" />
-            <RowDefinition Height="3*" MinHeight="200" />
+            <RowDefinition Height="*" MinHeight="230" />
+            <RowDefinition x:Name="FilaTabla" Height="Auto" MinHeight="150" />
           </Grid.RowDefinitions>
 
           <Border Style="{StaticResource Tarjeta.Cartera}" Padding="0,8">
@@ -272,16 +275,16 @@
                       </TextBlock.Style>
                     </TextBlock>
                   </StackPanel>
-                  <TextBlock VerticalAlignment="Center" Text="Clic: ver u ocultar en los gráficos · Doble clic: su análisis · Clic derecho: acciones" />
+                  <TextBlock VerticalAlignment="Center" Text="Clic: ver u ocultar en los gráficos · Doble clic: abrir su ficha · Clic en un título: ordenar · Clic derecho: acciones" />
                 </DockPanel>
               </Border>
               <Grid>
                 <pc:TablaProConta x:Name="Tabla" ItemsSource="{Binding Filas}" ClavePreferencias="activos.financieros" TituloExportacion="Activos financieros"
-                                  IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" CanUserSortColumns="False" AutomationProperties.Name="Rentabilidad por activo"
+                                  IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" CanUserSortColumns="True" Sorting="Tabla_Sorting" AutomationProperties.Name="Rentabilidad por activo"
                                   HorizontalScrollBarVisibility="Auto" ContextMenu="{StaticResource Menu.Cartera}" RowStyle="{StaticResource Fila.Cartera}" BorderThickness="0" RowHeight="42"
                                   PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick" PreviewKeyDown="Tabla_PreviewKeyDown">
                   <pc:TablaProConta.Columns>
-                    <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True">
+                    <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
                       <DataGridTemplateColumn.Header>
                         <CheckBox IsChecked="{Binding DataContext.TodosMarcados, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
                                   ToolTip="Marca o desmarca todos. Los marcados son los que se ven en los gráficos de arriba" />
@@ -295,7 +298,7 @@
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="lotes_desplegar" pc:TablaProConta.SiempreVisible="True">
+                    <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="lotes_desplegar" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                           <Button Style="{StaticResource Boton.Fantasma}" Padding="0" BorderThickness="0" Width="24" Height="24" MinWidth="0" MinHeight="0" HorizontalAlignment="Center" Click="Desplegar_Click" ToolTip="{Binding AyudaFlecha}"
@@ -317,7 +320,7 @@
                         </DataTemplate>
                       </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Activo" Width="*" MinWidth="260" pc:TablaProConta.Clave="activo" pc:TablaProConta.RutaExportar="Nombre">
+                    <DataGridTemplateColumn Header="Activo" Width="*" MinWidth="260" SortMemberPath="Nombre" pc:TablaProConta.Clave="activo" pc:TablaProConta.RutaExportar="Nombre">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                           <StackPanel Margin="4,2">
@@ -347,7 +350,7 @@
                                         pc:TablaProConta.Clave="precio_medio" pc:TablaProConta.Ayuda="Coste medio por participación de lo que queda en cartera, comisiones incluidas" />
                     <DataGridTextColumn Header="Coste" Binding="{Binding Coste}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}"
                                         pc:TablaProConta.Clave="coste" pc:TablaProConta.Ayuda="Lo que costó lo que queda en cartera" />
-                    <DataGridTemplateColumn Header="Cotización" Width="96" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="cotizacion" pc:TablaProConta.RutaExportar="Cotizacion"
+                    <DataGridTemplateColumn Header="Cotización" Width="96" SortMemberPath="Cotizacion" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="cotizacion" pc:TablaProConta.RutaExportar="Cotizacion"
                                             pc:TablaProConta.Ayuda="Último precio en euros (pasa el ratón para ver su fecha y origen)">
                       <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate><TextBlock Text="{Binding Cotizacion}" Style="{StaticResource Texto.Celda.Importe}" ToolTip="{Binding AyudaCotizacion}" /></DataTemplate>
@@ -372,204 +375,6 @@
           </Border>
         </Grid>
 
-        <!-- ===================== ANÁLISIS DE UN ACTIVO ===================== -->
-        <Grid Margin="14,10,14,8" DataContext="{Binding Detalle}"
-              Visibility="{Binding DataContext.VerCartera, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Visible}, ConverterParameter=invertir}">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-          </Grid.RowDefinitions>
-          <DockPanel Margin="0,0,0,8">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-              <Button Content="Abrir la ficha del activo" Style="{StaticResource Boton}" Command="{Binding AbrirFichaCommand}" Margin="0,0,8,0"
-                      ToolTip="Abre la ficha del activo en Datos maestros › Activos, en el apartado Operaciones (para cambiar el coste de un lote o anotar una compra)" />
-              <Button Content="Volver a la cartera" Style="{StaticResource Boton.Primario}" Command="{Binding DataContext.VolverCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                      ToolTip="Vuelve a la vista de toda la cartera" />
-            </StackPanel>
-            <StackPanel>
-              <TextBlock Text="{Binding Nombre}" Style="{StaticResource Texto.TituloPantalla}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Style="{StaticResource Texto.Apagado}" TextTrimming="CharacterEllipsis"><Run Text="{Binding Clase, Mode=OneWay}" FontWeight="SemiBold" /> · <Run Text="{Binding Meta, Mode=OneWay}" /></TextBlock>
-            </StackPanel>
-          </DockPanel>
-          <Border Grid.Row="1" Style="{StaticResource Tarjeta.Cartera}" Padding="0,8">
-            <ItemsControl ItemsSource="{Binding Cifras}" ItemTemplate="{StaticResource Plantilla.Cifra}" ItemsPanel="{StaticResource Panel.Cifras}" Focusable="False" />
-          </Border>
-          <Border Grid.Row="2" Style="{StaticResource Tarjeta.Cartera}" Margin="0" Padding="10,4,10,8">
-            <TabControl SelectedIndex="{Binding Pestana}" BorderThickness="0" Padding="0,6,0,0">
-              <!-- Cotización -->
-              <TabItem Header="Cotización" Visibility="{Binding Cotiza, Converter={StaticResource Visible}}" ToolTip="Cotización histórica en euros con el precio medio de compra y las operaciones">
-                <DockPanel>
-                  <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-                    <Border DockPanel.Dock="Right" Style="{StaticResource Segmentado}" ToolTip="Periodo que se ve en el gráfico">
-                      <StackPanel Orientation="Horizontal">
-                        <RadioButton Style="{StaticResource Segmento}" Content="6M" GroupName="FPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=6M}" />
-                        <RadioButton Style="{StaticResource Segmento}" Content="1A" GroupName="FPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=1A}" />
-                        <RadioButton Style="{StaticResource Segmento}" Content="3A" GroupName="FPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=3A}" />
-                        <RadioButton Style="{StaticResource Segmento}" Content="5A" GroupName="FPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=5A}" />
-                        <RadioButton Style="{StaticResource Segmento}" Content="Máx." GroupName="FPer" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=Máx.}" ToolTip="Todo el histórico guardado" />
-                      </StackPanel>
-                    </Border>
-                    <TextBlock Text="{Binding ExplicacionCotizacion}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                  </DockPanel>
-                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2">
-                    <Border Style="{StaticResource Muestra}" Background="#2a78d6" /><TextBlock Text="{Binding NombrePrecio}" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
-                    <Border Style="{StaticResource Muestra}" Background="#802a78d6" Height="1.5" /><TextBlock Text="Sin participaciones" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
-                    <Border Style="{StaticResource Muestra}" Background="#eb6834" /><TextBlock Text="Precio medio de compra" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
-                    <TextBlock Text="▲ Compra   ▼ Venta" Style="{StaticResource Texto.Apagado}" />
-                  </StackPanel>
-                  <TextBlock DockPanel.Dock="Bottom" Text="{Binding OrigenCotizacion}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                  <pc:GraficoTemporal Datos="{Binding DatosCotizacion}" FormatoEje="{Binding FormatoEje}" MinHeight="160" />
-                </DockPanel>
-              </TabItem>
-              <!-- Lotes -->
-              <TabItem Header="Lotes" ToolTip="Cada compra es un lote; cada venta reduce todos los lotes en la misma proporción (coste medio ponderado)">
-                <DockPanel>
-                  <TextBlock DockPanel.Dock="Top" Text="Cada compra es un lote. Al vender, el coste de lo vendido es el coste medio ponderado (el de la contabilidad): cada venta reduce todos los lotes en la misma proporción." Style="{StaticResource Texto.Apagado}" Margin="0,0,0,6" />
-                  <pc:TablaProConta ItemsSource="{Binding Lotes}" ClavePreferencias="activos.financieros.lotes" TituloExportacion="Lotes" IsReadOnly="True" AutomationProperties.Name="Lotes del activo">
-                    <pc:TablaProConta.Columns>
-                      <DataGridTextColumn Header="Comprado" Binding="{Binding Comprado}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="comprado" />
-                      <DataGridTextColumn Header="Compradas" Binding="{Binding Compradas}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="compradas" />
-                      <DataGridTextColumn Header="Quedan" Binding="{Binding Quedan}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="quedan" />
-                      <DataGridTextColumn Header="Precio (con comisión)" Binding="{Binding Precio}" Width="140" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="precio"
-                                          pc:TablaProConta.Ayuda="Coste del lote entre sus participaciones" />
-                      <DataGridTextColumn Header="Coste" Binding="{Binding Coste}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste" />
-                      <DataGridTextColumn Header="Valor hoy" Binding="{Binding Valor}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="valor" />
-                      <DataGridTextColumn Header="Plusvalía" Binding="{Binding Plusvalia}" Width="110" ElementStyle="{StaticResource Celda.Tono}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="plusvalia" />
-                      <DataGridTextColumn Header="%" Binding="{Binding Porcentaje}" Width="72" ElementStyle="{StaticResource Celda.Tono}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="porcentaje" />
-                      <DataGridTextColumn Header="Anual" Binding="{Binding Anual}" Width="72" ElementStyle="{StaticResource Celda.Tono}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="anual"
-                                          pc:TablaProConta.Ayuda="Rentabilidad anual del lote (TIR); «—» con menos de un año" />
-                      <DataGridTextColumn Header="Tiempo en cartera" Binding="{Binding Tiempo}" Width="*" MinWidth="130" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="tiempo" />
-                    </pc:TablaProConta.Columns>
-                  </pc:TablaProConta>
-                </DockPanel>
-              </TabItem>
-              <!-- Operaciones -->
-              <TabItem Header="Operaciones" ToolTip="Compras y ventas del activo, con el coste medio de lo vendido y el resultado de cada venta">
-                <DockPanel>
-                  <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Texto.Apagado}" Margin="0,6,0,0" TextWrapping="Wrap"
-                             Text="Aquí solo se consultan. Las compras se anotan con «Nueva compra…» (clic derecho en la tabla o en el listado de activos) y su asiento se hace desde las líneas bancarias." />
-                  <pc:TablaProConta ItemsSource="{Binding Operaciones}" ClavePreferencias="activos.financieros.operaciones" TituloExportacion="Operaciones" IsReadOnly="True" AutomationProperties.Name="Operaciones del activo">
-                    <pc:TablaProConta.Columns>
-                      <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="fecha" />
-                      <DataGridTextColumn Header="Operación" Binding="{Binding Operacion}" Width="90" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="operacion" />
-                      <DataGridTextColumn Header="Participaciones" Binding="{Binding Participaciones}" Width="112" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="participaciones" />
-                      <DataGridTextColumn Header="Precio" Binding="{Binding Precio}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="precio"
-                                          pc:TablaProConta.Ayuda="Importe entre participaciones, en euros (con comisiones)" />
-                      <DataGridTextColumn Header="Importe" Binding="{Binding Importe}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="importe" />
-                      <DataGridTextColumn Header="Coste vendido" Binding="{Binding CosteVendido}" Width="110" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="coste_vendido"
-                                          pc:TablaProConta.Ayuda="Coste medio ponderado de las participaciones vendidas" />
-                      <DataGridTextColumn Header="Resultado" Binding="{Binding Resultado}" Width="140" ElementStyle="{StaticResource Celda.Tono}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado"
-                                          pc:TablaProConta.Ayuda="Importe menos coste vendido: a 766 si gana, a 666 si pierde" />
-                      <DataGridTextColumn Header="Notas" Binding="{Binding Notas}" Width="*" MinWidth="160" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="notas" />
-                    </pc:TablaProConta.Columns>
-                  </pc:TablaProConta>
-                </DockPanel>
-              </TabItem>
-              <!-- Proyección -->
-              <TabItem Header="Proyección" Visibility="{Binding Cotiza, Converter={StaticResource Visible}}" ToolTip="Cómo está hoy según el análisis técnico y qué podría valer la posición (estimación)">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                  <StackPanel Margin="0,0,6,0">
-                    <Border Background="{StaticResource Pincel.AvisoSuave}" BorderBrush="{StaticResource Pincel.AvisoBorde}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10">
-                      <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}"
-                                 Text="Las señales salen de los indicadores habituales del análisis técnico (medias, RSI, MACD, Bandas de Bollinger, ADX…) calculados con las cotizaciones diarias y traducidos a frases. La proyección es una estimación con lo que ha rendido el activo en el pasado; no es una previsión ni una garantía." />
-                    </Border>
-                    <DockPanel Margin="0,0,0,6" Visibility="{Binding HaySenales, Converter={StaticResource Visible}}">
-                      <TextBlock Text="Cómo está hoy: " Style="{StaticResource Texto.Titulo}" VerticalAlignment="Center" />
-                      <TextBlock Text="{Binding Valoracion}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0">
-                        <TextBlock.Style>
-                          <Style TargetType="TextBlock">
-                            <Style.Triggers>
-                              <DataTrigger Binding="{Binding TonoValoracion}" Value="Bueno"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
-                              <DataTrigger Binding="{Binding TonoValoracion}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
-                            </Style.Triggers>
-                          </Style>
-                        </TextBlock.Style>
-                      </TextBlock>
-                      <TextBlock Text="{Binding ExplicacionValoracion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                    </DockPanel>
-                    <TextBlock Text="{Binding ExplicacionValoracion}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding HaySenales, Converter={StaticResource Visible}, ConverterParameter=invertir}" Margin="0,0,0,8" />
-                    <ItemsControl ItemsSource="{Binding Senales}" Focusable="False" Margin="0,0,0,6">
-                      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <Border Width="270" MinHeight="96" Margin="0,0,8,8" Padding="10,8" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Detalle}" Background="White">
-                            <StackPanel>
-                              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
-                              <TextBlock Text="{Binding Lectura}" FontWeight="SemiBold" FontSize="14" Margin="0,2,0,3" Style="{StaticResource Texto.Tono}" />
-                              <TextBlock Text="{Binding Explicacion}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}" />
-                            </StackPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <StackPanel Visibility="{Binding HayPivotes, Converter={StaticResource Visible}}" Margin="0,0,0,12">
-                      <TextBlock Text="{Binding TituloPivotes}" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4"
-                                 ToolTip="Puntos pivote clásicos con el precio más alto, el más bajo y el último del mes anterior: precios donde es habitual que una subida o una bajada se frene" />
-                      <ItemsControl ItemsSource="{Binding Pivotes}" Focusable="False">
-                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" HorizontalAlignment="Left" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border Padding="12,4" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,1,0" ToolTip="{Binding Ayuda}" Background="Transparent">
-                              <StackPanel>
-                                <TextBlock Text="{Binding Nombre}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{Binding Precio}" HorizontalAlignment="Center">
-                                  <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                      <Style.Triggers><DataTrigger Binding="{Binding EsPivote}" Value="True"><Setter Property="FontWeight" Value="SemiBold" /></DataTrigger></Style.Triggers>
-                                    </Style>
-                                  </TextBlock.Style>
-                                </TextBlock>
-                              </StackPanel>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
-                    <TextBlock Text="Qué podría valer la posición (estimación)" Style="{StaticResource Texto.Seccion}" Margin="0,0,0,4" />
-                    <TextBlock Text="{Binding SinProyeccion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Visibility="{Binding HayEscenarios, Converter={StaticResource Visible}, ConverterParameter=invertir}" />
-                    <StackPanel Visibility="{Binding HayEscenarios, Converter={StaticResource Visible}}">
-                      <TextBlock Text="{Binding ExplicacionEscenarios}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,0,0,6" />
-                      <Grid HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="120" /><ColumnDefinition Width="210" /><ColumnDefinition Width="210" /><ColumnDefinition Width="210" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Escenario" Style="{StaticResource Texto.Apagado}" />
-                        <TextBlock Grid.Column="1" Text="En 1 año" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" />
-                        <TextBlock Grid.Column="2" Text="En 3 años" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" />
-                        <TextBlock Grid.Column="3" Text="En 5 años" Style="{StaticResource Texto.Apagado}" HorizontalAlignment="Right" />
-                      </Grid>
-                      <ItemsControl ItemsSource="{Binding Escenarios}" Focusable="False">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,1,0,0" Padding="0,5" HorizontalAlignment="Left">
-                              <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Nombre}" Width="120" FontWeight="SemiBold" VerticalAlignment="Center" ToolTip="{Binding Ayuda}" />
-                                <ItemsControl ItemsSource="{Binding Celdas}" Focusable="False">
-                                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                  <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                      <StackPanel Width="210">
-                                        <TextBlock Text="{Binding Valor}" Style="{StaticResource Texto.Importe}" HorizontalAlignment="Right" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding Diferencia}" FontSize="{StaticResource Letra.Pequena}" HorizontalAlignment="Right" Style="{StaticResource Texto.Tono}" />
-                                      </StackPanel>
-                                    </DataTemplate>
-                                  </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                              </StackPanel>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                      <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,8,0,0"
-                                 Text="El prudente es lo que saldría con una racha mala de las habituales; el optimista, con una buena. Cuanto más largo es el plazo, más se compensan los años buenos con los malos, por eso el rango anual se estrecha. Puede salir peor o mejor que los dos." />
-                    </StackPanel>
-                  </StackPanel>
-                </ScrollViewer>
-              </TabItem>
-            </TabControl>
-          </Border>
-        </Grid>
       </Grid>
     </pc:VistaEstado>
   </DockPanel>

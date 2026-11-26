@@ -63,6 +63,26 @@ public sealed class ServicioCarteraFinanciera(IBaseDatos bd, ServicioActivos act
         return new CarteraCargada(resultado, avisos, hoyDia, conRed);
     }
 
+    /// <summary>
+    /// Carga un solo activo financiero con su posición (para su ficha). Con <paramref name="conRed"/>, completa su histórico y pide el precio de hoy; sin
+    /// red, usa solo lo guardado. Null si el activo no es financiero o no existe.
+    /// </summary>
+    public async Task<(ActivoDeCartera? Activo, IReadOnlyList<string> Avisos)> CargarActivoAsync(int idActivo, bool conRed, CancellationToken cancelacion = default)
+    {
+        var hoyDia = Hoy;
+        var filas = await bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT a.IdActivo, a.Codigo, a.Nombre, a.FechaBaja FROM Activos AS a INNER JOIN ActivosInversiones AS ai ON a.IdActivo = ai.IdActivo WHERE a.IdActivo = ?",
+            f => (Id: f.Entero("IdActivo"), Codigo: (f.Texto("Codigo") ?? "").Trim(), Nombre: (f.Texto("Nombre") ?? "").Trim(), Baja: f.FechaNula("FechaBaja")), idActivo));
+        var avisos = new List<string>();
+        if (filas.Count == 0) return (null, avisos);
+        var a = filas[0];
+        var inv = await activos.InversionAsync(a.Id);
+        if (inv is null) return (null, avisos);
+        var primera = inv.Operaciones.Count == 0 ? hoyDia : inv.Operaciones.Min(o => o.Fecha);
+        var (serie, precio) = await PreciosAsync(inv, a.Codigo, primera, conRed, avisos, cancelacion);
+        return (new ActivoDeCartera(a.Id, a.Codigo, a.Nombre, a.Baja, PosicionFinanciera.Crear(a.Id, a.Codigo, inv, serie, precio, hoyDia)), avisos);
+    }
+
     private async Task<(SeriePrecios, PrecioEnEuros?)> PreciosAsync(InversionDeActivo inv, string codigo, DateTime primeraCompra, bool conRed, List<string> avisos,
         CancellationToken cancelacion)
     {

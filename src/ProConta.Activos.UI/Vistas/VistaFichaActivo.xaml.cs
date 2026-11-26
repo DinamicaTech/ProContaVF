@@ -14,13 +14,22 @@ public partial class VistaFichaActivo : UserControl
         DataContextChanged += (_, e) =>
         {
             if (e.OldValue is FichaActivoVM viejo) viejo.PropertyChanged -= Cambio;
-            if (e.NewValue is FichaActivoVM nuevo) { nuevo.PropertyChanged += Cambio; Anios(nuevo); }
+            if (e.NewValue is FichaActivoVM nuevo) { nuevo.PropertyChanged += Cambio; Anios(nuevo); Monedas(nuevo); }
         };
     }
 
     private void Cambio(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (sender is FichaActivoVM vm && e.PropertyName is nameof(FichaActivoVM.EjercicioCuenta) or nameof(FichaActivoVM.FilasCuenta) or nameof(FichaActivoVM.VerAnterior)) Anios(vm);
+        if (sender is FichaActivoVM v && e.PropertyName == nameof(FichaActivoVM.OperacionesEnEuros)) Monedas(v);
+    }
+
+    /// <summary>En euros, el cambio y el precio real repetirían el precio: no se ven (ergonomía de activos 2026-11-26).</summary>
+    private void Monedas(FichaActivoVM vm)
+    {
+        var euros = vm.OperacionesEnEuros;
+        ColCambio.Visibility = ColPrecioEur.Visibility = euros ? Visibility.Collapsed : Visibility.Visible;
+        ColPrecio.Header = euros ? "Precio (€)" : "Precio";
     }
 
     private void Anios(FichaActivoVM vm)

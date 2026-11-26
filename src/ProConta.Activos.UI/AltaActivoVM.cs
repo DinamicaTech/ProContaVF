@@ -67,12 +67,20 @@ public sealed class AltaActivoVM : ModeloVista
     public IReadOnlyList<OpcionTipoAlta> Tipos { get; private set; } = [];
     private IReadOnlyList<CentroParaActivo> _centros = [];
 
-    public async Task CargarAsync()
+    /// <summary>
+    /// Lee los tipos y los centros. Con <paramref name="financiero"/> («Nuevo activo financiero…» de la cartera), propone la inversión financiera y, si es
+    /// el único tipo financiero, empieza en el paso de la compra (el del ISIN).
+    /// </summary>
+    public async Task CargarAsync(bool financiero = false)
     {
         Tipos = (await _ctx.Servicio.TiposAsync()).Select(t => new OpcionTipoAlta(t)).ToList();
         _centros = await _ctx.Servicio.CentrosAsync(_ctx.Trabajo.IdSociedad);
-        Tipo = Tipos.FirstOrDefault(t => t.Tipo.Codigo == TiposActivoPgc.Vivienda) ?? Tipos.FirstOrDefault();
+        var inversiones = Tipos.Where(t => t.Tipo.EsInversion).ToList();
+        Tipo = financiero && inversiones.Count > 0
+            ? inversiones.FirstOrDefault(t => t.Tipo.Codigo == TiposActivoPgc.Inversion) ?? inversiones[0]
+            : Tipos.FirstOrDefault(t => t.Tipo.Codigo == TiposActivoPgc.Vivienda) ?? Tipos.FirstOrDefault();
         Avisar(nameof(Tipos));
+        if (financiero && inversiones.Count == 1) Paso = 2;
     }
 
     // ---------- comandos y pasos ----------

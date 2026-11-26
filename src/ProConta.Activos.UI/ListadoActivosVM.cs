@@ -1,4 +1,5 @@
 ﻿using System.Windows.Input;
+using ProConta.Activos.Financieros;
 using ProConta.Activos.Gestion;
 using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Contenedor;
@@ -48,6 +49,38 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
         : $"{Datos.Nombre}. Activo ajeno a la sociedad, solo informativo. Doble clic: abrir la ficha.";
 
     public bool Marcado { get => _marcado; set { if (Fijar(ref _marcado, value)) alMarcar(); } }
+
+    // ---------- activos financieros (filtro «Financieros», ergonomía de activos 2026-11-26) ----------
+    private PosicionFinanciera? _posicion;
+
+    public bool EsFinanciero => TiposActivoPgc.EsInversion(Datos.CodigoTipo);
+
+    /// <summary>Su posición con la última cotización guardada (solo los financieros, cuando se ven con el filtro «Financieros»).</summary>
+    public PosicionFinanciera? Posicion
+    {
+        get => _posicion;
+        set
+        {
+            _posicion = value;
+            Avisar(nameof(Participaciones), nameof(Cotizacion), nameof(Valor), nameof(Plusvalia), nameof(Porcentaje), nameof(Anual), nameof(Tono), nameof(TonoAnual));
+        }
+    }
+
+    public decimal ParticipacionesOrden => _posicion?.Participaciones ?? 0m;
+    public string Participaciones => _posicion is { } p ? TextosCartera.Participaciones(p.Participaciones) : "";
+    public decimal CotizacionOrden => _posicion?.Precio ?? -1m;
+    public string Cotizacion => _posicion is null ? "" : _posicion.Precio is decimal c ? TextosCartera.Num(c, c < 20 ? 3 : 2) : "no cotiza";
+    public string AyudaCotizacion => _posicion?.FechaPrecio is DateTime f ? $"Precio en euros del {Formatos.Fecha(f)} ({_posicion.OrigenPrecio}). Se actualiza al abrir la cartera o la ficha" : "Sin cotización: se valora a coste";
+    public decimal ValorOrden => _posicion?.Valor ?? 0m;
+    public string Valor => _posicion is { Viva: true } p ? Formatos.Importe(p.Valor) : "";
+    public decimal PlusvaliaOrden => _posicion is { } p ? (p.Viva ? p.Plusvalia : p.ResultadoVentas) : 0m;
+    public string Plusvalia => _posicion is null ? "" : _posicion.Viva ? TextosCartera.Signo(_posicion.Plusvalia) : $"vendido · {TextosCartera.Signo(_posicion.ResultadoVentas)}";
+    public decimal PorcentajeOrden => _posicion?.PlusvaliaPorcentaje ?? decimal.MinValue;
+    public string Porcentaje => _posicion is { Viva: true } p ? TextosCartera.Pct(p.PlusvaliaPorcentaje) : "";
+    public decimal AnualOrden => _posicion?.RentabilidadAnual ?? decimal.MinValue;
+    public string Anual => _posicion is { Viva: true } p ? TextosCartera.Pct(p.RentabilidadAnual) : "";
+    public string Tono => TextosCartera.Tono(_posicion is null ? null : PlusvaliaOrden);
+    public string TonoAnual => TextosCartera.Tono(_posicion?.RentabilidadAnual);
 }
 
 /// <summary>
@@ -82,7 +115,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         NuevoCommand = new ComandoDelegado(() => _ = _modulo.NuevoAsync(), () => !_ocupado);
         GenerarTodasCommand = new ComandoDelegado(() => _ = GenerarAsync(_todas.Where(f => f.Propio && !f.Datos.DeBaja).ToList(), "Generar subcuentas de todos los activos"),
             () => !_ocupado && _todas.Count > 0);
-        AbrirCommand = new ComandoDelegado(p => Abrir(p, ApartadoFicha.Datos), p => Unico(p) is not null);
+        AbrirCommand = new ComandoDelegado(p => Abrir(p, null), p => Unico(p) is not null);
         CuentaResultadosCommand = new ComandoDelegado(p => Abrir(p, ApartadoFicha.CuentaResultados), p => Unico(p) is { Propio: true });
         MayorCommand = new ComandoDelegado(_ => _ = MayorAsync(), _ => _modulo.Contexto.AbrirMayor is not null && Marcadas.Count > 0 && Marcadas.All(f => f.Propio));
         GenerarMarcadosCommand = new ComandoDelegado(_ => _ = GenerarAsync(Marcadas, Marcadas.Count == 1 ? $"Subcuentas de {Marcadas[0].Codigo}" : $"Subcuentas de {Marcadas.Count} activos"),
@@ -131,9 +164,23 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
 
     // ---------- filtros ----------
     public string Busqueda { get => _busqueda; set { if (Fijar(ref _busqueda, value)) Filtrar(); } }
-    public string Clase { get => _clase; set { if (Fijar(ref _clase, value ?? "Todos")) Filtrar(); } }
+    public string Clase
+    {
+        get => _clase;
+        set
+        {
+            if (!Fijar(ref _clase, value ?? "Todos")) return;
+            Avisar(nameof(EnFinancieros), nameof(EnGeneral));
+            Filtrar();
+            if (EnFinancieros && !_posicionesLeidas) _ = LeerPosicionesAsync();
+        }
+    }
     public string FiltroEstado { get => _filtroEstado; set { if (Fijar(ref _filtroEstado, value ?? "Activos")) Filtrar(); } }
     public bool MostrarAjenos { get => _ajenos; set { if (Fijar(ref _ajenos, value)) Filtrar(); } }
+
+    /// <summary>Con el filtro «Financieros» la tabla enseña sus columnas propias: participaciones, valor, plusvalía y rentabilidad.</summary>
+    public bool EnFinancieros => _clase == "Financieros";
+    public bool EnGeneral => !EnFinancieros;
     public bool HayFiltroCentro => _centro is not null;
     public string TextoFiltroCentro => _textoCentro is null ? "" : $"Centro: {_textoCentro}";
 
@@ -155,6 +202,52 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     public bool HayTotales => Propios.Any();
     public string TextoTotales => $"Total de {Formatos.Plural(Propios.Count(), "activo", "activos")} de la sociedad";
     public string TotalCoste => Formatos.Importe(Propios.Sum(f => f.Datos.Coste));
+
+    /// <summary>El coste del inmovilizado y el de las inversiones financieras van por separado: no se suman pisos y ETF.</summary>
+    public string TotalInmovilizado => Formatos.Importe(Propios.Where(f => !f.EsFinanciero).Sum(f => f.Datos.Coste));
+    public string TotalInversiones => Formatos.Importe(Propios.Where(f => f.EsFinanciero).Sum(f => f.Datos.Coste));
+    public bool HayInmovilizado => Propios.Any(f => !f.EsFinanciero);
+    public bool HayInversiones => Propios.Any(f => f.EsFinanciero);
+    public bool HayResultados => EnGeneral && HayInmovilizado;
+
+    // Totales del filtro «Financieros»: los vivos.
+    private IEnumerable<FilaActivoVM> Vivos => Propios.Where(f => f.Posicion is { Viva: true });
+    public string TotalValor => Formatos.Importe(Vivos.Sum(f => f.Posicion!.Valor));
+    public string TotalPlusvalia
+    {
+        get
+        {
+            var coste = Vivos.Sum(f => f.Posicion!.Coste);
+            var plus = Vivos.Sum(f => f.Posicion!.Plusvalia);
+            return TextosCartera.Signo(plus) + " · " + TextosCartera.Pct(coste > 0m ? plus / coste : null);
+        }
+    }
+    public string TonoTotalPlusvalia => TextosCartera.Tono(Vivos.Sum(f => f.Posicion!.Plusvalia));
+
+    // ---------- menú contextual: solo lo que vale para lo marcado ----------
+    public bool VerMenuCuenta => Marcadas.Count == 0 || Marcadas.All(f => !f.EsFinanciero);
+    public bool VerMenuInversion => Marcadas is { Count: 1 } m && m[0].EsFinanciero;
+
+    private bool _posicionesLeidas;
+
+    /// <summary>Las posiciones de los activos financieros con la última cotización guardada (sin consultar a los proveedores).</summary>
+    private async Task LeerPosicionesAsync()
+    {
+        if (_modulo.Contexto.Cartera is not { } cartera) return;
+        _posicionesLeidas = true;
+        try
+        {
+            var c = await cartera.CargarAsync(_modulo.Contexto.Trabajo.IdSociedad, conRed: false);
+            var porId = c.Activos.ToDictionary(a => a.IdActivo, a => a.Posicion);
+            foreach (var f in _todas) f.Posicion = porId.GetValueOrDefault(f.Id);
+            Avisar(nameof(TotalValor), nameof(TotalPlusvalia), nameof(TonoTotalPlusvalia));
+        }
+        catch (Exception ex)
+        {
+            _posicionesLeidas = false;
+            _modulo.Contexto.Avisar($"No he podido leer el valor de los activos financieros: {ex.Message}");
+        }
+    }
     public string TotalIngresos => Formatos.Importe(Propios.Sum(f => f.Datos.Ingresos));
     public string TotalGastos => Formatos.Importe(Propios.Sum(f => f.Datos.Gastos));
     public string TotalResultado => Formatos.Importe(Propios.Sum(f => f.Datos.Resultado));
@@ -176,7 +269,9 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
             var marcados = _todas.Where(f => f.Marcado).Select(f => f.Id).ToHashSet();
             var lista = await _modulo.Contexto.Servicio.ListarAsync(_modulo.Contexto.Trabajo);
             _todas = lista.Select(a => new FilaActivoVM(a, AlMarcar) { Marcado = marcados.Contains(a.IdActivo) }).ToList();
+            _posicionesLeidas = false;
             Filtrar();
+            if (EnFinancieros) _ = LeerPosicionesAsync();
         }
         catch (Exception ex)
         {
@@ -204,7 +299,8 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         }
         AlMarcar();
         Avisar(nameof(HayTotales), nameof(TextoTotales), nameof(TotalCoste), nameof(TotalIngresos), nameof(TotalGastos), nameof(TotalResultado), nameof(TotalNegativo),
-            nameof(SinResultados));
+            nameof(SinResultados), nameof(TotalInmovilizado), nameof(TotalInversiones), nameof(HayInmovilizado), nameof(HayInversiones), nameof(HayResultados),
+            nameof(TotalValor), nameof(TotalPlusvalia), nameof(TonoTotalPlusvalia));
     }
 
     /// <summary>Hay activos pero ninguno cumple los filtros.</summary>
@@ -213,7 +309,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     private void AlMarcar()
     {
         if (_marcando) return;
-        Avisar(nameof(Recuento), nameof(TodosMarcados));
+        Avisar(nameof(Recuento), nameof(TodosMarcados), nameof(VerMenuCuenta), nameof(VerMenuInversion));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -237,7 +333,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
 
     private FilaActivoVM? Unico(object? p) => p as FilaActivoVM ?? (Marcadas is { Count: 1 } m ? m[0] : null);
 
-    private void Abrir(object? p, ApartadoFicha apartado)
+    private void Abrir(object? p, ApartadoFicha? apartado)
     {
         if (Unico(p) is { } f) _modulo.AbrirFicha(f.Id, f.Propio ? apartado : ApartadoFicha.Datos);
     }

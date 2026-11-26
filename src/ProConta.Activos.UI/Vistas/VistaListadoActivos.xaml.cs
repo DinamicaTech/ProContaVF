@@ -15,8 +15,8 @@ public partial class VistaListadoActivos : UserControl
 
     private ListadoActivosVM? Vm => DataContext as ListadoActivosVM;
 
-    private FilaActivoVM? FilaDe(object origen) =>
-        origen is DependencyObject o && ItemsControl.ContainerFromElement(Tabla, o) is DataGridRow fila ? fila.Item as FilaActivoVM : null;
+    private static FilaActivoVM? FilaDe(object tabla, object origen) =>
+        tabla is DataGrid t && origen is DependencyObject o && ItemsControl.ContainerFromElement(t, o) is DataGridRow fila ? fila.Item as FilaActivoVM : null;
 
     private static bool DentroDe<T>(object origen) where T : DependencyObject
     {
@@ -29,24 +29,24 @@ public partial class VistaListadoActivos : UserControl
     {
         // La casilla se marca sola; en el resto de la fila, el clic hace lo mismo que la casilla.
         if (DentroDe<CheckBox>(e.OriginalSource) || DentroDe<DataGridColumnHeader>(e.OriginalSource) || DentroDe<Thumb>(e.OriginalSource)) return;
-        if (FilaDe(e.OriginalSource) is { } fila) fila.Marcado = !fila.Marcado;
+        if (FilaDe(sender, e.OriginalSource) is { } fila) fila.Marcado = !fila.Marcado;
     }
 
     private void Tabla_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DentroDe<CheckBox>(e.OriginalSource) || FilaDe(e.OriginalSource) is not { } fila || Vm is null) return;
+        if (DentroDe<CheckBox>(e.OriginalSource) || FilaDe(sender, e.OriginalSource) is not { } fila || Vm is null) return;
         if (Vm.AbrirCommand.CanExecute(fila)) Vm.AbrirCommand.Execute(fila);
         e.Handled = true;
     }
 
     private void Tabla_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (FilaDe(e.OriginalSource) is { } fila) Vm?.MarcarSolo(fila);
+        if (FilaDe(sender, e.OriginalSource) is { } fila) Vm?.MarcarSolo(fila);
     }
 
     private void Tabla_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (Tabla.SelectedItem is not FilaActivoVM fila || Vm is null) return;
+        if ((sender as DataGrid)?.SelectedItem is not FilaActivoVM fila || Vm is null) return;
         if (e.Key == Key.Space) { fila.Marcado = !fila.Marcado; e.Handled = true; }
         else if (e.Key == Key.Enter && Vm.AbrirCommand.CanExecute(fila)) { Vm.AbrirCommand.Execute(fila); e.Handled = true; }
     }

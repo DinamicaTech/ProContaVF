@@ -10,12 +10,29 @@ using ProConta.UI.Base.Graficos;
 namespace ProConta.Activos.UI.Vistas;
 
 /// <summary>
-/// Análisis de los activos financieros: un clic en una fila la muestra u oculta en los gráficos (sin Ctrl ni Mayús), doble clic abre su análisis y la
-/// leyenda de la comparativa resalta la línea del activo al pasar el ratón.
+/// Cartera de los activos financieros: un clic en una fila la muestra u oculta en los gráficos (sin Ctrl ni Mayús), doble clic abre su ficha (con su
+/// análisis), el título de una columna ordena y la leyenda de la comparativa resalta la línea del activo al pasar el ratón.
 /// </summary>
 public partial class VistaCarteraFinanciera : UserControl
 {
-    public VistaCarteraFinanciera() => InitializeComponent();
+    public VistaCarteraFinanciera()
+    {
+        InitializeComponent();
+        // La tabla, como mucho algo más de la mitad del alto: con pocos activos se queda en sus filas y los gráficos ganan sitio.
+        Rejilla.SizeChanged += (_, _) => FilaTabla.MaxHeight = Math.Max(FilaTabla.MinHeight, Rejilla.ActualHeight * 0.55);
+        // Tercer clic en un título: la tabla quita el orden; aquí vuelve el de siempre.
+        Tabla.OrdenFilasCambiado += (_, _) => { if (Tabla.Columns.All(c => c.SortDirection is null)) Vm?.Ordenar(null, false); };
+    }
+
+    private void Tabla_Sorting(object sender, DataGridSortingEventArgs e)
+    {
+        if (Vm is null) return;
+        e.Handled = true;
+        var descendente = e.Column.SortDirection == System.ComponentModel.ListSortDirection.Ascending;
+        foreach (var c in Tabla.Columns) c.SortDirection = null;
+        e.Column.SortDirection = descendente ? System.ComponentModel.ListSortDirection.Descending : System.ComponentModel.ListSortDirection.Ascending;
+        Vm.Ordenar(ProConta.UI.Base.Tablas.TablaProConta.GetClave(e.Column), descendente);
+    }
 
     private CarteraFinancieraVM? Vm => DataContext as CarteraFinancieraVM;
 
@@ -46,7 +63,7 @@ public partial class VistaCarteraFinanciera : UserControl
     private void Tabla_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DentroDe<CheckBox>(e.OriginalSource) || DentroDe<ButtonBase>(e.OriginalSource) || FilaDe(e.OriginalSource) is not { } fila || Vm is null) return;
-        Vm.VerAnalisisCommand.Execute(fila);
+        Vm.AbrirFichaCommand.Execute(fila);
         e.Handled = true;
     }
 
@@ -54,7 +71,7 @@ public partial class VistaCarteraFinanciera : UserControl
     {
         if (Tabla.SelectedItem is not FilaCarteraVM fila || Vm is null) return;
         if (e.Key == Key.Space && fila.PuedeMarcarse) { fila.Marcado = !fila.Marcado; e.Handled = true; }
-        else if (e.Key == Key.Enter) { Vm.VerAnalisisCommand.Execute(fila); e.Handled = true; }
+        else if (e.Key == Key.Enter) { Vm.AbrirFichaCommand.Execute(fila); e.Handled = true; }
         else if (e.Key is Key.Right or Key.Left && fila.Desplegable) { fila.Abierto = e.Key == Key.Right; e.Handled = true; }
     }
 
