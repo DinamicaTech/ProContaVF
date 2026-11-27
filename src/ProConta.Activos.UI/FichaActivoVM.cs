@@ -13,8 +13,12 @@ using ProConta.UI.Base.Tablas;
 
 namespace ProConta.Activos.UI;
 
-/// <summary>Un indicador de la cabecera de la ficha: título, valor y una línea de explicación.</summary>
-public sealed record IndicadorFicha(string Titulo, string Valor, string Detalle, bool Negativo = false);
+/// <summary>Un indicador de la cabecera de la ficha: título, valor, una línea de explicación y, si hace falta, una ayuda más larga.</summary>
+/// <param name="Positivo">En verde (una plusvalía o una rentabilidad que gana).</param>
+public sealed record IndicadorFicha(string Titulo, string Valor, string Detalle, bool Negativo = false, bool Positivo = false, string? Ayuda = null)
+{
+    public string Tip => Ayuda ?? Detalle;
+}
 
 /// <summary>Una fila de la tabla de la cuenta de resultados (también los títulos de grupo, los totales y el resultado).</summary>
 public sealed class FilaCuentaVM(string clase, string cuenta, string concepto, IReadOnlyList<decimal>? meses, decimal? importe, decimal? anterior, decimal ingresos,
@@ -67,16 +71,19 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     private string _mensajeEstado = "";
     private bool _ocupado;
     private bool _guardadoFallido;
-    private ApartadoFicha _apartado;
+    private ApartadoFicha _apartado = ApartadoFicha.Datos;
+    private readonly ApartadoFicha? _apartadoInicial;
     private Dictionary<string, string> _errores = [];
     private bool _intentoGuardar;
     private bool _cargando;
 
-    internal FichaActivoVM(ModuloActivos modulo, int idActivo, long orden)
+    internal FichaActivoVM(ModuloActivos modulo, int idActivo, long orden, ApartadoFicha? apartado = null)
     {
         _modulo = modulo;
         IdActivo = idActivo;
         OrdenApertura = orden;
+        _apartadoInicial = apartado;
+        if (apartado is { } a) _apartado = a;
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => !_ocupado && TieneCambios);
         CancelarCommand = new ComandoDelegado(Descartar, () => !_ocupado && TieneCambios);
         RefrescarCommand = new ComandoDelegado(() => _ = RefrescarAsync(), () => !_ocupado);
@@ -97,7 +104,11 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     public string Icono => "layers";
     public bool GuardadoFallido { get => _guardadoFallido; private set => Fijar(ref _guardadoFallido, value); }
     public object Vista => _vista ??= new Vistas.VistaFichaActivo { DataContext = this };
-    public void AlCerrar() => _modulo.FichaCerrada(this);
+    public void AlCerrar()
+    {
+        CancelarCotizaciones();
+        _modulo.FichaCerrada(this);
+    }
 
     public bool TieneCambios => _original is not null && !_cargando && Construir() is var d && d != _original;
 
@@ -132,8 +143,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         get => _apartado;
         set
         {
-            if (_ficha is { Datos.EsAjeno: true } && value != ApartadoFicha.Documentos) value = ApartadoFicha.Datos;
-            if (_ficha is not null && value == ApartadoFicha.Operaciones && !EsFinanciero) value = ApartadoFicha.Datos;
+            value = Normalizar(value);
             if (!Fijar(ref _apartado, value)) return;
             Avisar(nameof(IndiceApartado), nameof(EnDatos));
             _ = CargarApartadoAsync();
@@ -141,7 +151,24 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     }
 
     /// <summary>Índice de la pestaña del apartado (para el TabControl).</summary>
-    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, (int)ApartadoFicha.Operaciones); }
+    public int IndiceApartado { get => (int)_apartado; set => Apartado = (ApartadoFicha)Math.Clamp(value, 0, (int)ApartadoFicha.Documentos); }
+
+    /// <summary>Apartados de los activos financieros (los cuatro primeros).</summary>
+    private static bool EsDeFinanciero(ApartadoFicha a) => a is ApartadoFicha.Cotizacion or ApartadoFicha.Lotes or ApartadoFicha.Operaciones or ApartadoFicha.Proyeccion;
+
+    /// <summary>
+    /// El apartado que se puede ver: un ajeno solo tiene Datos y Documentos; los apartados financieros solo están en los activos financieros, que no tienen
+    /// Cuenta de resultados, Facturas, Ventas ni Amortización; sin cotizaciones no hay Cotización ni Proyección.
+    /// </summary>
+    private ApartadoFicha Normalizar(ApartadoFicha a)
+    {
+        if (_ficha is null) return a;
+        if (_ficha.Datos.EsAjeno) return a == ApartadoFicha.Documentos ? a : ApartadoFicha.Datos;
+        if (!EsFinanciero) return EsDeFinanciero(a) ? ApartadoFicha.Datos : a;
+        if (a is ApartadoFicha.CuentaResultados or ApartadoFicha.Facturas or ApartadoFicha.Ventas or ApartadoFicha.Amortizacion) a = ApartadoFicha.Cotizacion;
+        if (a is ApartadoFicha.Cotizacion or ApartadoFicha.Proyeccion && _analisis is { Cotiza: false }) a = ApartadoFicha.Lotes;
+        return a;
+    }
 
     // ---------- apartado Documentos (documentos 2026-11-18): el panel común del gestor documental ----------
     private object? _documentos;
@@ -184,11 +211,14 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                 MensajeEstado = "Este activo ya no existe (puede que lo haya borrado otra persona). Cierra la pestaña y actualiza el listado.";
                 return;
             }
+            if (EsFinanciero) await CargarAnalisisAsync(conRed: false);
             Estado = EstadoVista.Contenido;
             await IndicadoresAsync();
-            if (_ficha.Datos.EsAjeno) _apartado = ApartadoFicha.Datos;
+            _apartado = Normalizar(_apartadoInicial is null && _primeraCarga ? (EsFinanciero ? ApartadoFicha.Cotizacion : ApartadoFicha.Datos) : _apartado);
+            _primeraCarga = false;
             Avisar(nameof(Apartado), nameof(IndiceApartado), nameof(EnDatos));
             await CargarApartadoAsync();
+            if (EsFinanciero) _ = ActualizarCotizacionesAsync();
         }
         catch (Exception ex)
         {
@@ -219,6 +249,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         Revalidar();
         Avisar(nameof(Nombre), nameof(Codigo), nameof(TipoTexto), nameof(EstadoTexto), nameof(ClaseEstado), nameof(Propio), nameof(CentroTexto), nameof(ActividadTexto),
             nameof(Titulo), nameof(Ayuda), nameof(MotivoBloqueo), nameof(TipoEditable), nameof(AvisoAjeno), nameof(Tipos), nameof(EsFinanciero), nameof(VerAmortizacion),
+            nameof(VerNoFinanciero), nameof(VerCotizacion),
             nameof(TipoCambiable));
         Cambio();
     }
@@ -226,6 +257,12 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
     private async Task IndicadoresAsync()
     {
         if (_ficha is not { } f || f.Datos.EsAjeno) { Indicadores = []; Avisar(nameof(Indicadores)); return; }
+        if (EsFinanciero)
+        {
+            Indicadores = IndicadoresFinancieros();
+            Avisar(nameof(Indicadores));
+            return;
+        }
         var ej = _modulo.Contexto.Trabajo.Ejercicio;
         var r = await _modulo.Contexto.Servicio.CuentaResultadosAsync(_modulo.Contexto.Trabajo.IdSociedad, IdActivo, ej, false, false);
         var c = r?.Actual;

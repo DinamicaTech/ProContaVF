@@ -1,7 +1,5 @@
-using System.Windows.Input;
 using ProConta.Activos.Financieros;
 using ProConta.Activos.Gestion;
-using ProConta.UI.Base.Comandos;
 using ProConta.UI.Base.Formato;
 using ProConta.UI.Base.Graficos;
 using ProConta.UI.Base.Modelos;
@@ -11,10 +9,6 @@ namespace ProConta.Activos.UI;
 /// <summary>Una fila de la pestaña Lotes del análisis.</summary>
 public sealed record FilaLoteAnalisis(string Comprado, string Compradas, string Quedan, string Precio, string Coste, string Valor, string Plusvalia, string Porcentaje,
     string Anual, string Tiempo, string Tono, bool Vendido);
-
-/// <summary>Una fila de la pestaña Operaciones del análisis.</summary>
-public sealed record FilaOperacionAnalisis(string Fecha, string Operacion, string Participaciones, string Precio, string Importe, string CosteVendido, string Resultado,
-    string Tono, string Notas);
 
 /// <summary>Una señal de la proyección con su tono para colorear la lectura.</summary>
 public sealed record SenalAnalisis(string Titulo, string Lectura, string Explicacion, string Detalle, string Tono);
@@ -29,28 +23,23 @@ public sealed record CeldaEscenario(string Valor, string Diferencia, string Tono
 public sealed record NivelPivote(string Nombre, string Precio, string Ayuda, bool EsPivote);
 
 /// <summary>
-/// Análisis de un activo financiero dentro de la pantalla de cartera (maqueta v4): cifras, cotización histórica con el precio medio de compra y las
-/// operaciones, lotes a coste medio ponderado, operaciones y proyección (señales técnicas en frases y escenarios), todo de solo lectura.
+/// Análisis de un activo financiero dentro de su ficha (ergonomía de activos 2026-11-26: un solo sitio por activo): cifras, cotización histórica con el
+/// precio medio de compra y las operaciones, lotes a coste medio ponderado y proyección (señales técnicas en frases y escenarios), todo de solo lectura.
+/// Las operaciones están en el apartado Operaciones de la ficha, donde se cambian.
 /// </summary>
 public sealed class AnalisisActivoVM : ModeloVista
 {
     public static readonly IReadOnlyList<string> Periodos = ["6M", "1A", "3A", "5A", "Máx."];
 
-    private readonly CarteraFinancieraVM _cartera;
-    private int _pestana;
     private string _periodo = "3A";
     private DatosTemporales? _datos;
 
-    internal AnalisisActivoVM(CarteraFinancieraVM cartera, ActivoDeCartera activo, int? pestana)
+    internal AnalisisActivoVM(ActivoDeCartera activo, string? periodo = null)
     {
-        _cartera = cartera;
         Activo = activo;
-        _pestana = pestana ?? (Cotiza ? 0 : 1);
-        if (!Cotiza && _pestana is 0 or 3) _pestana = 1;
-        AbrirFichaCommand = new ComandoDelegado(() => _cartera.AbrirFicha(Activo.IdActivo));
+        if (periodo is not null) _periodo = periodo;
         Cifras = CrearCifras();
         Lotes = CrearLotes();
-        Operaciones = CrearOperaciones();
         CrearProyeccion();
         PintarCotizacion();
     }
@@ -58,8 +47,6 @@ public sealed class AnalisisActivoVM : ModeloVista
     public ActivoDeCartera Activo { get; }
     private PosicionFinanciera P => Activo.Posicion;
     private bool EsFondo => TextosCartera.Clase(P) == "Fondo";
-
-    public ICommand AbrirFichaCommand { get; }
 
     public string Nombre => P.Instrumento.Nombre.Length > 0 ? P.Instrumento.Nombre : Activo.Nombre;
     public string Clase => TextosCartera.Clase(P);
@@ -72,9 +59,6 @@ public sealed class AnalisisActivoVM : ModeloVista
 
     /// <summary>Si tiene cotizaciones (si no, solo Lotes y Operaciones).</summary>
     public bool Cotiza => P.Historico.Count > 0;
-
-    /// <summary>0 Cotización, 1 Lotes, 2 Operaciones, 3 Proyección.</summary>
-    public int Pestana { get => _pestana; set => Fijar(ref _pestana, value); }
 
     public IReadOnlyList<CifraCartera> Cifras { get; }
 
@@ -151,10 +135,9 @@ public sealed class AnalisisActivoVM : ModeloVista
             Tip, Marcas: ops.Select(x => new MarcaTemporal(x.Indice, x.o.EsCompra)).ToList(), Descripcion: $"Cotización histórica de {Nombre} en euros");
     }
 
-    // ---------- Lotes y operaciones ----------
+    // ---------- Lotes ----------
 
     public IReadOnlyList<FilaLoteAnalisis> Lotes { get; }
-    public IReadOnlyList<FilaOperacionAnalisis> Operaciones { get; }
 
     private IReadOnlyList<FilaLoteAnalisis> CrearLotes() => P.Lotes.Select(l =>
     {
@@ -166,24 +149,6 @@ public sealed class AnalisisActivoVM : ModeloVista
             Formatos.Numero(l.CosteVivo), Formatos.Numero(valor), (plus > 0 ? "+" : "") + Formatos.Numero(plus), TextosCartera.Pct(l.CosteVivo > 0m ? plus / l.CosteVivo : null),
             TextosCartera.Pct(P.RentabilidadAnualLote(l)), TextosCartera.Tiempo(l.Fecha, P.Hoy), TextosCartera.Tono(plus), false);
     }).ToList();
-
-    private IReadOnlyList<FilaOperacionAnalisis> CrearOperaciones()
-    {
-        var ventas = new Queue<VentaInversion>(P.Ventas);
-        return P.Inversion.Operaciones.OrderBy(o => o.Fecha).ThenBy(o => o.EsCompra ? 0 : 1).ThenBy(o => o.IdOperacion)
-            .Where(o => o.EsCompra || o.Tipo == OperacionDeInversion.TipoVenta)
-            .Select(o =>
-            {
-                var precio = o.Participaciones == 0m ? 0m : o.ImporteTotalEur / o.Participaciones;
-                if (o.EsCompra)
-                    return new FilaOperacionAnalisis(Formatos.Fecha(o.Fecha), "Compra", TextosCartera.Participaciones(o.Participaciones), TextosCartera.Num(precio, 4),
-                        Formatos.Numero(o.ImporteTotalEur), "", "", "", o.Notas ?? "");
-                var v = ventas.Count > 0 ? ventas.Dequeue() : null;
-                return new FilaOperacionAnalisis(Formatos.Fecha(o.Fecha), "Venta", TextosCartera.Participaciones(o.Participaciones), TextosCartera.Num(precio, 4),
-                    Formatos.Numero(o.ImporteTotalEur), v is null ? "" : Formatos.Numero(v.CosteVendido),
-                    v is null ? "" : TextosCartera.Signo(v.Resultado) + (v.Resultado >= 0 ? " · 766" : " · 666"), TextosCartera.Tono(v?.Resultado), o.Notas ?? "");
-            }).ToList();
-    }
 
     // ---------- Proyección ----------
 

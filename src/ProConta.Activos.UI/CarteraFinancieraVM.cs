@@ -133,7 +133,7 @@ public sealed class FilaCarteraVM : ModeloVista
     public string Tono => TextosCartera.Tono(PlusvaliaNum);
     public string TonoAnual => TextosCartera.Tono(AnualNum);
     public string AyudaFila => EsLote ? "Lote: cada compra es un lote; cada venta reduce todos los lotes en la misma proporción (coste medio ponderado)"
-        : $"{Nombre}. Clic: marcar o desmarcar para los gráficos · Doble clic: ver su análisis (cotización, lotes, operaciones y proyección)";
+        : $"{Nombre}. Clic: marcar o desmarcar para los gráficos · Doble clic: abrir su ficha (cotización, lotes, operaciones y proyección)";
 }
 
 /// <summary>
@@ -171,7 +171,8 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<LeyendaComparativa> _leyenda = [];
     private int _serieResaltada = -1;
     private string _alcance = "";
-    private AnalisisActivoVM? _detalle;
+    private string _orden = "";
+    private bool _descendente;
     private bool _marcando;
     private CancellationTokenSource? _cancelacion;
 
@@ -179,11 +180,12 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     {
         _modulo = modulo;
         ActualizarCommand = new ComandoDelegado(() => _ = CargarAsync(conRed: true), () => !_ocupado && _modulo.Contexto.Cartera is not null);
-        VerAnalisisCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM f) VerAnalisis(f.Activo); });
-        AbrirFichaCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM f) _modulo.AbrirFicha(f.Activo.IdActivo, ApartadoFicha.Operaciones); });
-        NuevaCompraCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM { EsActivo: true } f) _ = NuevaCompraAsync(f); },
+        AbrirFichaCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM f) _modulo.AbrirFicha(f.Activo.IdActivo, f.PuedeMarcarse ? ApartadoFicha.Cotizacion : ApartadoFicha.Lotes); });
+        NuevaCompraCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM { EsActivo: true } f) _ = _modulo.NuevaCompraAsync(f.Activo.IdActivo, f.Codigo); },
             p => !_ocupado && p is FilaCarteraVM { EsActivo: true } f && f.Activo.FechaBaja is null);
-        VolverCommand = new ComandoDelegado(() => Detalle = null);
+        VenderCommand = new ComandoDelegado(p => { if (p is FilaCarteraVM { EsActivo: true } f) _ = _modulo.VenderAsync(f.Activo.IdActivo, f.Codigo); },
+            p => !_ocupado && p is FilaCarteraVM { EsActivo: true, Vendido: false } f && f.Activo.FechaBaja is null);
+        NuevoActivoCommand = new ComandoDelegado(() => _ = _modulo.NuevoAsync(financiero: true), () => !_ocupado);
         AbrirListadoCommand = new ComandoDelegado(() => _modulo.AbrirListado());
     }
 
@@ -205,10 +207,10 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
 
     // ---------- comandos ----------
     public ICommand ActualizarCommand { get; }
-    public ICommand VerAnalisisCommand { get; }
     public ICommand AbrirFichaCommand { get; }
     public ICommand NuevaCompraCommand { get; }
-    public ICommand VolverCommand { get; }
+    public ICommand VenderCommand { get; }
+    public ICommand NuevoActivoCommand { get; }
     public ICommand AbrirListadoCommand { get; }
 
     // ---------- estado ----------
@@ -226,10 +228,6 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     public string AyudaAvisos => string.Join(Environment.NewLine, _avisos);
 
     public IReadOnlyList<CifraCartera> Cifras { get => _cifras; private set => Fijar(ref _cifras, value); }
-
-    /// <summary>El análisis de un activo abierto (null: la cartera).</summary>
-    public AnalisisActivoVM? Detalle { get => _detalle; private set { if (Fijar(ref _detalle, value)) Avisar(nameof(VerCartera)); } }
-    public bool VerCartera => _detalle is null;
 
     // ---------- gráficos ----------
     public int PestanaGrafico { get => _pestanaGrafico; set { if (Fijar(ref _pestanaGrafico, value)) PintarGraficos(); } }
@@ -335,7 +333,6 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
         EstadoCotizaciones = c.ConRed ? $"Cotizaciones actualizadas a las {DateTime.Now:HH:mm}" : "Cotizaciones guardadas; actualizando…";
         PintarCifras();
         Filtrar();
-        if (_detalle is not null && c.Activos.FirstOrDefault(a => a.IdActivo == _detalle.Activo.IdActivo) is { } d) Detalle = new AnalisisActivoVM(this, d, _detalle.Pestana);
     }
 
     private void PintarCifras()
@@ -370,7 +367,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     {
         var abiertos = _activos.Where(f => f.Abierto).ToHashSet();
         var filas = new List<FilaCarteraVM>();
-        foreach (var f in _activos.Where(f => (_filtroEstado == "Todos" || (_filtroEstado == "Inactivos") == (f.Activo.FechaBaja is not null)) && (_tipo == "Todos" || f.Clase == _tipo.TrimEnd('s') || (_tipo == "Otros" && f.Clase is not ("ETF" or "Fondo")))))
+        foreach (var f in Ordenadas(_activos).Where(f => (_filtroEstado == "Todos" || (_filtroEstado == "Inactivos") == (f.Activo.FechaBaja is not null)) && (_tipo == "Todos" || f.Clase == _tipo.TrimEnd('s') || (_tipo == "Otros" && f.Clase is not ("ETF" or "Fondo")))))
         {
             filas.Add(f);
             if (abiertos.Contains(f))
@@ -517,15 +514,40 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
             Descripcion: "Variación acumulada de la cotización de cada activo desde el primer día del periodo");
     }
 
-    // ---------- análisis de un activo ----------
+    // ---------- orden de la tabla ----------
 
-    internal void VerAnalisis(ActivoDeCartera activo) => Detalle = new AnalisisActivoVM(this, activo, null);
+    /// <summary>
+    /// Ordena por una columna (clic en su título: ascendente, descendente y sin orden, como en las demás tablas). Lo hace el VM y no la tabla para que los
+    /// lotes desplegados sigan debajo de su activo. Sin <paramref name="clave"/>, el orden de siempre (por código).
+    /// </summary>
+    internal void Ordenar(string? clave, bool descendente)
+    {
+        _orden = clave ?? "";
+        _descendente = descendente;
+        Filtrar();
+    }
 
-    internal void AbrirFicha(int idActivo) => _modulo.AbrirFicha(idActivo, ApartadoFicha.Operaciones);
-
-    internal int Ejercicio => _modulo.Contexto.Trabajo.Ejercicio;
-
-    private Task NuevaCompraAsync(FilaCarteraVM f) => _modulo.NuevaCompraAsync(f.Activo.IdActivo, f.Codigo);
+    private IEnumerable<FilaCarteraVM> Ordenadas(IEnumerable<FilaCarteraVM> filas)
+    {
+        Func<FilaCarteraVM, IComparable?>? clave = _orden switch
+        {
+            "activo" => f => f.Nombre,
+            "tipo" => f => f.Clase,
+            "lotes" => f => f.Activo.Posicion.LotesVivos,
+            "participaciones" => f => f.Activo.Posicion.Participaciones,
+            "precio_medio" => f => f.Activo.Posicion.PrecioMedio ?? -1m,
+            "coste" => f => f.Vendido ? -1m : f.CosteValor,
+            "cotizacion" => f => f.Activo.Posicion.Precio ?? -1m,
+            "valor" => f => f.Vendido ? -1m : f.ValorNum,
+            "plusvalia" => f => f.PlusvaliaNum,
+            "porcentaje" => f => f.CosteValor > 0m && !f.Vendido ? f.PlusvaliaNum / f.CosteValor : decimal.MinValue,
+            "anual" => f => f.AnualNum ?? decimal.MinValue,
+            "peso" => f => f.Vendido ? -1m : f.ValorNum,
+            _ => null,
+        };
+        if (clave is null) return filas;
+        return _descendente ? filas.OrderByDescending(clave) : filas.OrderBy(clave);
+    }
 
     /// <summary>Recarga lo guardado (tras una compra en el listado o en la ficha).</summary>
     internal void Cambiado()

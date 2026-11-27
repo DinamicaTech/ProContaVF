@@ -34,6 +34,10 @@ public sealed partial class FichaActivoVM
     public bool EsFinanciero => TiposActivoPgc.EsInversion(_ficha?.Datos.CodigoTipo ?? "");
 
     public IReadOnlyList<FilaOperacionVM> FilasOperaciones { get; private set; } = [];
+
+    /// <summary>Todo en euros: sin las columnas Cambio y Precio real, que repetirían el precio.</summary>
+    public bool OperacionesEnEuros => _inversion is null || (_inversion.Instrumento.Moneda.Equals("EUR", StringComparison.OrdinalIgnoreCase)
+        && _inversion.Operaciones.All(o => o.Moneda.Equals("EUR", StringComparison.OrdinalIgnoreCase)));
     public string TextoInstrumento { get; private set; } = "";
     public string TotalOperaciones { get; private set; } = "";
 
@@ -67,7 +71,7 @@ public sealed partial class FichaActivoVM
                                (i.TickerEodhd is { } e ? $" · EODHD: {e}" : "") + (i.Bolsa is { } b ? $" · {b}" : "") + $" · cotiza en {i.Moneda}" +
                                (i.Origen == FuenteCotizacion.Manual ? " · datos escritos a mano" : "");
             FilasOperaciones = inv.Operaciones.Select(o => new FilaOperacionVM(o, Formatos.Fecha(o.Fecha), o.EsCompra ? "Compra" : "Venta",
-                o.Participaciones.ToString("#,##0.######", Es), o.PrecioUnitario.ToString("#,##0.00####", Es) + " " + o.Moneda,
+                o.Participaciones.ToString("#,##0.######", Es), o.PrecioUnitario.ToString("#,##0.00####", Es) + (o.Moneda.Equals("EUR", StringComparison.OrdinalIgnoreCase) ? " €" : " " + o.Moneda),
                 o.Moneda == "EUR" ? "" : o.UnidadesPorEuro.ToString("0.######", Es), o.PrecioEurEfectivo.ToString("#,##0.00####", Es) + " €", Formatos.Importe(o.ImporteTotalEur),
                 o.Notas ?? "", o.Conciliada ? null : new ComandoDelegado(() => _ = CambiarCosteAsync(o)),
                 o.Resultado is decimal r ? Formatos.Importe(r) : "", o.Conciliada ? "Conciliada" : "Sin conciliar")).ToList();
@@ -75,7 +79,7 @@ public sealed partial class FichaActivoVM
             TotalOperaciones = $"{Formatos.Plural(inv.Operaciones.Count, "operación", "operaciones")} · {inv.Participaciones.ToString("#,##0.######", Es)} participaciones · " +
                                $"coste {Formatos.Importe(inv.Coste)}" + (inv.Operaciones.Any(o => o.EsVenta) ? $" · resultado de las ventas {Formatos.Importe(resultado)}" : "");
         }
-        Avisar(nameof(FilasOperaciones), nameof(TextoInstrumento), nameof(TotalOperaciones));
+        Avisar(nameof(FilasOperaciones), nameof(TextoInstrumento), nameof(TotalOperaciones), nameof(OperacionesEnEuros));
     }
 
     /// <summary>Pide el importe total (el que confirma el bróker) de la compra o la venta y lo guarda; el coste del activo se recalcula.</summary>

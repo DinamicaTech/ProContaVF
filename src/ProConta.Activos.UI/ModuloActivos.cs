@@ -35,8 +35,11 @@ public sealed record ContextoActivos(ServicioActivos Servicio, ContextoSociedadE
 }
 
 /// <summary>Apartado de la ficha.</summary>
-/// <remarks>El índice de cada valor es el de su pestaña en la ficha: Operaciones (activos financieros) va al final.</remarks>
-public enum ApartadoFicha { Datos, CuentaResultados, Facturas, Ventas, Subcuentas, Amortizacion, Documentos, Operaciones }
+/// <remarks>
+/// El índice de cada valor es el de su pestaña en la ficha. Los cuatro primeros son solo de los activos financieros (ergonomía de activos 2026-11-26:
+/// su análisis vive en su ficha) y van delante; Cuenta de resultados, Facturas, Ventas y Amortización no se ven en ellos.
+/// </remarks>
+public enum ApartadoFicha { Cotizacion, Lotes, Operaciones, Proyeccion, Datos, CuentaResultados, Facturas, Ventas, Subcuentas, Amortizacion, Documentos }
 
 /// <summary>Diálogos de la pantalla de activos (en pruebas se sustituyen por respuestas fijas).</summary>
 public interface IDialogosActivos
@@ -115,12 +118,15 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
 
     internal void CarteraCerrada() => _cartera = null;
 
-    /// <summary>Abre (o activa) la ficha de un activo en un apartado.</summary>
-    public void AbrirFicha(int idActivo, ApartadoFicha apartado = ApartadoFicha.Datos)
+    /// <summary>
+    /// Abre (o activa) la ficha de un activo en un apartado; sin apartado, en el primero de su clase (Cotización en un activo financiero, Datos en los
+    /// demás) o, si ya estaba abierta, en el que estaba.
+    /// </summary>
+    public void AbrirFicha(int idActivo, ApartadoFicha? apartado = null)
     {
         if (_fichas.FirstOrDefault(f => f.IdActivo == idActivo) is { } abierta)
         {
-            abierta.Apartado = apartado;
+            if (apartado is { } a) abierta.Apartado = a;
             anfitrion.Activar(abierta);
             return;
         }
@@ -138,7 +144,7 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
             }
             _fichas.Remove(sustituida);
         }
-        var ficha = new FichaActivoVM(this, idActivo, ++_orden) { Apartado = apartado };
+        var ficha = new FichaActivoVM(this, idActivo, ++_orden, apartado);
         _fichas.Add(ficha);
         anfitrion.Abrir(ficha, sustituida);
         if (sustituida is not null) contexto.Avisar($"He cerrado la ficha de {sustituida.Titulo}, la abierta hace más tiempo sin cambios, para no pasar de {MaximoFichas} fichas.");
@@ -154,12 +160,15 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
         _cartera?.Cambiado();
     }
 
-    /// <summary>«Nuevo activo…»: el alta paso a paso; al crear, se generan sus subcuentas con propuesta y se abre la ficha.</summary>
-    public async Task NuevoAsync()
+    /// <summary>
+    /// «Nuevo activo…»: el alta paso a paso; al crear, se generan sus subcuentas con propuesta y se abre la ficha. Con <paramref name="financiero"/>
+    /// («Nuevo activo financiero…» de la cartera), el alta empieza en el ISIN.
+    /// </summary>
+    public async Task NuevoAsync(bool financiero = false)
     {
         if (!await contexto.Servicio.PuedeAsync()) { SinPermiso(); return; }
         var alta = new AltaActivoVM(contexto, dialogos);
-        await alta.CargarAsync();
+        await alta.CargarAsync(financiero);
         if (!dialogos.Alta(alta) || alta.IdCreado is not int id) return;
         contexto.Avisar($"Activo {alta.Codigo} creado.");
         if (!alta.EsAjeno) await GenerarSubcuentasAsync([id], $"Subcuentas de {alta.Codigo}", ofrecerSiNoHay: false);
