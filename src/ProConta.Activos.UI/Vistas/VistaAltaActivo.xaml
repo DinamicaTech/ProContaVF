@@ -142,7 +142,7 @@
             <Button Content="Elegir…" Style="{StaticResource Boton.Pequeno}" Command="{Binding ElegirPadreCommand}" Margin="6,0,0,0" ToolTip="Elige el centro padre (por ejemplo INMUEBLES)" />
           </StackPanel>
         </RadioButton>
-        <TextBlock Text="{Binding AyudaCentroNuevo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" Margin="22,0,0,4" Visibility="{Binding CentroNuevo, Converter={StaticResource Visible}}" />
+        <TextBlock Text="{Binding AyudaCentroNuevo}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" Margin="22,0,0,4" Visibility="{Binding AyudaCentroNuevo, Converter={StaticResource Visible}}" />
         <RadioButton GroupName="Centro" IsChecked="{Binding CentroExistente}" Margin="0,2" ToolTip="Usa un centro que ya existe">
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="Usar uno que ya existe" VerticalAlignment="Center" Margin="0,0,6,0" />

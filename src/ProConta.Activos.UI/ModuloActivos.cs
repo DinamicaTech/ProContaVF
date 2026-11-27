@@ -171,7 +171,8 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
         await alta.CargarAsync(financiero);
         if (!dialogos.Alta(alta) || alta.IdCreado is not int id) return;
         contexto.Avisar($"Activo {alta.Codigo} creado.");
-        if (!alta.EsAjeno) await GenerarSubcuentasAsync([id], $"Subcuentas de {alta.Codigo}", ofrecerSiNoHay: false);
+        // Un activo financiero genera sus subcuentas sin preguntar (ergonomía de activos 2026-11-26): su plantilla es fija y no hay nada que revisar.
+        if (!alta.EsAjeno) await GenerarSubcuentasAsync([id], $"Subcuentas de {alta.Codigo}", ofrecerSiNoHay: false, sinPreguntar: alta.EsInversion);
         Cambiado();
         AbrirFicha(id);
     }
@@ -211,7 +212,7 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
     /// «Generar las que falten…» para unos activos: enseña la propuesta (crear, dar de alta en el ejercicio o renombrar) y, si se confirma, la aplica.
     /// Devuelve true si ha cambiado algo.
     /// </summary>
-    internal async Task<bool> GenerarSubcuentasAsync(IReadOnlyCollection<int> ids, string titulo, bool ofrecerSiNoHay = true)
+    internal async Task<bool> GenerarSubcuentasAsync(IReadOnlyCollection<int> ids, string titulo, bool ofrecerSiNoHay = true, bool sinPreguntar = false)
     {
         IReadOnlyList<OperacionSubcuenta> propuesta;
         try { propuesta = await contexto.Servicio.ProponerSubcuentasAsync(contexto.Trabajo, ids); }
@@ -226,7 +227,7 @@ public sealed class ModuloActivos(ContextoActivos contexto, IAnfitrionPestanas a
         var muyDistintos = propuesta.Count(o => o.MuyDistinto);
         var mensaje = $"Se van a hacer {propuesta.Count} cambios en las subcuentas del ejercicio {contexto.Trabajo.Ejercicio}, según la plantilla de su tipo de activo." +
                       (muyDistintos > 0 ? $" {muyDistintos} renombres cambian mucho el nombre (marcados con ⚠): revísalos antes de confirmar." : "");
-        if (dialogos.Preguntar(titulo, mensaje, propuesta.Select(o => $"{o.Activo.Nombre}: {o.Texto}").ToList(),
+        if ((!sinPreguntar || muyDistintos > 0) && dialogos.Preguntar(titulo, mensaje, propuesta.Select(o => $"{o.Activo.Nombre}: {o.Texto}").ToList(),
                 new OpcionMensaje("Generar", "Crea, da de alta o renombra estas subcuentas", Principal: true),
                 new OpcionMensaje("Cancelar", "No cambia nada", Cancelar: true)) != 0)
             return false;

@@ -22,6 +22,9 @@ public sealed record TipoActivo(int IdTipoActivo, string Codigo, string Nombre, 
 }
 
 /// <summary>Centro de coste de la sociedad para elegirlo en la ficha o como padre de uno nuevo.</summary>
+/// <summary>Cuántos activos propios hay de un tipo y el centro del último dado de alta.</summary>
+public sealed record UsoTipoActivo(int IdTipoActivo, int Activos, int? IdCentroUltimo);
+
 public sealed record CentroParaActivo(int IdCentroCoste, string Codigo, string Nombre, int? IdPadre, int Nivel, bool EsImputable, bool EstaActivo)
 {
     public string Texto => $"{Codigo} {Nombre}".Trim();

@@ -268,6 +268,46 @@ public static class SeriesCartera
     }
 
     /// <summary>
+    /// Rentabilidad de la cartera ponderada en el tiempo (ergonomía de activos 2026-11-26), acumulada en tanto por uno desde el primer día con valor:
+    /// las compras y las ventas no la mueven, solo lo que cambian los precios. Cada tramo es r = (V − F) / V anterior − 1, con V el valor de mercado y F
+    /// el dinero que entró en el tramo (compras menos lo cobrado en ventas), y los tramos se encadenan. Null hasta el primer día con valor; los días sin
+    /// nada en cartera mantienen la última.
+    /// </summary>
+    public static IReadOnlyList<decimal?> RentabilidadPonderada(IReadOnlyList<PuntoCartera> puntos, IEnumerable<(DateTime Fecha, decimal Flujo)> flujos)
+    {
+        var f = flujos.OrderBy(x => x.Fecha).ToList();
+        var r = new List<decimal?>(puntos.Count);
+        decimal? acumulado = null, anterior = null;
+        for (var i = 0; i < puntos.Count; i++)
+        {
+            var v = puntos[i].Valor;
+            if (acumulado is null)
+            {
+                if (v > 0m) acumulado = 1m;
+            }
+            else if (anterior > 0m)
+            {
+                var desde = puntos[i - 1].Fecha.Date;
+                var hasta = puntos[i].Fecha.Date;
+                var flujo = f.Where(x => x.Fecha.Date > desde && x.Fecha.Date <= hasta).Sum(x => x.Flujo);
+                acumulado *= (v - flujo) / anterior.Value;
+            }
+            anterior = v;
+            r.Add(acumulado - 1m);
+        }
+        return r;
+    }
+
+    /// <summary>La rentabilidad ponderada en el tiempo de las posiciones cotizadas en esos días (las mismas que <see cref="Revalorizacion"/>).</summary>
+    public static IReadOnlyList<decimal?> RentabilidadPonderada(IReadOnlyList<PosicionFinanciera> posiciones, IReadOnlyList<DateTime> dias)
+    {
+        var cotizadas = posiciones.Where(p => p.Historico.Count > 0).ToList();
+        var flujos = cotizadas.SelectMany(p => p.Inversion.Operaciones.Where(o => o.EsCompra || o.EsVenta)
+            .Select(o => (o.Fecha, Flujo: o.EsCompra ? o.ImporteTotalEur : -o.ImporteTotalEur)));
+        return RentabilidadPonderada(Revalorizacion(cotizadas, dias), flujos);
+    }
+
+    /// <summary>
     /// Variación acumulada en tanto por uno de un precio desde el primer día de la serie: precio del día / precio del primer día − 1. Null los días
     /// sin precio conocido (antes del primer dato del instrumento).
     /// </summary>

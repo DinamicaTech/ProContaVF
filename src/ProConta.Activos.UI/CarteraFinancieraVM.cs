@@ -160,7 +160,6 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     private IReadOnlyList<string> _avisos = [];
     private IReadOnlyList<CifraCartera> _cifras = [];
     private int _pestanaGrafico;
-    private bool _modoPorcentaje;
     private string _periodo = "Máx.";
     private string _periodoComparativa = "1A";
     private string _tipo = "Todos";
@@ -231,8 +230,6 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
 
     // ---------- gráficos ----------
     public int PestanaGrafico { get => _pestanaGrafico; set { if (Fijar(ref _pestanaGrafico, value)) PintarGraficos(); } }
-    public bool ModoPorcentaje { get => _modoPorcentaje; set { if (Fijar(ref _modoPorcentaje, value)) { Avisar(nameof(ModoEuros), nameof(FormatoEjeRevalorizacion)); PintarRevalorizacion(); } } }
-    public bool ModoEuros { get => !_modoPorcentaje; set => ModoPorcentaje = !value; }
     public string Periodo { get => _periodo; set { if (Fijar(ref _periodo, value ?? "Máx.")) PintarGraficos(); } }
     public string PeriodoComparativa { get => _periodoComparativa; set { if (Fijar(ref _periodoComparativa, value ?? "1A")) PintarComparativa(); } }
     public DatosTemporales? DatosRevalorizacion { get => _datosRevalorizacion; private set => Fijar(ref _datosRevalorizacion, value); }
@@ -241,7 +238,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     public IReadOnlyList<LeyendaComparativa> Leyenda { get => _leyenda; private set => Fijar(ref _leyenda, value); }
     public int SerieResaltada { get => _serieResaltada; set => Fijar(ref _serieResaltada, value); }
     public string Alcance { get => _alcance; private set => Fijar(ref _alcance, value); }
-    public Func<double, string> FormatoEjeRevalorizacion => _modoPorcentaje ? v => TextosCartera.Num((decimal)v, Math.Abs(v) < 10 && v % 1 != 0 ? 1 : 0) + " %" : EjeEuros;
+    public Func<double, string> FormatoEjeRevalorizacion => v => TextosCartera.Num((decimal)v, Math.Abs(v) < 10 && v % 1 != 0 ? 1 : 0) + " %";
     public Func<double, string> FormatoEjeComparativa { get; } = v => TextosCartera.Num((decimal)v, Math.Abs(v) < 10 && Math.Abs(v % 1) > 1e-9 ? 1 : 0) + " %";
     public Func<double, string> FormatoEjeInvertido { get; } = EjeEuros;
     private static string EjeEuros(double v) => FormatoGrafico.Compacto(v) + " €";
@@ -423,7 +420,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
     };
 
     /// <summary>Días, puntos y compras y ventas del periodo elegido para los activos marcados (null si no hay nada que dibujar).</summary>
-    private (IReadOnlyList<DateTime> Dias, IReadOnlyList<PuntoCartera> Puntos, Func<int, ContenidoTooltip> Tip, IReadOnlyList<MarcaTemporal> Marcas)? SerieCartera()
+    private (IReadOnlyList<DateTime> Dias, IReadOnlyList<PuntoCartera> Puntos, IReadOnlyList<decimal?> Rentabilidad, Func<int, ContenidoTooltip> Tip, IReadOnlyList<MarcaTemporal> Marcas)? SerieCartera()
     {
         if (_cartera is null) return null;
         var filas = EnGrafico;
@@ -440,6 +437,7 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
         var desde = Restar(hoy, _periodo) is var r && r > primera ? r : primera;
         var dias = SeriesCartera.Dias(desde, hoy, SeriesCartera.Paso(desde, hoy));
         var puntos = SeriesCartera.Revalorizacion(posiciones, dias);
+        var rentabilidad = SeriesCartera.RentabilidadPonderada(posiciones, dias);
         var marcas = ops.Where(x => x.o.Fecha >= desde && x.o.Fecha <= hoy)
             .Select(x => (x.p, x.o, Indice: IndiceDe(dias, x.o.Fecha))).Where(x => x.Indice >= 0).ToList();
         ContenidoTooltip Tip(int i)
@@ -451,28 +449,26 @@ public sealed class CarteraFinancieraVM : ModeloVista, IPestanaTrabajo
                 new("Invertido", Formatos.Importe(p.Invertido), PaletaGraficos.Apagado),
                 new("Plusvalía", $"{TextosCartera.Signo(p.Plusvalia)} ({TextosCartera.Pct(p.PlusvaliaPorcentaje)})", null, true),
             };
+            if (rentabilidad[i] is decimal ren) filasT.Insert(0, new FilaTooltip("Rentabilidad del periodo", TextosCartera.Pct(ren), PaletaGraficos.Serie1, true));
             foreach (var m in marcas.Where(m => m.Indice == i))
                 filasT.Add(new FilaTooltip($"{(m.o.EsCompra ? "▲ Compra" : "▼ Venta")} {m.p.Codigo}",
                     $"{TextosCartera.Participaciones(m.o.Participaciones)} part. · {Formatos.Importe(m.o.ImporteTotalEur)}"));
             return new ContenidoTooltip(p.Fecha.ToString("d 'de' MMMM 'de' yyyy", Formatos.Cultura), filasT);
         }
-        return (dias, puntos, Tip, marcas.Select(m => new MarcaTemporal(m.Indice, m.o.EsCompra)).ToList());
+        return (dias, puntos, rentabilidad, Tip, marcas.Select(m => new MarcaTemporal(m.Indice, m.o.EsCompra)).ToList());
     }
 
     /// <summary>
-    /// Revalorización: en euros, solo el valor de mercado (sin la línea del capital invertido, que salta con cada compra; activos/activos-financieros
-    /// 2026-11-24 09:14); en porcentaje, la plusvalía sobre lo invertido cada día.
+    /// Rentabilidad de la cartera ponderada en el tiempo (ergonomía de activos 2026-11-26: sustituye a la revalorización en euros y a la plusvalía sobre lo
+    /// invertido, que saltaban con cada compra y venta). El valor en euros está en «Invertido y valor».
     /// </summary>
     private void PintarRevalorizacion()
     {
         if (_pestanaGrafico != 0) return;
         if (SerieCartera() is not { } c) { DatosRevalorizacion = null; return; }
-        DatosRevalorizacion = _modoPorcentaje
-            ? new DatosTemporales(c.Dias, [new SerieTemporal("Plusvalía sobre lo invertido", PaletaGraficos.Serie1,
-                    c.Puntos.Select(p => p.PlusvaliaPorcentaje is decimal x ? (double?)(double)(x * 100m) : null).ToList())],
-                c.Tip, Marcas: c.Marcas, IncluirCero: true, LineaCero: true, Descripcion: "Plusvalía de la cartera en porcentaje sobre lo invertido cada día")
-            : new DatosTemporales(c.Dias, [new SerieTemporal("Valor de mercado", PaletaGraficos.Serie1, c.Puntos.Select(p => (double?)(double)p.Valor).ToList())],
-                c.Tip, Marcas: c.Marcas, Descripcion: "Valor de mercado de la cartera cada día");
+        DatosRevalorizacion = new DatosTemporales(c.Dias, [new SerieTemporal("Rentabilidad ponderada en el tiempo", PaletaGraficos.Serie1,
+                c.Rentabilidad.Select(x => x is decimal v ? (double?)(double)(v * 100m) : null).ToList())],
+            c.Tip, Marcas: c.Marcas, IncluirCero: true, LineaCero: true, Descripcion: "Rentabilidad de la cartera desde el primer día del periodo, sin contar compras ni ventas");
     }
 
     /// <summary>Invertido y valor: el capital invertido en escalones frente al valor total (invertido más plusvalía), con la plusvalía sombreada.</summary>

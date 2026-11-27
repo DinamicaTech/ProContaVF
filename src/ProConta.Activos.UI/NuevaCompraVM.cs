@@ -25,7 +25,12 @@ public sealed class NuevaCompraVM : ModeloVista
         Codigo = codigo;
         Inversion = inversion;
         EsVenta = esVenta;
-        Compra = new FormularioCompraVM(ctx.Cotizaciones) { Referencia = inversion.Instrumento.Referencia, EsVenta = esVenta };
+        Compra = new FormularioCompraVM(ctx.Cotizaciones)
+        {
+            Referencia = inversion.Instrumento.Referencia, EsVenta = esVenta,
+            Disponibles = esVenta && inversion.Participaciones > 0m ? inversion.Participaciones : null,
+            CosteMedio = esVenta && inversion.Participaciones > 0m ? inversion.Coste / inversion.Participaciones : null,
+        };
         GuardarCommand = new ComandoDelegado(() => _ = GuardarAsync(), () => !_ocupado);
     }
 

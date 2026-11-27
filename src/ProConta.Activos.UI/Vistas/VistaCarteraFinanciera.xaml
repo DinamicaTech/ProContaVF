@@ -130,16 +130,10 @@
           <!-- Gráficos en dos pestañas -->
           <Border Grid.Row="1" Style="{StaticResource Tarjeta.Cartera}" Padding="10,4,10,8">
             <TabControl SelectedIndex="{Binding PestanaGrafico}" BorderThickness="0" Padding="0,6,0,0">
-              <TabItem Header="Revalorización de la cartera" ToolTip="Valor de mercado de la cartera, sumando cada lote desde su fecha de compra">
+              <TabItem Header="Rentabilidad de la cartera" ToolTip="Cuánto ha ganado o perdido la cartera en porcentaje en el periodo, sin que las compras y las ventas la muevan">
                 <DockPanel>
                   <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                      <Border Style="{StaticResource Segmentado}" Margin="0,0,10,0" ToolTip="Euros: cuánto vale la cartera cada día. Porcentaje: la plusvalía sobre lo invertido en cada momento">
-                        <StackPanel Orientation="Horizontal">
-                          <RadioButton Style="{StaticResource Segmento}" Content="Euros" GroupName="Modo" IsChecked="{Binding ModoEuros}" />
-                          <RadioButton Style="{StaticResource Segmento}" Content="% sobre lo invertido" GroupName="Modo" IsChecked="{Binding ModoPorcentaje}" />
-                        </StackPanel>
-                      </Border>
                       <Border Style="{StaticResource Segmentado}" ToolTip="Periodo que se ve en el gráfico">
                         <StackPanel Orientation="Horizontal">
                           <RadioButton Style="{StaticResource Segmento}" Content="1A" GroupName="Per" IsChecked="{Binding Periodo, Converter={StaticResource Igual}, ConverterParameter=1A}" ToolTip="Último año" />
@@ -151,14 +145,14 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                       <Border Width="17" Height="17" CornerRadius="9" BorderThickness="1" BorderBrush="{StaticResource Pincel.Linea3}" Margin="0,0,8,0" Cursor="Help"
-                              ToolTip="Cada lote cuenta desde el día en que se compró y deja de contar al venderse. En porcentaje, la plusvalía de cada día compara lo que había en cartera ese día con lo que costó. Lo invertido frente al valor está en la pestaña «Invertido y valor». Solo entran los activos que cotizan. Rueda del ratón: acercar o alejar; arrastrar: ampliar una zona; doble clic: ver todo.">
+                              ToolTip="Rentabilidad ponderada en el tiempo: encadena lo que sube o baja la cartera de un día a otro sin contar el dinero que entra con las compras ni el que sale con las ventas, así que mide cómo lo han hecho los activos y no cuánto has invertido. Empieza en 0 % el primer día del periodo. Lo que vale la cartera en euros, frente a lo invertido, está en la pestaña «Invertido y valor». Solo entran los activos que cotizan. Rueda del ratón: acercar o alejar; arrastrar: ampliar una zona; doble clic: ver todo.">
                         <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Apagado}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                       <TextBlock Text="{Binding Alcance}" Style="{StaticResource Texto.Apagado}" VerticalAlignment="Center" />
                     </StackPanel>
                   </DockPanel>
-                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2" Visibility="{Binding ModoEuros, Converter={StaticResource Visible}}">
-                    <Border Style="{StaticResource Muestra}" Background="#2a78d6" /><TextBlock Text="Valor de mercado" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
+                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,2">
+                    <Border Style="{StaticResource Muestra}" Background="#2a78d6" /><TextBlock Text="Rentabilidad ponderada en el tiempo" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" />
                     <TextBlock Text="▲ Compra   ▼ Venta" Style="{StaticResource Texto.Apagado}" />
                   </StackPanel>
                   <pc:GraficoTemporal Datos="{Binding DatosRevalorizacion}" FormatoEje="{Binding FormatoEjeRevalorizacion}" MinHeight="140" />

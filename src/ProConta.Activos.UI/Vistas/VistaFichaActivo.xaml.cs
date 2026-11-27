@@ -16,12 +16,27 @@ public partial class VistaFichaActivo : UserControl
             if (e.OldValue is FichaActivoVM viejo) viejo.PropertyChanged -= Cambio;
             if (e.NewValue is FichaActivoVM nuevo) { nuevo.PropertyChanged += Cambio; Anios(nuevo); Monedas(nuevo); }
         };
+        TablaAmortizacion.IsVisibleChanged += (_, e) => { if (e.NewValue is true && DataContext is FichaActivoVM vm) IrAlEjercicio(vm); };
     }
 
     private void Cambio(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (sender is FichaActivoVM vm && e.PropertyName is nameof(FichaActivoVM.EjercicioCuenta) or nameof(FichaActivoVM.FilasCuenta) or nameof(FichaActivoVM.VerAnterior)) Anios(vm);
         if (sender is FichaActivoVM v && e.PropertyName == nameof(FichaActivoVM.OperacionesEnEuros)) Monedas(v);
+        if (sender is FichaActivoVM a && e.PropertyName == nameof(FichaActivoVM.FilasAmortizacion)) IrAlEjercicio(a);
+    }
+
+    /// <summary>La tabla de amortización se desplaza hasta el ejercicio de trabajo (ergonomía de activos 2026-11-26).</summary>
+    private void IrAlEjercicio(FichaActivoVM vm)
+    {
+        if (vm.FilasAmortizacion.FirstOrDefault(f => f.EsActual) is not { } actual) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            TablaAmortizacion.UpdateLayout();
+            // Primero el final y después el ejercicio, para que quede arriba con los años siguientes debajo.
+            if (TablaAmortizacion.Items.Count > 0) TablaAmortizacion.ScrollIntoView(TablaAmortizacion.Items[TablaAmortizacion.Items.Count - 1]);
+            TablaAmortizacion.ScrollIntoView(actual);
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>En euros, el cambio y el precio real repetirían el precio: no se ven (ergonomía de activos 2026-11-26).</summary>
