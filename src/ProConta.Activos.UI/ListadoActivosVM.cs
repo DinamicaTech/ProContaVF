@@ -10,7 +10,7 @@ using ProConta.UI.Base.Modelos;
 namespace ProConta.Activos.UI;
 
 /// <summary>Una fila del listado con su casilla: un clic en la fila la marca o la desmarca.</summary>
-public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloVista
+public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar, int ejercicio = 0) : ModeloVista
 {
     private bool _marcado;
 
@@ -27,13 +27,24 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
     public decimal CosteOrden => Datos.Coste;
     public string Amortizado => Propio && Datos.PorcentajeAmortizado is decimal p ? Math.Round(p * 100m, 0).ToString("0", Formatos.Cultura) + " %" : "";
     public decimal AmortizadoOrden => Datos.PorcentajeAmortizado ?? -1m;
-    public string Ingresos => Propio ? Formatos.Importe(Datos.Ingresos) : "";
-    public decimal IngresosOrden => Datos.Ingresos;
-    public string Gastos => Propio ? Formatos.Importe(Datos.Gastos) : "";
-    public decimal GastosOrden => Datos.Gastos;
-    public string Resultado => Propio ? Formatos.Importe(Datos.Resultado) : "";
-    public decimal ResultadoOrden => Datos.Resultado;
-    public bool ResultadoNegativo => Propio && Datos.Resultado < 0m;
+    public int Ejercicio => ejercicio;
+
+    /// <summary>Grupo de la tabla: el tipo de activo (Parámetros › Tipos de activo).</summary>
+    public string Grupo => Datos.Tipo.Length > 0 ? Datos.Tipo : "Sin tipo";
+    // Los financieros no enseñan ingresos ni gastos contables: su resultado es lo ganado o perdido en el año (propietario 2026-11-27).
+    public string Ingresos => Propio && !EsFinanciero ? Formatos.Importe(Datos.Ingresos) : "";
+    public decimal IngresosOrden => EsFinanciero ? 0m : Datos.Ingresos;
+    public string Gastos => Propio && !EsFinanciero ? Formatos.Importe(Datos.Gastos) : "";
+    public decimal GastosOrden => EsFinanciero ? 0m : Datos.Gastos;
+
+    /// <summary>
+    /// Resultado del ejercicio: ingresos menos gastos sin la amortización; en un financiero, el resultado de sus ventas del año más la variación de su
+    /// plusvalía latente (<see cref="PosicionFinanciera.ResultadoEjercicio"/>), en cuanto se ha leído su posición.
+    /// </summary>
+    public decimal ResultadoValor => EsFinanciero ? _posicion?.ResultadoEjercicio(ejercicio) ?? 0m : Datos.Resultado;
+    public string Resultado => !Propio ? "" : EsFinanciero && _posicion is null ? "…" : Formatos.Importe(ResultadoValor);
+    public decimal ResultadoOrden => ResultadoValor;
+    public bool ResultadoNegativo => Propio && ResultadoValor < 0m;
     public string Estado => Datos.SubcuentasQueFaltan > 1 ? $"Faltan {Datos.SubcuentasQueFaltan} subcuentas" : Datos.Estado;
 
     /// <summary>EN_USO, BAJA, AJENO o FALTA: el color de la pastilla del estado.</summary>
@@ -44,9 +55,9 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
         : Datos.SubcuentasQueFaltan > 0 ? $"Le {(Datos.SubcuentasQueFaltan == 1 ? "falta 1 subcuenta" : $"faltan {Datos.SubcuentasQueFaltan} subcuentas")} de la plantilla de su tipo en el ejercicio de trabajo. Clic derecho › «Generar las subcuentas que le falten…»."
         : "En uso: tiene todas las subcuentas de su plantilla.";
 
-    public string AyudaFila => Propio
-        ? $"{Datos.Nombre}. Ingresos {Ingresos} − gastos {Gastos} (con la amortización prevista del año) = {Resultado}. Amortizado {Formatos.Importe(Datos.Amortizado)} de {Formatos.Importe(Datos.Amortizable)}. Doble clic: abrir la ficha."
-        : $"{Datos.Nombre}. Activo ajeno a la sociedad, solo informativo. Doble clic: abrir la ficha.";
+    public string AyudaFila => !Propio ? $"{Datos.Nombre}. Activo ajeno a la sociedad, solo informativo. Doble clic: abrir la ficha."
+        : EsFinanciero ? $"{Datos.Nombre}. Resultado de {ejercicio}: {Resultado}, lo ganado o perdido en el año (resultado de las ventas del año más lo que ha subido o bajado su valor; las compras y las ventas no cuentan como ganancia). Doble clic: abrir la ficha."
+        : $"{Datos.Nombre}. Ingresos {Ingresos} − gastos {Gastos} = {Resultado} (sin la amortización). Amortizado {Formatos.Importe(Datos.Amortizado)} de {Formatos.Importe(Datos.Amortizable)}. Doble clic: abrir la ficha.";
 
     public bool Marcado { get => _marcado; set { if (Fijar(ref _marcado, value)) alMarcar(); } }
 
@@ -62,7 +73,8 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar) : ModeloV
         set
         {
             _posicion = value;
-            Avisar(nameof(Participaciones), nameof(Cotizacion), nameof(Valor), nameof(Plusvalia), nameof(Porcentaje), nameof(Anual), nameof(Tono), nameof(TonoAnual));
+            Avisar(nameof(Participaciones), nameof(Cotizacion), nameof(Valor), nameof(Plusvalia), nameof(Porcentaje), nameof(Anual), nameof(Tono), nameof(TonoAnual),
+                nameof(Resultado), nameof(ResultadoOrden), nameof(ResultadoNegativo), nameof(AyudaFila));
         }
     }
 
@@ -172,7 +184,6 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
             if (!Fijar(ref _clase, value ?? "Todos")) return;
             Avisar(nameof(EnFinancieros), nameof(EnGeneral));
             Filtrar();
-            if (EnFinancieros && !_posicionesLeidas) _ = LeerPosicionesAsync();
         }
     }
     public string FiltroEstado { get => _filtroEstado; set { if (Fijar(ref _filtroEstado, value ?? "Activos")) Filtrar(); } }
@@ -208,7 +219,7 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
     public string TotalInversiones => Formatos.Importe(Propios.Where(f => f.EsFinanciero).Sum(f => f.Datos.Coste));
     public bool HayInmovilizado => Propios.Any(f => !f.EsFinanciero);
     public bool HayInversiones => Propios.Any(f => f.EsFinanciero);
-    public bool HayResultados => EnGeneral && HayInmovilizado;
+    public bool HayResultados => EnGeneral && HayTotales;
 
     // Totales del filtro «Financieros»: los vivos.
     private IEnumerable<FilaActivoVM> Vivos => Propios.Where(f => f.Posicion is { Viva: true });
@@ -240,7 +251,8 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
             var c = await cartera.CargarAsync(_modulo.Contexto.Trabajo.IdSociedad, conRed: false);
             var porId = c.Activos.ToDictionary(a => a.IdActivo, a => a.Posicion);
             foreach (var f in _todas) f.Posicion = porId.GetValueOrDefault(f.Id);
-            Avisar(nameof(TotalValor), nameof(TotalPlusvalia), nameof(TonoTotalPlusvalia));
+            Avisar(nameof(TotalValor), nameof(TotalPlusvalia), nameof(TonoTotalPlusvalia), nameof(TotalResultado), nameof(TotalNegativo));
+            GruposCambiados?.Invoke();
         }
         catch (Exception ex)
         {
@@ -248,10 +260,23 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
             _modulo.Contexto.Avisar($"No he podido leer el valor de los activos financieros: {ex.Message}");
         }
     }
-    public string TotalIngresos => Formatos.Importe(Propios.Sum(f => f.Datos.Ingresos));
-    public string TotalGastos => Formatos.Importe(Propios.Sum(f => f.Datos.Gastos));
-    public string TotalResultado => Formatos.Importe(Propios.Sum(f => f.Datos.Resultado));
-    public bool TotalNegativo => Propios.Sum(f => f.Datos.Resultado) < 0m;
+    public string TotalIngresos => Formatos.Importe(Propios.Where(f => !f.EsFinanciero).Sum(f => f.Datos.Ingresos));
+    public string TotalGastos => Formatos.Importe(Propios.Where(f => !f.EsFinanciero).Sum(f => f.Datos.Gastos));
+    public string TotalResultado => Formatos.Importe(Propios.Sum(f => f.ResultadoValor));
+    public bool TotalNegativo => Propios.Sum(f => f.ResultadoValor) < 0m;
+
+    /// <summary>Las posiciones de los financieros ya están leídas: la vista vuelve a calcular los subtotales de cada grupo.</summary>
+    public event Action? GruposCambiados;
+
+    /// <summary>Resumen de un grupo (un tipo de activo) para su cabecera: cuántos, coste y resultado del ejercicio de los propios.</summary>
+    public static string ResumenGrupo(IEnumerable<FilaActivoVM> filas)
+    {
+        var lista = filas.ToList();
+        var propios = lista.Where(f => f.Propio).ToList();
+        var texto = Formatos.Plural(lista.Count, "activo", "activos");
+        if (propios.Count == 0) return texto;
+        return $"{texto} · coste {Formatos.Importe(propios.Sum(f => f.Datos.Coste))} · resultado {propios[0].Ejercicio} {Formatos.Importe(propios.Sum(f => f.ResultadoValor))}";
+    }
 
     public async Task CargarAsync()
     {
@@ -268,10 +293,10 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
             }
             var marcados = _todas.Where(f => f.Marcado).Select(f => f.Id).ToHashSet();
             var lista = await _modulo.Contexto.Servicio.ListarAsync(_modulo.Contexto.Trabajo);
-            _todas = lista.Select(a => new FilaActivoVM(a, AlMarcar) { Marcado = marcados.Contains(a.IdActivo) }).ToList();
+            _todas = lista.Select(a => new FilaActivoVM(a, AlMarcar, Ejercicio) { Marcado = marcados.Contains(a.IdActivo) }).ToList();
             _posicionesLeidas = false;
             Filtrar();
-            if (EnFinancieros) _ = LeerPosicionesAsync();
+            if (_todas.Any(f => f.EsFinanciero)) _ = LeerPosicionesAsync();
         }
         catch (Exception ex)
         {

@@ -268,7 +268,6 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         var ej = _modulo.Contexto.Trabajo.Ejercicio;
         var r = await _modulo.Contexto.Servicio.CuentaResultadosAsync(_modulo.Contexto.Trabajo.IdSociedad, IdActivo, ej, false, false);
         var c = r?.Actual;
-        var prevista = c?.Filas.Where(x => x.Tipo == TipoFilaResultado.AmortizacionPrevista).Sum(x => x.Total) ?? 0m;
         var pct = f.Amortizable > 0m ? Math.Round(f.Amortizado / f.Amortizable * 100m, 0) : 0m;
         Indicadores =
         [
@@ -278,7 +277,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                 Ayuda: f.Amortizable > 0m ? $"Amortizado hasta hoy: {pct.ToString("0", Es)} % de la base amortizable, {Formatos.Importe(f.Amortizable)}" +
                     (f.Datos.Inmueble is not null ? " (la construcción: el suelo no se amortiza)" : "") : null),
             new($"Ingresos de {ej}", Formatos.Importe(c?.Ingresos ?? 0m), "grupo 7 de sus subcuentas y su centro"),
-            new($"Gastos de {ej}", Formatos.Importe(c?.Gastos ?? 0m), prevista > 0m ? "con la amortización prevista" : "grupo 6 de sus subcuentas y su centro"),
+            new($"Gastos de {ej}", Formatos.Importe(c?.Gastos ?? 0m), "grupo 6 de sus subcuentas y su centro, sin la amortización"),
             new($"Resultado de {ej}", Formatos.Importe(c?.Resultado ?? 0m), c?.Rentabilidad(f.Datos.Coste) is decimal ren && (c?.Ingresos ?? 0m) != 0m
                 ? $"rentabilidad sobre el coste: {(ren * 100m).ToString("0.0", Es)} %" : "sin ingresos propios", (c?.Resultado ?? 0m) < 0m),
         ];
@@ -615,10 +614,12 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         var anterior = _cuenta!.Anterior;
         var comparadas = CalculoCuentaResultados.Comparar(c, anterior);
         decimal? Ant(decimal v) => anterior is null ? null : v;
+        static bool DeAmortizacion(FilaComparada f) => f.Tipo == TipoFilaResultado.AmortizacionPrevista
+            || (f.Tipo == TipoFilaResultado.Subcuenta && !f.EsIngreso && CalculoCuentaResultados.EsAmortizacion(f.Cuenta));
         void Grupo(bool ingresos)
         {
             filas.Add(new FilaCuentaVM("GRUPO", "", ingresos ? "Ingresos" : "Gastos", null, null, null, c.Ingresos));
-            var deGrupo = comparadas.Where(f => f.EsIngreso == ingresos).ToList();
+            var deGrupo = comparadas.Where(f => f.EsIngreso == ingresos && !DeAmortizacion(f)).ToList();
             if (deGrupo.Count == 0)
                 filas.Add(new FilaCuentaVM("CALCULADA", "", ingresos ? "Este activo no tiene ingresos propios en el año." : "Este activo no tiene gastos en el año.", null, null, null, c.Ingresos));
             foreach (var f in deGrupo)
@@ -626,7 +627,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                 var calculada = f.Tipo != TipoFilaResultado.Subcuenta;
                 var ayuda = f.Tipo switch
                 {
-                    TipoFilaResultado.AmortizacionPrevista => "Lo que propondrá Contabilidad › Amortización de activos para el año y aún no está contabilizado. Se suma al resultado para que la cifra no engañe.",
+                    TipoFilaResultado.AmortizacionPrevista => "Lo que propondrá Contabilidad › Amortización de activos para el año y aún no está contabilizado.",
                     TipoFilaResultado.GastosGenerales => AyudaGenerales,
                     _ => null,
                 };
@@ -641,9 +642,24 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         Grupo(false);
         filas.Add(new FilaCuentaVM("RESULTADO", "", "Resultado del activo", Enumerable.Range(0, 12).Select(m => c.IngresosMes(m) - c.GastosMes(m)).ToList(), c.Resultado,
             Ant(anterior?.Resultado ?? 0m), c.Ingresos));
+        // La amortización, aparte y solo informativa: no se resta del resultado (propietario 2026-11-27).
+        var amortizacion = comparadas.Where(DeAmortizacion).ToList();
+        if (amortizacion.Count > 0)
+        {
+            filas.Add(new FilaCuentaVM("GRUPO", "", "Amortización (informativa: no se resta del resultado)", null, null, null, c.Ingresos));
+            foreach (var f in amortizacion)
+            {
+                var prevista = f.Tipo == TipoFilaResultado.AmortizacionPrevista;
+                filas.Add(new FilaCuentaVM(prevista ? "CALCULADA" : "FILA", f.Cuenta, f.Nombre, f.Meses, f.Actual, f.Anterior, c.Ingresos,
+                    prevista ? null : new ComandoDelegado(() => _ = MayorAsync([f.Cuenta], [EjercicioCuenta])),
+                    prevista ? "Lo que propondrá Contabilidad › Amortización de activos para el año y aún no está contabilizado." : null));
+            }
+            filas.Add(new FilaCuentaVM("TOTAL", "", "Total de amortización", Enumerable.Range(0, 12).Select(c.AmortizacionMes).ToList(), c.Amortizacion,
+                Ant(anterior?.Amortizacion ?? 0m), c.Ingresos));
+        }
         FilasCuenta = filas;
         var ingresosMes = Enumerable.Range(0, 12).Select(m => (decimal?)c.IngresosMes(m)).ToList();
-        var gastosMes = Enumerable.Range(0, 12).Select(m => (decimal?)c.GastosMesSinAmortizacion(m)).ToList();
+        var gastosMes = Enumerable.Range(0, 12).Select(m => (decimal?)c.GastosMes(m)).ToList();
         Grafico = new DatosGrafico(Meses, [new SerieGrafico("Ingresos", PaletaGraficos.Serie1, ingresosMes), new SerieGrafico("Gastos", PaletaGraficos.Serie2, gastosMes)],
             i => new ContenidoTooltip(Meses[i], [new FilaTooltip("Ingresos", Formatos.Importe(ingresosMes[i] ?? 0m), PaletaGraficos.Serie1),
                 new FilaTooltip("Gastos", Formatos.Importe(gastosMes[i] ?? 0m), PaletaGraficos.Serie2),

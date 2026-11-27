@@ -119,6 +119,21 @@ public sealed class CarteraFinancieraTests
     }
 
     [Fact]
+    public void Resultado_del_ejercicio_son_las_ventas_mas_la_variacion_de_la_plusvalia()
+    {
+        // 10 participaciones a 100 en 2025; a 110 el 31/12/2025 (latente +100); se venden 5 por 600 en marzo (coste 500: +100) y hoy cotiza a 120
+        // (latente de las 5 que quedan: +100). Ganado en 2026: 600 cobrado + 600 de valor − 1.100 de valor al empezar = 100.
+        var hist = new SeriePrecios([(new(2025, 6, 2), 100m), (new(2025, 12, 31), 110m), (new(2026, 11, 20), 120m)]);
+        var p = PosicionFinanciera.Crear(1, "VWCE", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m), Venta(2, new(2026, 3, 2), 5m, 600m)), hist, null, Hoy);
+        Assert.Equal(100m, p.ResultadoEjercicio(2026));
+        // 2025 (cerrado): solo la subida hasta el 31/12.
+        Assert.Equal(100m, p.ResultadoEjercicio(2025));
+        // Sin cotización solo cuentan las ventas.
+        var sin = PosicionFinanciera.Crear(2, "PART", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m), Venta(2, new(2026, 3, 2), 5m, 600m)), new SeriePrecios([]), null, Hoy);
+        Assert.Equal(100m, sin.ResultadoEjercicio(2026));
+    }
+
+    [Fact]
     public void Posicion_sin_cotizacion_se_valora_a_coste()
     {
         var p = PosicionFinanciera.Crear(1, "PART", Inversion(Compra(1, new(2024, 1, 2), 100m, 3000m)), new SeriePrecios([]), null, Hoy);
