@@ -151,6 +151,35 @@ public sealed class CarteraFinancieraTests
     }
 
     [Fact]
+    public void Rentabilidad_ponderada_no_se_mueve_con_las_compras_ni_las_ventas()
+    {
+        // 1.000 € que suben un 10 %; se compran 900 € más (1.100 + 900 = 2.000), que bajan un 5 % (1.900); se cobran 950 € de una venta (quedan 950)
+        // y después suben un 20 % (1.140). Encadenado: 1,10 × 0,95 × 1,20 − 1 = 25,4 %, sin contar el dinero que entra y sale.
+        DateTime D(int dia) => new(2026, 1, dia);
+        var puntos = new[] { new PuntoCartera(D(5), 1000m, 1000m), new PuntoCartera(D(6), 1000m, 1100m), new PuntoCartera(D(7), 1900m, 2000m),
+            new PuntoCartera(D(8), 1900m, 1900m), new PuntoCartera(D(9), 950m, 950m), new PuntoCartera(D(12), 950m, 1140m) };
+        var r = SeriesCartera.RentabilidadPonderada(puntos, [(D(5), 1000m), (D(7), 900m), (D(9), -950m)]);
+        Assert.Equal(0m, r[0]);
+        Assert.Equal(0.10m, r[1]);
+        Assert.Equal(0.10m, r[2]);                       // la compra no cambia la rentabilidad
+        Assert.Equal(0.045m, r[3]);                      // 1,10 × 0,95 − 1
+        Assert.Equal(0.045m, r[4]);                      // la venta tampoco
+        Assert.Equal(0.254m, Math.Round(r[5]!.Value, 6));
+    }
+
+    [Fact]
+    public void Rentabilidad_ponderada_vacia_hasta_tener_valor_y_quieta_sin_cartera()
+    {
+        DateTime D(int dia) => new(2026, 2, dia);
+        var puntos = new[] { new PuntoCartera(D(2), 0m, 0m), new PuntoCartera(D(3), 100m, 100m), new PuntoCartera(D(4), 100m, 120m),
+            new PuntoCartera(D(5), 0m, 0m), new PuntoCartera(D(6), 100m, 100m), new PuntoCartera(D(9), 100m, 110m) };
+        var r = SeriesCartera.RentabilidadPonderada(puntos, [(D(3), 100m), (D(5), -120m), (D(6), 100m)]);
+        Assert.Null(r[0]);
+        Assert.Equal([0m, 0.2m, 0.2m, 0.2m], r.Skip(1).Take(4).ToList());
+        Assert.Equal(0.32m, r[5]);                       // 1,2 × 1,1 − 1
+    }
+
+    [Fact]
     public void Variacion_relativa_desde_el_primer_dia_con_precio()
     {
         var s = new SeriePrecios([(new(2026, 1, 5), 50m), (new(2026, 1, 7), 55m)]);

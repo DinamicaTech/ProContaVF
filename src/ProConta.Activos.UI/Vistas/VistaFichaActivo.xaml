@@ -86,35 +86,52 @@
     <DataTemplate x:Key="Plantilla.Proyeccion">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="0,0,6,0">
-          <Border Background="{StaticResource Pincel.AvisoSuave}" BorderBrush="{StaticResource Pincel.AvisoBorde}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10">
-            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}"
-                       Text="Las señales salen de los indicadores habituales del análisis técnico (medias, RSI, MACD, Bandas de Bollinger, ADX…) calculados con las cotizaciones diarias y traducidos a frases. La proyección es una estimación con lo que ha rendido el activo en el pasado; no es una previsión ni una garantía." />
+          <!-- Proyección (ergonomía de activos 2026-11-26): la conclusión grande arriba, las señales en una tabla compacta con su color y la escala en el
+               texto de ayuda -->
+          <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,12" Background="White"
+                  HorizontalAlignment="Left" MinWidth="420" Cursor="Help" Visibility="{Binding HaySenales, Converter={StaticResource Visible}}">
+            <Border.ToolTip>
+              <ToolTip MaxWidth="460"><TextBlock Text="{Binding ExplicacionValoracion}" TextWrapping="Wrap" /></ToolTip>
+            </Border.ToolTip>
+            <StackPanel>
+              <TextBlock Text="Cómo está hoy, según su cotización" Style="{StaticResource Texto.Apagado}" />
+              <TextBlock Text="{Binding Valoracion}" FontSize="26" FontWeight="SemiBold" Margin="0,2,0,2">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding TonoValoracion}" Value="Bueno"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+                      <DataTrigger Binding="{Binding TonoValoracion}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Text="{Binding ResumenSenales}" Foreground="{StaticResource Pincel.Texto2}" />
+            </StackPanel>
           </Border>
-          <DockPanel Margin="0,0,0,6" Visibility="{Binding HaySenales, Converter={StaticResource Visible}}">
-            <TextBlock Text="Cómo está hoy: " Style="{StaticResource Texto.Titulo}" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding Valoracion}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding TonoValoracion}" Value="Bueno"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
-                    <DataTrigger Binding="{Binding TonoValoracion}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-            <TextBlock Text="{Binding ExplicacionValoracion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" VerticalAlignment="Center" />
-          </DockPanel>
           <TextBlock Text="{Binding ExplicacionValoracion}" Style="{StaticResource Texto.Apagado}" Visibility="{Binding HaySenales, Converter={StaticResource Visible}, ConverterParameter=invertir}" Margin="0,0,0,8" />
-          <ItemsControl ItemsSource="{Binding Senales}" Focusable="False" Margin="0,0,0,6">
-            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl ItemsSource="{Binding Senales}" Focusable="False" Margin="0,0,0,14" HorizontalAlignment="Left" MaxWidth="1100">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border Width="270" MinHeight="96" Margin="0,0,8,8" Padding="10,8" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Detalle}" Background="White">
-                  <StackPanel>
-                    <TextBlock Text="{Binding Titulo}" Style="{StaticResource Texto.Apagado}" FontSize="{StaticResource Letra.Pequena}" />
-                    <TextBlock Text="{Binding Lectura}" FontWeight="SemiBold" FontSize="14" Margin="0,2,0,3" Style="{StaticResource Texto.Tono}" />
-                    <TextBlock Text="{Binding Explicacion}" TextWrapping="Wrap" Foreground="{StaticResource Pincel.Texto2}" />
-                  </StackPanel>
+                <Border BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1" Padding="0,5" ToolTip="{Binding Detalle}" Background="Transparent">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="12" /><ColumnDefinition Width="230" /><ColumnDefinition Width="190" /><ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center">
+                      <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                          <Setter Property="Fill" Value="{StaticResource Pincel.Linea3}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Tono}" Value="Bueno"><Setter Property="Fill" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+                            <DataTrigger Binding="{Binding Tono}" Value="Malo"><Setter Property="Fill" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Grid.Column="1" Text="{Binding Titulo}" Foreground="{StaticResource Pincel.Texto2}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Text="{Binding Lectura}" FontWeight="SemiBold" Style="{StaticResource Texto.Tono}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="3" Text="{Binding Explicacion}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  </Grid>
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -180,6 +197,8 @@
             <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,8,0,0"
                        Text="El prudente es lo que saldría con una racha mala de las habituales; el optimista, con una buena. Cuanto más largo es el plazo, más se compensan los años buenos con los malos, por eso el rango anual se estrecha. Puede salir peor o mejor que los dos." />
           </StackPanel>
+          <TextBlock Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" Margin="0,12,0,0" MaxWidth="1100" HorizontalAlignment="Left"
+                     Text="Las señales salen de los indicadores habituales del análisis técnico (medias, RSI, MACD, Bandas de Bollinger, ADX…) calculados con las cotizaciones diarias y traducidos a frases. La proyección es una estimación con lo que ha rendido el activo en el pasado; no es una previsión ni una garantía." />
         </StackPanel>
       </ScrollViewer>
     </DataTemplate>

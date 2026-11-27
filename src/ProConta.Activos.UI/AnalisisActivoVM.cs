@@ -64,21 +64,36 @@ public sealed class AnalisisActivoVM : ModeloVista
 
     private IReadOnlyList<CifraCartera> CrearCifras()
     {
+        // Nota corta con la variación del día (ergonomía de activos 2026-11-26); la fecha y el origen completos, en la ayuda.
+        var dia = VariacionDia();
         var nota = P.Precio is null ? "a coste: no cotiza"
-            : $"{(EsFondo ? "valor liquidativo" : "cotización")} del {Formatos.Fecha(P.FechaPrecio!.Value)} · {P.OrigenPrecio}";
+            : (dia is decimal v ? $"{TextosCartera.Pct(v, 2)} en el día · " : "") + Formatos.Fecha(P.FechaPrecio!.Value);
+        var ayudaValor = "Participaciones por la última cotización en euros" + (P.Precio is null ? "" :
+            $". {(EsFondo ? "Valor liquidativo" : "Cotización")} del {Formatos.Fecha(P.FechaPrecio!.Value)} ({P.OrigenPrecio})" +
+            (dia is not null ? "; la variación del día la compara con el cierre anterior" : ""));
         var ventas = P.Ventas.Count;
         return
         [
             new("Participaciones", TextosCartera.Participaciones(P.Participaciones), $"{P.LotesVivos} {(P.LotesVivos == 1 ? "lote vivo" : "lotes vivos")}", "Participaciones que quedan en cartera"),
             new("Coste", Formatos.Importe(P.Coste), P.PrecioMedio is decimal pm ? $"precio medio {TextosCartera.Num(pm, 3)} €" : "sin participaciones",
                 "Lo que costó lo que queda, comisiones incluidas"),
-            new("Valor", Formatos.Importe(P.Valor), nota, "Participaciones por la última cotización en euros"),
+            new("Valor", Formatos.Importe(P.Valor), nota, ayudaValor),
             new("Plusvalía latente", TextosCartera.Signo(P.Plusvalia), TextosCartera.Pct(P.PlusvaliaPorcentaje), "Valor menos coste de lo que queda", TextosCartera.Tono(P.Plusvalia)),
             new("Rentabilidad anual", TextosCartera.Pct(P.RentabilidadAnual), P.RentabilidadAnual is null ? "con menos de un año no se calcula" : "TIR desde la primera compra",
                 "Rentabilidad media por año, teniendo en cuenta cuándo entró y salió cada euro", TextosCartera.Tono(P.RentabilidadAnual)),
             new("Resultado de ventas", TextosCartera.Signo(P.ResultadoVentas), ventas == 0 ? "sin ventas" : $"{ventas} {(ventas == 1 ? "venta" : "ventas")} · 766 / 666",
                 "Importe cobrado menos el coste medio ponderado de lo vendido", TextosCartera.Tono(P.ResultadoVentas)),
         ];
+    }
+
+    /// <summary>Variación del último precio frente al cierre anterior del histórico (en tanto por uno); null sin dos precios.</summary>
+    private decimal? VariacionDia()
+    {
+        if (P.Precio is not decimal precio || P.FechaPrecio is not DateTime f) return null;
+        var h = P.Historico;
+        for (var i = h.Count - 1; i >= 0; i--)
+            if (h.Fechas[i].Date < f.Date) return h.Precios[i] > 0m ? precio / h.Precios[i] - 1m : null;
+        return null;
     }
 
     // ---------- Cotización ----------
@@ -157,6 +172,11 @@ public sealed class AnalisisActivoVM : ModeloVista
     public string TonoValoracion { get; private set; } = "";
     public string ExplicacionValoracion { get; private set; } = "";
     public bool HaySenales => Senales.Count > 0;
+
+    /// <summary>Cuántas señales van a favor, en contra y cuántas son neutras, bajo la conclusión.</summary>
+    public string ResumenSenales => Senales.Count == 0 ? "" :
+        $"{Formatos.Plural(Senales.Count(s => s.Tono == "Bueno"), "señal a favor", "señales a favor")}, {Senales.Count(s => s.Tono == "Malo")} en contra y " +
+        $"{Senales.Count(s => s.Tono == "")} neutras. Pasa el ratón para ver cómo se calcula.";
     public string TituloPivotes { get; private set; } = "";
     public IReadOnlyList<NivelPivote> Pivotes { get; private set; } = [];
     public bool HayPivotes => Pivotes.Count > 0;
