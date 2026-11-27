@@ -309,7 +309,7 @@
             <pc:TablaProConta ItemsSource="{Binding Lotes}" ClavePreferencias="activos.ficha.lotes" TituloExportacion="Lotes" IsReadOnly="True" AutomationProperties.Name="Lotes del activo"
                               HorizontalAlignment="Left">
               <pc:TablaProConta.Columns>
-                <DataGridTextColumn Header="Comprado" Binding="{Binding Comprado}" Width="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="comprado" />
+                <DataGridTextColumn Header="Comprado" Binding="{Binding Comprado}" Width="SizeToCells" MinWidth="96" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="comprado" />
                 <DataGridTextColumn Header="Compradas" Binding="{Binding Compradas}" Width="100" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="compradas" />
                 <DataGridTextColumn Header="Quedan" Binding="{Binding Quedan}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="quedan" />
                 <DataGridTextColumn Header="Precio (con comisión)" Binding="{Binding Precio}" Width="140" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="precio"
@@ -396,7 +396,15 @@
                                ToolTip="Nombre abreviado para listados y pestañas" />
                     </StackPanel>
                     <StackPanel Style="{StaticResource Campo.Bloque}">
-                      <TextBlock Text="Tipo" Style="{StaticResource Rotulo}" />
+                      <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Tipo" Style="{StaticResource Rotulo}" />
+                        <!-- Candado en lugar del aviso amarillo (ergonomía de activos 2026-11-26): el motivo, al pasar el ratón -->
+                        <Border Background="Transparent" Margin="6,0,0,3" VerticalAlignment="Center" ToolTip="{Binding MotivoBloqueo}"
+                                Visibility="{Binding MotivoBloqueo, Converter={StaticResource Visible}}">
+                          <Path Data="M3,7 L3,5 A3.5,3.5 0 0 1 10,5 L10,7 M1.5,7 H11.5 V14 H1.5 Z" Stroke="{StaticResource Pincel.Apagado}" StrokeThickness="1.4"
+                                Width="13" Height="15" Stretch="Uniform" />
+                        </Border>
+                      </StackPanel>
                       <ComboBox ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo, ValidatesOnNotifyDataErrors=True}" DisplayMemberPath="Nombre" Width="200"
                                 IsEnabled="{Binding TipoCambiable}" ToolTipService.ShowOnDisabled="True"
                                 ToolTip="El tipo decide la plantilla de subcuentas y las cuentas del plan contable que usa. Solo se puede cambiar si sus subcuentas no tienen apuntes en los últimos cinco ejercicios" />
@@ -406,9 +414,6 @@
                                 ToolTip="Márcalo si el activo no es de la sociedad y solo quieres guardar su información (por ejemplo, el piso particular): no tendrá subcuentas, centro ni amortización" />
                     </StackPanel>
                   </WrapPanel>
-                  <pc:Nota Tipo="Aviso" Margin="0,0,0,10" Visibility="{Binding MotivoBloqueo, Converter={StaticResource Visible}}">
-                    <TextBlock Text="{Binding MotivoBloqueo}" TextWrapping="Wrap" />
-                  </pc:Nota>
                   <StackPanel Style="{StaticResource Campo.Bloque}">
                     <TextBlock Text="Notas" Style="{StaticResource Rotulo}" />
                     <TextBox Text="{Binding Notas, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Campo.Multilinea}" Width="800" HorizontalAlignment="Left" MinHeight="48"
@@ -626,7 +631,7 @@
                 <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
               </DataGrid.RowStyle>
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="SizeToCells" MinWidth="96" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="130" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="220" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
@@ -676,7 +681,7 @@
                 <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}"><Setter Property="ToolTip" Value="{Binding Ayuda}" /></Style>
               </DataGrid.RowStyle>
               <DataGrid.Columns>
-                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="86" ElementStyle="{StaticResource Texto.Celda}" />
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha}" Width="SizeToCells" MinWidth="96" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="120" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="260" ElementStyle="{StaticResource Texto.Celda}" />
                 <DataGridTextColumn Header="Base del activo" Binding="{Binding BaseActivo}" Width="120" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />
@@ -734,8 +739,19 @@
                         ToolTip="Abre la pantalla del proceso de amortización de todos los activos" />
               </StackPanel>
             </pc:Nota>
-            <DataGrid Style="{StaticResource Tabla}" ItemsSource="{Binding FilasAmortizacion}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
+            <DataGrid x:Name="TablaAmortizacion" Style="{StaticResource Tabla}" ItemsSource="{Binding FilasAmortizacion}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single"
                       HorizontalAlignment="Left" AutomationProperties.Name="Amortización por ejercicio">
+              <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource Tabla.Fila}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding EsActual}" Value="True">
+                      <Setter Property="Background" Value="{StaticResource Pincel.AcentoSuave}" />
+                      <Setter Property="FontWeight" Value="SemiBold" />
+                      <Setter Property="ToolTip" Value="El ejercicio en el que estás trabajando" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </DataGrid.RowStyle>
               <DataGrid.Columns>
                 <DataGridTextColumn Header="Ejercicio" Binding="{Binding Ejercicio}" Width="80" ElementStyle="{StaticResource Texto.Celda.Mono}" />
                 <DataGridTextColumn Header="Días" Binding="{Binding Dias}" Width="90" ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" />

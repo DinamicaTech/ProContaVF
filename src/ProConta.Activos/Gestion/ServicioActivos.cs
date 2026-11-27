@@ -74,6 +74,17 @@ public sealed partial class ServicioActivos
         await s.ConsultarAsync("SELECT IdSociedadEjercicio, Ejercicio FROM SociedadesEjercicios WHERE IdSociedad = ? ORDER BY Ejercicio DESC",
             f => new EjercicioSociedad(f.Entero("IdSociedadEjercicio"), f.Entero("Ejercicio")), idSociedad));
 
+    /// <summary>
+    /// Uso de cada tipo en la sociedad, para el alta (ergonomía de activos 2026-11-26): cuántos activos propios tiene y el centro del último dado de alta,
+    /// del que se propone su padre para el centro nuevo.
+    /// </summary>
+    public Task<IReadOnlyList<UsoTipoActivo>> UsoTiposAsync(string idSociedad) => _bd.EjecutarAsync<IReadOnlyList<UsoTipoActivo>>(async s =>
+    {
+        var filas = await s.ConsultarAsync("SELECT IdActivo, IdTipoActivo, IdCentroCoste FROM Activos WHERE IdSociedad = ? AND EsAjeno = False ORDER BY IdActivo DESC",
+            f => (Tipo: f.Entero("IdTipoActivo"), Centro: f.EnteroNulo("IdCentroCoste")), idSociedad);
+        return filas.GroupBy(f => f.Tipo).Select(g => new UsoTipoActivo(g.Key, g.Count(), g.Select(f => f.Centro).FirstOrDefault(c => c is not null))).ToList();
+    });
+
     /// <summary>Número de líneas activas de la plantilla de un tipo (para decir cuántas subcuentas se crearán).</summary>
     public Task<int> LineasPlantillaAsync(int idTipoActivo) => _bd.EjecutarAsync(async s =>
         Convert.ToInt32(await s.EscalarAsync("SELECT COUNT(*) FROM PlantillasSubcuentasActivo WHERE IdTipoActivo = ? AND EstaActiva = True", idTipoActivo), CultureInfo.InvariantCulture));

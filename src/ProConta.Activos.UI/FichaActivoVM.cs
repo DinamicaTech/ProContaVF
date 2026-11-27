@@ -52,7 +52,9 @@ public sealed record FilaSubcuentaVM(string Codigo, string Nombre, string Papel,
 }
 
 /// <summary>Una fila de la tabla de amortización.</summary>
-public sealed record FilaAmortizacionVM(string Ejercicio, string Dias, string Cuota, string Acumulado, string Pendiente, string Estado, string ClaseEstado, string Ayuda);
+/// <param name="EsActual">El ejercicio de trabajo: se resalta y la tabla se desplaza hasta él (ergonomía de activos 2026-11-26).</param>
+public sealed record FilaAmortizacionVM(string Ejercicio, string Dias, string Cuota, string Acumulado, string Pendiente, string Estado, string ClaseEstado, string Ayuda,
+    bool EsActual = false);
 
 /// <summary>
 /// Ficha de un activo en su pestaña (activos 2026-11-17 18:50): cabecera con nombre, código, tipo, estado, centro y actividad; indicadores del ejercicio de
@@ -271,7 +273,10 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
         Indicadores =
         [
             new("Coste de compra", Formatos.Importe(f.Datos.Coste), f.Datos.FechaCompra is DateTime fc ? $"comprado el {Formatos.Fecha(fc)}" : "sin fecha de compra"),
-            new("Amortizado", Formatos.Importe(f.Amortizado), f.Amortizable > 0m ? $"{pct.ToString("0", Es)} % de {Formatos.Importe(f.Amortizable)}" : "sin plan de amortización"),
+            new("Amortizado", Formatos.Importe(f.Amortizado), f.Amortizable <= 0m ? "sin plan de amortización"
+                : f.Datos.Inmueble is not null ? $"{pct.ToString("0", Es)} % de la construcción" : $"{pct.ToString("0", Es)} % de {Formatos.Importe(f.Amortizable)}",
+                Ayuda: f.Amortizable > 0m ? $"Amortizado hasta hoy: {pct.ToString("0", Es)} % de la base amortizable, {Formatos.Importe(f.Amortizable)}" +
+                    (f.Datos.Inmueble is not null ? " (la construcción: el suelo no se amortiza)" : "") : null),
             new($"Ingresos de {ej}", Formatos.Importe(c?.Ingresos ?? 0m), "grupo 7 de sus subcuentas y su centro"),
             new($"Gastos de {ej}", Formatos.Importe(c?.Gastos ?? 0m), prevista > 0m ? "con la amortización prevista" : "grupo 6 de sus subcuentas y su centro"),
             new($"Resultado de {ej}", Formatos.Importe(c?.Resultado ?? 0m), c?.Rentabilidad(f.Datos.Coste) is decimal ren && (c?.Ingresos ?? 0m) != 0m
@@ -752,7 +757,7 @@ public sealed partial class FichaActivoVM : ModeloVista, IPestanaTrabajo, INotif
                     EstadoAmortizacionEjercicio.Calculada => "Año anterior a los datos que tiene el programa: calculado con el plan.",
                     EstadoAmortizacionEjercicio.PendienteDeContabilizar => "Lo que toca este año según el plan; se contabiliza desde Contabilidad › Amortización de activos.",
                     _ => "Proyección del plan para los años siguientes.",
-                })).ToList();
+                }, f.Ejercicio == _modulo.Contexto.Trabajo.Ejercicio)).ToList();
         }
         Avisar(nameof(FilasAmortizacion), nameof(FrasePlan));
     }

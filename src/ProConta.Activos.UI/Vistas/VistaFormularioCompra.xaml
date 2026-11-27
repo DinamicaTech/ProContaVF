@@ -23,8 +23,12 @@
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
         <TextBlock Text="Participaciones" Style="{StaticResource Rotulo}" />
-        <TextBox Text="{Binding Participaciones, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
-                 ToolTip="{Binding AyudaParticipaciones}" />
+        <StackPanel Orientation="Horizontal">
+          <TextBox x:Name="CampoParticipaciones" Text="{Binding Participaciones, UpdateSourceTrigger=PropertyChanged}" Width="120" TextAlignment="Right"
+                   ToolTip="{Binding AyudaParticipaciones}" />
+          <Button Content="Todas" Style="{StaticResource Boton.Pequeno}" Command="{Binding TodasCommand}" Margin="6,0,0,0" VerticalAlignment="Center"
+                  Visibility="{Binding VerTodas, Converter={StaticResource Visible}}" ToolTip="Vende todas las participaciones que tiene el activo" />
+        </StackPanel>
       </StackPanel>
       <StackPanel Style="{StaticResource Campo.Bloque}">
         <TextBlock Text="{Binding RotuloPrecio}" Style="{StaticResource Rotulo}" />
@@ -39,7 +43,7 @@
         <TextBlock Text="Cambio (por 1 €)" Style="{StaticResource Rotulo}" />
         <TextBox Text="{Binding Cambio, UpdateSourceTrigger=PropertyChanged}" Width="90" TextAlignment="Right" ToolTip="{Binding AyudaCambio}" />
       </StackPanel>
-      <StackPanel Style="{StaticResource Campo.Bloque}">
+      <StackPanel Style="{StaticResource Campo.Bloque}" Visibility="{Binding EnOtraMoneda, Converter={StaticResource Visible}}">
         <TextBlock Text="Precio en euros" Style="{StaticResource Rotulo}" />
         <TextBox Text="{Binding PrecioEuros, Mode=OneWay}" IsReadOnly="True" Width="120" TextAlignment="Right" ToolTip="Precio / cambio: lo que vale una participación en euros" />
       </StackPanel>
@@ -49,6 +53,20 @@
                  ToolTip="{Binding AyudaImporte}" />
       </StackPanel>
     </WrapPanel>
+    <TextBlock Text="{Binding ResultadoEstimado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" FontWeight="SemiBold" Margin="0,0,0,6"
+               Visibility="{Binding ResultadoEstimado, Converter={StaticResource Visible}}"
+               ToolTip="Lo que ganas o pierdes con esta venta a coste medio ponderado: importe de la venta menos lo que costaron, de media, las participaciones vendidas">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding ResultadoNegativo}" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
     <TextBlock Text="{Binding Origen}" Style="{StaticResource Texto.Apagado}" TextWrapping="Wrap" MaxWidth="680" HorizontalAlignment="Left" />
     <pc:Nota Tipo="Aviso" Margin="0,6,0,0" Visibility="{Binding HayErrorPrecio, Converter={StaticResource Visible}}">
       <TextBlock Text="{Binding ErrorPrecio}" TextWrapping="Wrap" />

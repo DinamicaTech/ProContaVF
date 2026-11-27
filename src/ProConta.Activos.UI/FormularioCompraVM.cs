@@ -29,9 +29,31 @@ public sealed class FormularioCompraVM : ModeloVista
         _hoy = hoy ?? (() => DateTime.Today);
         _fecha = Formatos.Fecha(_hoy());
         ConsultarPrecioCommand = new ComandoDelegado(() => _ = ConsultarPrecioAsync(), () => !_consultando && PuedeConsultar);
+        TodasCommand = new ComandoDelegado(() => { if (Disponibles is decimal d) Participaciones = d.ToString("0.######", Es); }, () => Disponibles > 0m);
     }
 
     public ICommand ConsultarPrecioCommand { get; }
+
+    /// <summary>«Todas» en la venta: pone las participaciones que tiene el activo (ergonomía de activos 2026-11-26).</summary>
+    public ICommand TodasCommand { get; }
+
+    /// <summary>Venta: participaciones que tiene el activo, para «Todas».</summary>
+    public decimal? Disponibles { get; init; }
+
+    /// <summary>Venta: coste medio por participación, para el resultado estimado.</summary>
+    public decimal? CosteMedio { get; init; }
+
+    public bool VerTodas => EsVenta && Disponibles > 0m;
+
+    /// <summary>Venta: importe menos el coste medio de las participaciones vendidas, mientras se escribe.</summary>
+    public string ResultadoEstimado => EsVenta && CosteMedio is decimal cm && LeerNumero(_participaciones) is decimal n && n > 0m
+                                       && FichaActivoVM.Importe(_coste) is decimal imp && imp > 0m
+        ? $"Resultado estimado de esta venta: {Formatos.Importe(imp - Math.Round(cm * n, 2, MidpointRounding.AwayFromZero))} " +
+          $"(importe {Formatos.Importe(imp)} menos el coste medio de {n.ToString("#,##0.######", Es)} participaciones, {Formatos.Importe(Math.Round(cm * n, 2, MidpointRounding.AwayFromZero))})"
+        : "";
+
+    public bool ResultadoNegativo => ResultadoEstimado.Length > 0 && CosteMedio is decimal cm && LeerNumero(_participaciones) is decimal n
+                                     && FichaActivoVM.Importe(_coste) is decimal imp && imp < Math.Round(cm * n, 2, MidpointRounding.AwayFromZero);
 
     /// <summary>
     /// Si es una venta («Vender…», activos/activos-financieros 2026-11-24 09:14): cambian los rótulos y el importe total es opcional (si no se escribe,
@@ -68,7 +90,7 @@ public sealed class FormularioCompraVM : ModeloVista
     public bool PuedeConsultar => _cotizaciones is not null && _referencia is { } r && (!string.IsNullOrWhiteSpace(r.TickerYahoo) || !string.IsNullOrWhiteSpace(r.TickerEodhd));
 
     public string Fecha { get => _fecha; set { if (Fijar(ref _fecha, value) && LeerFecha(value) is not null && PuedeConsultar) _ = ConsultarPrecioAsync(); } }
-    public string Participaciones { get => _participaciones; set { if (Fijar(ref _participaciones, value)) Recalcular(); } }
+    public string Participaciones { get => _participaciones; set { if (Fijar(ref _participaciones, value)) { Recalcular(); AvisarResultado(); } } }
     public string Precio { get => _precio; set { if (Fijar(ref _precio, value)) { if (!_poniendo) Manual(); Recalcular(); } } }
     public string Cambio { get => _cambio; set { if (Fijar(ref _cambio, value)) { if (!_poniendo) Manual(); Recalcular(); } } }
     public string Moneda { get => _moneda; private set { if (Fijar(ref _moneda, value)) Avisar(nameof(EnOtraMoneda), nameof(RotuloPrecio), nameof(AyudaCambio)); } }
@@ -77,7 +99,9 @@ public sealed class FormularioCompraVM : ModeloVista
     public string AyudaCambio => $"Cuántos {_moneda} vale un euro según el Banco Central Europeo ese día. Se rellena solo; puedes corregirlo.";
 
     /// <summary>Coste total del lote en euros; mientras no se escriba a mano, participaciones × precio en euros.</summary>
-    public string CosteTotal { get => _coste; set { if (Fijar(ref _coste, value) && !_poniendo) _costeEscrito = true; } }
+    public string CosteTotal { get => _coste; set { if (Fijar(ref _coste, value)) { if (!_poniendo) _costeEscrito = true; AvisarResultado(); } } }
+
+    private void AvisarResultado() => Avisar(nameof(ResultadoEstimado), nameof(ResultadoNegativo));
 
     public string PrecioEuros => PrecioEurValor is decimal p ? p.ToString("#,##0.00####", Es) + " €" : "";
     public string Origen { get => _origen; private set => Fijar(ref _origen, value); }

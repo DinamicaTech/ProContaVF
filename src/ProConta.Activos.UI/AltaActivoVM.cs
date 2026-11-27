@@ -66,6 +66,8 @@ public sealed class AltaActivoVM : ModeloVista
     public int? IdCreado { get; private set; }
     public IReadOnlyList<OpcionTipoAlta> Tipos { get; private set; } = [];
     private IReadOnlyList<CentroParaActivo> _centros = [];
+    private Dictionary<int, UsoTipoActivo> _usos = [];
+    private bool _padreElegido;
 
     /// <summary>
     /// Lee los tipos y los centros. Con <paramref name="financiero"/> («Nuevo activo financiero…» de la cartera), propone la inversión financiera y, si es
@@ -73,8 +75,13 @@ public sealed class AltaActivoVM : ModeloVista
     /// </summary>
     public async Task CargarAsync(bool financiero = false)
     {
-        Tipos = (await _ctx.Servicio.TiposAsync()).Select(t => new OpcionTipoAlta(t)).ToList();
+        var tipos = await _ctx.Servicio.TiposAsync();
         _centros = await _ctx.Servicio.CentrosAsync(_ctx.Trabajo.IdSociedad);
+        try { _usos = (await _ctx.Servicio.UsoTiposAsync(_ctx.Trabajo.IdSociedad)).ToDictionary(u => u.IdTipoActivo); }
+        catch (Exception) { _usos = []; } // sin el uso, el orden y el centro padre se quedan sin proponer
+        // Los tipos más usados primero (ergonomía de activos 2026-11-26); a igualdad, el orden de la tabla.
+        Tipos = tipos.Select((t, i) => (t, i)).OrderByDescending(x => _usos.TryGetValue(x.t.IdTipoActivo, out var u) ? u.Activos : 0).ThenBy(x => x.i)
+            .Select(x => new OpcionTipoAlta(x.t)).ToList();
         var inversiones = Tipos.Where(t => t.Tipo.EsInversion).ToList();
         Tipo = financiero && inversiones.Count > 0
             ? inversiones.FirstOrDefault(t => t.Tipo.Codigo == TiposActivoPgc.Inversion) ?? inversiones[0]
@@ -128,6 +135,7 @@ public sealed class AltaActivoVM : ModeloVista
                 _seAmortiza = value.Tipo.AmortizablePredeterminado || value.Tipo.PorcentajeHabitual > 0m;
             }
             Avisar(nameof(EsInmueble), nameof(EsInversion), nameof(NoEsInversion), nameof(PropioNoInversion), nameof(PorcentajeAnual), nameof(SeAmortiza), nameof(TextoHabitual), nameof(TextoBase));
+            ProponerPadre();
             ProponerBase();
         }
     }
@@ -247,7 +255,7 @@ public sealed class AltaActivoVM : ModeloVista
     }
 
     // ---------- paso 2 ----------
-    public string Nombre { get => _nombre; set => Fijar(ref _nombre, value); }
+    public string Nombre { get => _nombre; set { if (Fijar(ref _nombre, value)) Avisar(nameof(AyudaCentroNuevo)); } }
     public string NombreCorto
     {
         get => _nombreCorto;
@@ -256,21 +264,36 @@ public sealed class AltaActivoVM : ModeloVista
             if (!Fijar(ref _nombreCorto, value)) return;
             _nombreCortoPropuesto = false;
             if (!_codigoEscrito) { _codigo = CodigoDe(value); Avisar(nameof(Codigo)); }
+            Avisar(nameof(AyudaCentroNuevo));
         }
     }
-    public string Codigo { get => _codigo; set { if (Fijar(ref _codigo, value)) _codigoEscrito = true; } }
+    public string Codigo { get => _codigo; set { if (Fijar(ref _codigo, value)) { _codigoEscrito = true; Avisar(nameof(AyudaCentroNuevo)); } } }
     public string FechaCompra { get => _fecha; set => Fijar(ref _fecha, value); }
     public string Coste { get => _coste; set { if (Fijar(ref _coste, value)) ProponerBase(); } }
     public string Referencia { get => _referencia; set => Fijar(ref _referencia, value); }
     public string Suelo { get => _suelo; set { if (Fijar(ref _suelo, value)) CalcularConstruccion(); } }
     public string Construccion { get => _construccion; set { if (Fijar(ref _construccion, value)) CalcularConstruccion(); } }
     public string PorcentajeConstruccion { get => _pctConstruccion; set { if (Fijar(ref _pctConstruccion, value)) ProponerBase(); } }
-    public bool CentroNuevo { get => _centroNuevo; set { if (Fijar(ref _centroNuevo, value)) Avisar(nameof(CentroExistente)); } }
+    public bool CentroNuevo { get => _centroNuevo; set { if (Fijar(ref _centroNuevo, value)) Avisar(nameof(CentroExistente), nameof(AyudaCentroNuevo)); } }
     public bool CentroExistente { get => !_centroNuevo; set => CentroNuevo = !value; }
     public string TextoCentro => _centro?.Texto ?? "ninguno elegido";
     public string TextoPadre => _padre?.Texto ?? "ninguno elegido";
-    public string AyudaCentroNuevo => $"Se crea un centro con el código «{ReglasFichaActivo.CodigoCentro(_codigo.Length > 0 ? _codigo : "…")}» y el nombre «{(NombreCortoONombre is { Length: > 0 } n ? n : "…")}» dentro del centro que elijas, del que heredará la actividad de IVA.";
+    /// <summary>Qué centro se crea; vacía hasta que haya código o nombre (sin «…» de relleno).</summary>
+    public string AyudaCentroNuevo => !_centroNuevo || _codigo.Trim().Length == 0 ? "" : $"Se crea un centro con el código «{ReglasFichaActivo.CodigoCentro(_codigo.Trim())}» y el nombre «{NombreCortoONombre}» dentro del centro que elijas, del que heredará la actividad de IVA.";
     private string NombreCortoONombre => _nombreCorto.Trim().Length > 0 ? _nombreCorto.Trim() : _nombre.Trim();
+
+    /// <summary>
+    /// Mientras no se elija a mano, el padre del centro nuevo es el del centro del último activo de la misma clase (ergonomía de activos 2026-11-26):
+    /// la siguiente vivienda va con las viviendas y el siguiente ETF con los ETF.
+    /// </summary>
+    private void ProponerPadre()
+    {
+        if (_padreElegido || _tipo is null) return;
+        var padre = _usos.TryGetValue(_tipo.Tipo.IdTipoActivo, out var u) && u.IdCentroUltimo is int c && _centros.FirstOrDefault(x => x.IdCentroCoste == c) is { IdPadre: int p }
+            ? _centros.FirstOrDefault(x => x.IdCentroCoste == p && x.EstaActivo) : null;
+        _padre = padre;
+        Avisar(nameof(TextoPadre));
+    }
 
     private void CalcularConstruccion()
     {
@@ -289,7 +312,7 @@ public sealed class AltaActivoVM : ModeloVista
                   : "Elige el centro donde se apuntarán sus gastos e ingresos. Mejor uno que no use otro activo: si lo comparten, su cuenta de resultados solo cuenta sus subcuentas.",
             _centros.Where(x => x.EstaActivo && (nuevo || x.EsImputable)).ToList(), nuevo ? _padre?.IdCentroCoste : _centro?.IdCentroCoste, soloImputables: !nuevo);
         if (c is null) return;
-        if (nuevo) { _padre = c; Avisar(nameof(TextoPadre)); }
+        if (nuevo) { _padre = c; _padreElegido = true; Avisar(nameof(TextoPadre)); }
         else { _centro = c; Avisar(nameof(TextoCentro)); }
     }
 
