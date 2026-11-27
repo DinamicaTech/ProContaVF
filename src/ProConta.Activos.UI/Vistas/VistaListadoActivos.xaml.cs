@@ -11,9 +11,47 @@ namespace ProConta.Activos.UI.Vistas;
 /// <summary>Listado de activos: un clic en una fila la marca o la desmarca (sin Ctrl ni Mayús), doble clic abre la ficha.</summary>
 public partial class VistaListadoActivos : UserControl
 {
-    public VistaListadoActivos() => InitializeComponent();
+    private ListadoActivosVM? _vm;
+
+    public VistaListadoActivos()
+    {
+        InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (_vm is not null) { _vm.PropertyChanged -= AlCambiarVm; _vm.GruposCambiados -= RefrescarGrupos; }
+            _vm = DataContext as ListadoActivosVM;
+            if (_vm is null) return;
+            _vm.PropertyChanged += AlCambiarVm;
+            _vm.GruposCambiados += RefrescarGrupos;
+            Agrupar();
+        };
+    }
 
     private ListadoActivosVM? Vm => DataContext as ListadoActivosVM;
+
+    private void AlCambiarVm(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ListadoActivosVM.Filas)) Agrupar();
+    }
+
+    /// <summary>
+    /// La tabla se agrupa por el tipo de activo (Parámetros › Tipos de activo), en orden alfabético, con el resumen del grupo en su cabecera
+    /// (propietario 2026-11-27). Ordenar por una columna ordena dentro de cada grupo.
+    /// </summary>
+    private void Agrupar()
+    {
+        if (_vm is null || CollectionViewSource.GetDefaultView(_vm.Filas) is not { } vista || vista.GroupDescriptions is null) return;
+        if (vista.GroupDescriptions.Count > 0) return;
+        var grupo = new PropertyGroupDescription(nameof(FilaActivoVM.Grupo));
+        grupo.SortDescriptions.Add(new System.ComponentModel.SortDescription("Name", System.ComponentModel.ListSortDirection.Ascending));
+        vista.GroupDescriptions.Add(grupo);
+    }
+
+    /// <summary>Vuelve a calcular los resúmenes de los grupos (al leer las posiciones de los financieros).</summary>
+    private void RefrescarGrupos()
+    {
+        if (_vm is not null) CollectionViewSource.GetDefaultView(_vm.Filas)?.Refresh();
+    }
 
     private static FilaActivoVM? FilaDe(object tabla, object origen) =>
         tabla is DataGrid t && origen is DependencyObject o && ItemsControl.ContainerFromElement(t, o) is DataGridRow fila ? fila.Item as FilaActivoVM : null;
@@ -50,6 +88,15 @@ public partial class VistaListadoActivos : UserControl
         if (e.Key == Key.Space) { fila.Marcado = !fila.Marcado; e.Handled = true; }
         else if (e.Key == Key.Enter && Vm.AbrirCommand.CanExecute(fila)) { Vm.AbrirCommand.Execute(fila); e.Handled = true; }
     }
+}
+
+/// <summary>Resumen de un grupo de la tabla (sus filas): cuántos activos, coste y resultado del ejercicio.</summary>
+public sealed class ResumenGrupoConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is System.Collections.IEnumerable filas ? ListadoActivosVM.ResumenGrupo(filas.OfType<FilaActivoVM>()) : "";
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
 /// <summary>Para los segmentos: marcado si el valor es igual al parámetro; al marcarlo, el valor pasa a ser el parámetro.</summary>

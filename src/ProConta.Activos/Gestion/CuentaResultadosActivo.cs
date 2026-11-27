@@ -33,24 +33,34 @@ public sealed record FilaResultado(string Cuenta, string Nombre, bool EsIngreso,
     public bool EsCalculada => Tipo != TipoFilaResultado.Subcuenta;
 }
 
-/// <summary>Cuenta de resultados de un activo en un ejercicio: ingresos y gastos por subcuenta y mes, sus totales y el resultado.</summary>
+/// <summary>
+/// Cuenta de resultados de un activo en un ejercicio: ingresos y gastos por subcuenta y mes, sus totales y el resultado. La amortización (subcuentas
+/// 68 y la prevista) no se resta del resultado (propietario 2026-11-27): va aparte, en <see cref="FilasAmortizacion"/>, solo informativa.
+/// </summary>
 public sealed record CuentaResultados(int Ejercicio, IReadOnlyList<FilaResultado> Filas)
 {
+    /// <summary>Si la fila es amortización: una subcuenta 68 o la amortización prevista.</summary>
+    public static bool EsDeAmortizacion(FilaResultado f) =>
+        f.Tipo == TipoFilaResultado.AmortizacionPrevista || (!f.EsIngreso && f.Tipo == TipoFilaResultado.Subcuenta && CalculoCuentaResultados.EsAmortizacion(f.Cuenta));
+
     public IEnumerable<FilaResultado> FilasIngresos => Filas.Where(f => f.EsIngreso);
-    public IEnumerable<FilaResultado> FilasGastos => Filas.Where(f => !f.EsIngreso);
+    /// <summary>Gastos que cuentan para el resultado: sin la amortización.</summary>
+    public IEnumerable<FilaResultado> FilasGastos => Filas.Where(f => !f.EsIngreso && !EsDeAmortizacion(f));
+    /// <summary>La amortización del año (contabilizada y prevista), que se enseña aparte y no se resta del resultado.</summary>
+    public IEnumerable<FilaResultado> FilasAmortizacion => Filas.Where(EsDeAmortizacion);
     public decimal Ingresos => FilasIngresos.Sum(f => f.Total);
     public decimal Gastos => FilasGastos.Sum(f => f.Total);
+    public decimal Amortizacion => FilasAmortizacion.Sum(f => f.Total);
+    /// <summary>Ingresos menos gastos, sin la amortización.</summary>
     public decimal Resultado => Ingresos - Gastos;
 
     /// <summary>Rentabilidad sobre el coste (resultado / coste, en tanto por uno); null sin coste.</summary>
     public decimal? Rentabilidad(decimal coste) => coste > 0m ? Resultado / coste : null;
 
     public decimal IngresosMes(int mes) => FilasIngresos.Sum(f => f.Meses[mes]);
+    /// <summary>Gastos del mes sin la amortización.</summary>
     public decimal GastosMes(int mes) => FilasGastos.Sum(f => f.Meses[mes]);
-
-    /// <summary>Gastos del mes sin la amortización (la de las subcuentas 68 y la prevista), para el gráfico de barras.</summary>
-    public decimal GastosMesSinAmortizacion(int mes) => FilasGastos.Where(f => f.Tipo != TipoFilaResultado.AmortizacionPrevista && !CalculoCuentaResultados.EsAmortizacion(f.Cuenta))
-        .Sum(f => f.Meses[mes]);
+    public decimal AmortizacionMes(int mes) => FilasAmortizacion.Sum(f => f.Meses[mes]);
 
     /// <summary>Ingresos ordinarios del activo (cuentas 70 a 75) en el año.</summary>
     public decimal IngresosOrdinarios => FilasIngresos.Where(f => CalculoCuentaResultados.EsIngresoOrdinario(f.Cuenta)).Sum(f => f.Total);

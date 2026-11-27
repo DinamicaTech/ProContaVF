@@ -690,7 +690,6 @@ public partial class VentanaPrincipal : Window
             },
             _area, new ProConta.Activos.UI.Vistas.DialogosActivos(() => this));
         var abrirActivos = new ComandoDelegado(() => _activos.AbrirListado());
-        var abrirCartera = new ComandoDelegado(() => _activos.AbrirCartera());
         // Informes (contabilidad/balances e informes/excel): cada opción genera el libro Excel con su tabla dinámica y lo abre.
         _balances = new ProConta.Contabilidad.Balances.GeneradorBalances(bd);
         _razonSocial = contexto.RazonSocial;
@@ -713,9 +712,6 @@ public partial class VentanaPrincipal : Window
             new OpcionNavegacion("Activos", null, true, false,
                 "Inmuebles, vehículos, instalaciones y aplicaciones de la sociedad: listado con sus cifras del año, ficha con su cuenta de resultados, subcuentas y amortización, y alta paso a paso",
                 abrirActivos, EsHija: true),
-            new OpcionNavegacion("Activos financieros", null, true, false,
-                "Análisis de los ETFs, fondos y participaciones: valor de la cartera, revalorización, comparativa, rentabilidad por activo y proyección, con las cotizaciones al día",
-                abrirCartera, EsHija: true),
             new OpcionNavegacion("Documentos", null, true, false,
                 "Gestor documental de la sociedad: añade ficheros (o arrástralos) a «Por clasificar», revisa lo que el programa propone (tipo, fecha, título y vínculo), " +
                 "archívalos de una vez y vincúlalos a modelos, ejercicios, terceros, activos, facturas o asientos; vista previa, versiones y búsqueda",

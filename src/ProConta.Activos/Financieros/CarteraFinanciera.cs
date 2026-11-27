@@ -168,6 +168,20 @@ public sealed record PosicionFinanciera(int IdActivo, string Codigo, InversionDe
     public decimal ResultadoVentas => Ventas.Sum(v => v.Resultado);
     public decimal ResultadoVentasEjercicio(int ejercicio) => Ventas.Where(v => v.Fecha.Year == ejercicio).Sum(v => v.Resultado);
 
+    /// <summary>
+    /// Lo ganado o perdido en el ejercicio (propietario 2026-11-27): el resultado de sus ventas del año más lo que ha subido o bajado su plusvalía latente
+    /// entre el 31/12 anterior y el final del año (hoy, si el año está en curso). Las compras y las ventas no cuentan como ganancia. Sin cotización
+    /// se valora a coste, así que solo cuentan las ventas.
+    /// </summary>
+    public decimal ResultadoEjercicio(int ejercicio)
+    {
+        var inicio = new DateTime(ejercicio - 1, 12, 31);
+        var fin = new DateTime(ejercicio, 12, 31);
+        var latenteFin = fin >= Hoy.Date ? Plusvalia : ValorEn(fin) - CosteEn(fin);
+        var latenteInicio = ValorEn(inicio) - CosteEn(inicio);
+        return Math.Round(ResultadoVentasEjercicio(ejercicio) + latenteFin - latenteInicio, 2, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>Flujos de la TIR: compras (−), ventas (+) y el valor de hoy (+).</summary>
     public IReadOnlyList<(DateTime Fecha, decimal Importe)> Flujos
     {

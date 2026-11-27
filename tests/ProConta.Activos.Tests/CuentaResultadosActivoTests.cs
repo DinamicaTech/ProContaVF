@@ -63,18 +63,22 @@ public sealed class CuentaResultadosActivoTests
     }
 
     [Fact]
-    public void La_amortizacion_prevista_va_en_diciembre_y_suma_al_resultado()
+    public void La_amortizacion_va_aparte_y_no_resta_del_resultado()
     {
-        var c = CalculoCuentaResultados.Calcular(2026, [A("7520001", 1, 0m, 1000m)], Piso, Nombre, amortizacionPrevista: 312.45m);
+        var c = CalculoCuentaResultados.Calcular(2026, [A("7520001", 1, 0m, 1000m), A("6250001", 2, 100m, 0m), A("6810001", 6, 200m, 0m, centro: 30)], Piso, Nombre,
+            amortizacionPrevista: 312.45m);
         var prevista = Assert.Single(c.Filas, f => f.Tipo == TipoFilaResultado.AmortizacionPrevista);
         Assert.Equal(CalculoCuentaResultados.TextoPrevista, prevista.Nombre);
         Assert.False(prevista.EsIngreso);
         Assert.Equal(312.45m, prevista.Meses[11]);
-        Assert.Equal(312.45m, prevista.Total);
-        Assert.Equal(687.55m, c.Resultado);
-        // El gráfico no lleva la amortización.
-        Assert.Equal(0m, c.GastosMesSinAmortizacion(11));
-        // Ya contabilizada del todo: no hay fila.
+        // Gastos y resultado sin la amortización (ni la contabilizada en la 68 ni la prevista).
+        Assert.Equal(100m, c.Gastos);
+        Assert.Equal(900m, c.Resultado);
+        Assert.Equal(512.45m, c.Amortizacion);
+        Assert.Equal(["6810001", ""], c.FilasAmortizacion.Select(f => f.Cuenta));
+        Assert.Equal(0m, c.GastosMes(11));
+        Assert.Equal(312.45m, c.AmortizacionMes(11));
+        // Ya contabilizada del todo: no hay fila prevista.
         Assert.DoesNotContain(CalculoCuentaResultados.Calcular(2026, [], Piso, Nombre, 0m).Filas, f => f.Tipo == TipoFilaResultado.AmortizacionPrevista);
     }
 

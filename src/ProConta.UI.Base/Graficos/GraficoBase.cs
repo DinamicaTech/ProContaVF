@@ -29,7 +29,9 @@ public abstract class GraficoBase : ContentControl
         Lienzo = new WpfPlot { IsHitTestVisible = false, Focusable = false };
         Lienzo.UserInputProcessor.UserActionResponses.Clear();
         Lienzo.Menu = null;
-        Content = Lienzo;
+        // El ScottPlot no recibe el ratón (IsHitTestVisible = false) y la plantilla de ContentControl no pinta su fondo: sin este borde con fondo
+        // transparente nada del gráfico recibía el ratón y no había tooltip, rueda ni arrastre.
+        Content = new Border { Background = Brushes.Transparent, Child = Lienzo };
         Focusable = false;
         IsTabStop = false;
         Background = Brushes.Transparent;

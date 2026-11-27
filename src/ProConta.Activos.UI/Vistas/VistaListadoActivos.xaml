@@ -7,6 +7,29 @@
   <UserControl.Resources>
     <pc:VisibleSiConverter x:Key="Visible" />
     <v:IgualConverter x:Key="Igual" />
+    <v:ResumenGrupoConverter x:Key="ResumenGrupo" />
+    <!-- Un grupo por tipo de activo, plegable, con su resumen en la cabecera (propietario 2026-11-27) -->
+    <GroupStyle x:Key="GrupoTipo">
+      <GroupStyle.ContainerStyle>
+        <Style TargetType="GroupItem">
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="GroupItem">
+                <Expander IsExpanded="True" BorderThickness="0" Padding="0">
+                  <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Margin="2,4" ToolTip="Clic para plegar o desplegar los activos de este tipo">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource Pincel.Texto2}" Margin="0,0,10,0" />
+                      <TextBlock Text="{Binding Items, Converter={StaticResource ResumenGrupo}}" Style="{StaticResource Texto.Apagado}" />
+                    </StackPanel>
+                  </Expander.Header>
+                  <ItemsPresenter />
+                </Expander>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
+        </Style>
+      </GroupStyle.ContainerStyle>
+    </GroupStyle>
     <ContextMenu x:Key="Menu.Activos">
       <MenuItem Header="Abrir la ficha" Command="{Binding AbrirCommand}" ToolTipService.ShowOnDisabled="True"
                 ToolTip="Abre la ficha del activo marcado en una pestaña (solo con uno marcado). También con doble clic" />
@@ -122,7 +145,7 @@
     <Border DockPanel.Dock="Bottom" Style="{StaticResource Barra.Pie}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Visibility="{Binding HayTotales, Converter={StaticResource Visible}}"
-                    ToolTip="Suma de los activos de la sociedad que se ven (los ajenos no cuentan). Gastos con la amortización prevista del año">
+                    ToolTip="Suma de los activos de la sociedad que se ven (los ajenos no cuentan). El resultado no lleva la amortización; el de los financieros es lo ganado o perdido en el año">
           <TextBlock Text="{Binding TextoTotales}" Style="{StaticResource Texto.Apagado}" Margin="0,0,14,0" VerticalAlignment="Center" />
           <StackPanel Orientation="Horizontal" Visibility="{Binding HayInmovilizado, Converter={StaticResource Visible}}"
                       ToolTip="Coste de compra del inmovilizado que se ve (inmuebles, vehículos, instalaciones…)">
@@ -180,6 +203,7 @@
                           Visibility="{Binding EnGeneral, Converter={StaticResource Visible}}"
                           PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
                           PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+          <pc:TablaProConta.GroupStyle><StaticResource ResourceKey="GrupoTipo" /></pc:TablaProConta.GroupStyle>
           <pc:TablaProConta.Columns>
             <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
               <DataGridTemplateColumn.Header>
@@ -213,11 +237,11 @@
             </DataGridTextColumn>
             <DataGridTextColumn Binding="{Binding Gastos}" SortMemberPath="GastosOrden" Width="115" ElementStyle="{StaticResource Texto.Celda.Importe}"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="gastos"
-                                pc:TablaProConta.Ayuda="Gastos del ejercicio de trabajo (grupo 6), con la amortización prevista del año si aún no está contabilizada">
+                                pc:TablaProConta.Ayuda="Gastos del ejercicio de trabajo (grupo 6), sin la amortización">
               <DataGridTextColumn.Header><TextBlock><Run Text="Gastos " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
             </DataGridTextColumn>
             <DataGridTextColumn Binding="{Binding Resultado}" SortMemberPath="ResultadoOrden" Width="115" ElementStyle="{StaticResource Celda.Resultado}"
-                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado" pc:TablaProConta.Ayuda="Ingresos menos gastos del ejercicio de trabajo">
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado" pc:TablaProConta.Ayuda="Ingresos menos gastos del ejercicio de trabajo, sin la amortización. En los financieros, lo ganado o perdido en el año: resultado de las ventas más lo que ha subido o bajado su valor">
               <DataGridTextColumn.Header><TextBlock><Run Text="Resultado " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
             </DataGridTextColumn>
             <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado">
@@ -238,6 +262,7 @@
                           Visibility="{Binding EnFinancieros, Converter={StaticResource Visible}}"
                           PreviewMouseLeftButtonDown="Tabla_PreviewMouseLeftButtonDown" MouseDoubleClick="Tabla_MouseDoubleClick"
                           PreviewMouseRightButtonDown="Tabla_PreviewMouseRightButtonDown" PreviewKeyDown="Tabla_PreviewKeyDown">
+          <pc:TablaProConta.GroupStyle><StaticResource ResourceKey="GrupoTipo" /></pc:TablaProConta.GroupStyle>
           <pc:TablaProConta.Columns>
             <DataGridTemplateColumn Width="34" pc:TablaProConta.Clave="marca" pc:TablaProConta.SiempreVisible="True" CanUserSort="False">
               <DataGridTemplateColumn.Header>
