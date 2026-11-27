@@ -23,6 +23,7 @@ public partial class VistaFichaActivo : UserControl
     {
         if (sender is FichaActivoVM vm && e.PropertyName is nameof(FichaActivoVM.EjercicioCuenta) or nameof(FichaActivoVM.FilasCuenta) or nameof(FichaActivoVM.VerAnterior)) Anios(vm);
         if (sender is FichaActivoVM v && e.PropertyName == nameof(FichaActivoVM.OperacionesEnEuros)) Monedas(v);
+<<<<<<< HEAD
         if (sender is FichaActivoVM a && e.PropertyName == nameof(FichaActivoVM.FilasAmortizacion)) IrAlEjercicio(a);
     }
 
@@ -37,6 +38,8 @@ public partial class VistaFichaActivo : UserControl
             if (TablaAmortizacion.Items.Count > 0) TablaAmortizacion.ScrollIntoView(TablaAmortizacion.Items[TablaAmortizacion.Items.Count - 1]);
             TablaAmortizacion.ScrollIntoView(actual);
         }, System.Windows.Threading.DispatcherPriority.Loaded);
+=======
+>>>>>>> origin/main
     }
 
     /// <summary>En euros, el cambio y el precio real repetirían el precio: no se ven (ergonomía de activos 2026-11-26).</summary>
