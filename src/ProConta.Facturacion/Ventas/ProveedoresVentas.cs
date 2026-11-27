@@ -132,7 +132,7 @@ public sealed class ProveedorReglasVenta : ProveedorTablaAccess
         new("IdCliente", "Cliente al que se factura", TipoCampo.Lista) { Opciones = _clientes, Ancho = "l",
             Ayuda = "Cliente por defecto de esas ventas (la plataforma). Una venta puede llevar otro si el huésped pide la factura a su nombre. Con «Factura nominal al huésped», el cliente cuya 430 comparten todos los huéspedes (por ejemplo «Clientes varios Airbnb»)." },
         new("FacturaAlHuesped", "Factura nominal al huésped", TipoCampo.Logico) { Grupo = "fac",
-            Ayuda = "Marcado, cada reserva se factura a nombre de su huésped (una factura por reserva): el huésped se da de alta como cliente con el nombre, el email y el teléfono de Avaibook y la 430 del cliente de la regla. Con NIF sale factura completa; sin NIF, simplificada si no pasa de 400 €, y si pasa, queda en borrador hasta que escribas el NIF en su ficha." },
+            Ayuda = "Marcado, cada reserva se factura a nombre de su huésped (una factura por reserva): el huésped se da de alta como cliente con el nombre, el email y el teléfono de Avaibook y la 430 del cliente de la regla. Con NIF sale factura completa; sin NIF, simplificada, sea cual sea el importe. Si te da el NIF, escríbelo en su ficha y sus facturas nuevas saldrán completas." },
         new("IdAcreedor", "Acreedor de la plataforma", TipoCampo.Lista) { Opciones = _acreedores, Ancho = "l",
             Ayuda = "Acreedor que factura la comisión de la plataforma (por ejemplo Airbnb). Su comisión se compensa contra la 430 del cliente de la regla. Déjalo vacío si cliente y acreedor son el mismo tercero." },
         new("Agrupar", "Agrupar ventas", TipoCampo.Lista) { Obligatorio = true, Grupo = "fac", Opciones = Agrupaciones, Ancho = "m",

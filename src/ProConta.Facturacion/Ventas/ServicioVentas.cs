@@ -265,6 +265,7 @@ public sealed class ServicioVentas
         if (_terceros is null || _roles is null) return AltaHuespedes.Nada;
         var reglas = await ReglasAsync(idSociedad);
         if (!reglas.Any(r => r.Activa && r.FacturaAlHuesped)) return AltaHuespedes.Nada;
+        await SimplificarBorradoresSinNifAsync(idSociedad, reglas);
         var pendientes = await _bd.EjecutarAsync(s => RepositorioVentas.PendientesAsync(s, idSociedad));
         var candidatas = pendientes
             .Select(v => (Venta: v, Regla: ReglaVenta.Para(reglas, v.IdOrigenVenta, v.IdActivo)))
@@ -348,12 +349,29 @@ public sealed class ServicioVentas
     }
 
     /// <summary>
-    /// Tipo de la factura nominal al huésped (facturacion/reservas 2026-11-25 14:18, Q1 b): completa (F1) si el huésped tiene
-    /// NIF; sin NIF, simplificada (F2) si no pasa de <see cref="ReglaVenta.LimiteSimplificada"/> y, si pasa, completa, que
-    /// queda en borrador hasta que se escriba el NIF en la ficha del huésped (el borrador lo recoge solo).
+    /// Tipo de la factura nominal al huésped (facturacion/reservas 2026-11-27 14:38, sustituye a la Q1 b de 2026-11-25): completa
+    /// (F1) si el huésped tiene NIF; sin NIF, simplificada (F2) sea cual sea el importe, aunque pase de los 400 € del
+    /// RD 1619/2012, art. 4.1 (decisión del propietario: muchos huéspedes no dan el NIF).
     /// </summary>
-    public static string TipoFacturaHuesped(bool tieneNif, decimal total) =>
-        tieneNif || Math.Abs(total) > ReglaVenta.LimiteSimplificada ? "F1" : "F2";
+    public static string TipoFacturaHuesped(bool tieneNif, decimal total) => tieneNif ? "F1" : "F2";
+
+    /// <summary>
+    /// Los borradores completos (F1) de reservas con regla nominal cuyo huésped sigue sin NIF pasan a simplificada (F2), para
+    /// que se puedan validar (facturacion/reservas 2026-11-27 14:38). Los creados antes de ese cambio esperaban al NIF.
+    /// </summary>
+    private async Task SimplificarBorradoresSinNifAsync(string idSociedad, IReadOnlyList<ReglaVenta> reglas)
+    {
+        var borradores = await _bd.EjecutarAsync(s => s.ConsultarAsync(
+            "SELECT DISTINCT f.IdFactura, v.IdOrigenVenta, v.IdActivo, t.NIF FROM ((Facturas AS f INNER JOIN VentasPorFacturar AS v ON v.IdFactura = f.IdFactura) " +
+            "INNER JOIN Clientes AS c ON c.IdCliente = f.IdCliente) INNER JOIN Terceros AS t ON t.IdTercero = c.IdTercero " +
+            "WHERE v.IdSociedad = ? AND f.EstadoFactura = ? AND f.TipoFactura = 'F1'",
+            x => (Id: x.Entero("IdFactura"), Origen: x.Entero("IdOrigenVenta"), Activo: x.EnteroNulo("IdActivo"), Nif: x.Texto("NIF")), idSociedad, (byte)EstadoFactura.Borrador));
+        var ids = borradores.Where(b => string.IsNullOrWhiteSpace(b.Nif) && ReglaVenta.Para(reglas, b.Origen, b.Activo) is { FacturaAlHuesped: true })
+            .Select(b => b.Id).Distinct().ToList();
+        foreach (var id in ids)
+            await _bd.EjecutarAsync(s => s.EjecutarAsync(
+                "UPDATE Facturas SET TipoFactura = 'F2', Version = Version + 1 WHERE IdFactura = ? AND EstadoFactura = ? AND TipoFactura = 'F1'", id, (byte)EstadoFactura.Borrador));
+    }
 
     // ---------- facturación ----------
 
