@@ -1,6 +1,5 @@
 ---
 title: Motor de gráficos
-status: draft
 depends_on: []
 threads:
   - 2026-10-28 12:30 · Carga de requisitos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GRNMH95h9tnQp4dmEPHmw1w
@@ -21,6 +20,7 @@ Motor en `src/ProConta.UI.Base/Graficos` sobre ScottPlot 5.1.59 (desde el 24/11/
 - 2026-11-24 09:40 · Zoom en el gráfico con eje de fechas (`GraficoTemporal`, `ZoomHorizontal`): la rueda acerca o aleja un 20 % alrededor del puntero, arrastrar con el botón izquierdo (más de 6 píxeles) amplía la zona marcada y el doble clic vuelve al periodo completo. Solo se mueve el eje de fechas, nunca fuera del periodo de los datos ni por debajo de 7 días; el eje vertical se ajusta a los valores que se ven, con divisiones «redondas», y los rótulos de fechas se recalculan (años, meses o días). Al cambiar los datos se vuelve a la vista completa; al resaltar una serie o cambiar el formato, el zoom se conserva. Las líneas por meses de Inicio no tienen zoom: son 12 categorías y la rueda debe seguir desplazando la pantalla.
 - 2026-11-24 09:40 · Series del gráfico temporal: una serie puede marcar fechas «sutiles» (`SerieTemporal.Sutil`), que se dibujan punteadas (2-4 px) y al 35 % de opacidad, sin cortar la línea en el cambio; y puede ir en escalones (`Escalon`), manteniendo el valor hasta la fecha siguiente.
 - 2026-11-27 13:40 · El ratón llega al gráfico (propietario 2026-11-27: la rueda, el zoom de un tramo y los datos al pasar el ratón no funcionaban): el control pone un fondo transparente bajo el dibujo de ScottPlot, que no recibe el ratón; sin él, ningún gráfico recibía el ratón. Afecta a todos los gráficos (cartera, ficha de activos e Inicio).
+- 2026-11-27 13:55 · Validado por el propietario (zoom con la rueda, zoom de un tramo y datos al pasar el ratón probados en pantalla; PR #177).
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 24 RF-GRA-01, 02: motor neutral, huecos visibles
