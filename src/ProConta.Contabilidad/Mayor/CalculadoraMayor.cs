@@ -123,6 +123,11 @@ public sealed class FilaMayor
     public bool EsAutomatico { get; init; }
     /// <summary>Apuntes de la contrapartida (las líneas de la cuenta de destino, si es una sola), para «Cambiar la contrapartida».</summary>
     public IReadOnlyList<int> IdsApunteContrapartida { get; init; } = [];
+    /// <summary>Centro de coste de la fila («código · nombre»): el de su apunte, o el común de los apuntes que resume;
+    /// «Varios» si tienen centros distintos o unos lo tienen y otros no; vacío si ninguno tiene.</summary>
+    public string CentroCoste { get; init; } = "";
+    /// <summary>Centros distintos de los apuntes de la fila («Sin centro» por los que no tienen), para la ayuda de «Varios».</summary>
+    public IReadOnlyList<string> CentrosCoste { get; init; } = [];
 
     public decimal Importe => Debe - Haber;
     public string FacturaNormalizada => Facturas.Normalizar(Documento);
@@ -309,6 +314,8 @@ public static class CalculadoraMayor
             IdsAsiento = [a.IdAsiento],
             Punteado = a.Punteado,
             EsAutomatico = a.EsAutomatico,
+            CentroCoste = a.CentroCoste ?? "",
+            CentrosCoste = a.CentroCoste is { } centro ? [centro] : [],
             IdsApunteContrapartida = candidatas.Count == 1
                 ? asiento.Where(l => l.Orden != a.Orden && l.Cuenta == candidatas[0] && l.IdApunte != 0).Select(l => l.IdApunte).ToList()
                 : [],
@@ -337,6 +344,7 @@ public static class CalculadoraMayor
                 .Distinct(StringComparer.Ordinal).ToList();
             var detalle = g.SelectMany(a => a.EsApertura ? [] : Contrapartidas.Detalle(a.Cuenta, a.Orden, lineas.GetValueOrDefault(a.IdAsiento) ?? []))
                 .GroupBy(d => d.Cuenta, StringComparer.Ordinal).Select(x => new ImporteCuenta(x.Key, x.Sum(d => d.Importe))).ToList();
+            var centros = g.Select(a => a.CentroCoste).Distinct(StringComparer.Ordinal).ToList();
             filas.Add(new FilaMayor
             {
                 Clave = "g" + k,
@@ -368,6 +376,9 @@ public static class CalculadoraMayor
                 Punteado = g.All(a => a.Punteado),
                 PunteoParcial = g.Any(a => a.Punteado) && !g.All(a => a.Punteado),
                 EsAutomatico = g.Any(a => a.EsAutomatico),
+                CentroCoste = centros.Count > 1 ? CentrosCosteMayor.Varios : centros[0] ?? "",
+                CentrosCoste = centros.Count == 1 && centros[0] is null ? []
+                    : centros.Select(c => c ?? CentrosCosteMayor.SinCentro).OrderBy(c => c == CentrosCosteMayor.SinCentro ? 1 : 0).ThenBy(c => c, StringComparer.Ordinal).ToList(),
             });
         }
         return filas;
@@ -382,6 +393,7 @@ public static class CalculadoraMayor
         DetalleContrapartida = f.DetalleContrapartida, Notas = f.Notas, FechaDocumento = f.FechaDocumento, GrabadoEl = f.GrabadoEl,
         ModificadoEl = f.ModificadoEl, IdsApunte = f.IdsApunte, IdsAsiento = f.IdsAsiento,
         Punteado = f.Punteado, PunteoParcial = f.PunteoParcial, EsAutomatico = f.EsAutomatico, IdsApunteContrapartida = f.IdsApunteContrapartida,
+        CentroCoste = f.CentroCoste, CentrosCoste = f.CentrosCoste,
     };
 
     internal static string Importe(decimal v) =>

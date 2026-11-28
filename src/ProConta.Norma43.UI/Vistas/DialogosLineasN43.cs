@@ -15,7 +15,7 @@ using ProConta.UI.Base.Formato;
 namespace ProConta.Norma43.UI.Vistas;
 
 /// <summary>Diálogos de la pantalla de líneas N43 sobre la ventana activa de la aplicación.</summary>
-public sealed partial class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ventana) : IDialogosLineasN43
+public sealed partial class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Window?> ventana, ProConta.Contabilidad.CentrosCoste.ICatalogoCentrosCoste? centros = null) : IDialogosLineasN43
 {
     public int Preguntar(string titulo, string mensaje, IReadOnlyList<string>? detalles, params OpcionMensaje[] opciones) =>
         ServicioMensajes.Preguntar(Activa(), titulo, mensaje, detalles, opciones);
@@ -46,7 +46,7 @@ public sealed partial class DialogosLineasN43(ICatalogoCuentas cuentas, Func<Win
 
     public CuentaElegidaN43? ElegirCuenta(ContextoSociedadEjercicio ejercicio, string titulo, string? texto)
     {
-        var vm = new BuscadorCuentasVM(cuentas, ejercicio, [], texto);
+        var vm = new BuscadorCuentasVM(cuentas, ejercicio, [], texto, centros);
         var c = DialogoCuentas.Elegir(Activa(), vm, titulo);
         return c is null ? null : new CuentaElegidaN43(c.IdIdentidadContable, c.Codigo, c.Nombre);
     }

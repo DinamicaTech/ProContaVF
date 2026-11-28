@@ -25,12 +25,12 @@ public static class SelectorCuentasMayor
         cuadre ??= ContextoCuadre.Vacio;
         var anioDe = elegidos.ToDictionary(e => e.IdSociedadEjercicio, e => e.Ejercicio);
         var anios = elegidos.Select(e => e.Ejercicio).ToHashSet();
-        var cuentas = new Dictionary<string, (string Nombre, bool Imputable, int Anio, string? Descripcion)>(StringComparer.Ordinal);
+        var cuentas = new Dictionary<string, (string Nombre, bool Imputable, int Anio, string? Descripcion, string? Centro)>(StringComparer.Ordinal);
         foreach (var p in plan)
         {
             if (p.Codigo.Length == 0 || !anioDe.TryGetValue(p.IdSociedadEjercicio, out var anio)) continue;
-            // El nombre y el tipo de la cuenta, los del ejercicio más reciente de la vista.
-            if (!cuentas.TryGetValue(p.Codigo, out var c) || c.Anio < anio) cuentas[p.Codigo] = (p.Nombre, p.EsImputable, anio, p.Descripcion);
+            // El nombre, el tipo y el centro de coste por defecto de la cuenta, los del ejercicio más reciente de la vista.
+            if (!cuentas.TryGetValue(p.Codigo, out var c) || c.Anio < anio) cuentas[p.Codigo] = (p.Nombre, p.EsImputable, anio, p.Descripcion, p.CentroCoste);
         }
         var saldos = new Dictionary<string, (decimal SinApertura, decimal Saldo, int Apuntes)>(StringComparer.Ordinal);
         foreach (var s in sumas)
@@ -41,7 +41,7 @@ public static class SelectorCuentasMayor
             var x = saldos.GetValueOrDefault(s.Cuenta);
             var importe = s.Debe - s.Haber;
             saldos[s.Cuenta] = (x.SinApertura + (apertura ? 0m : importe), x.Saldo + importe, x.Apuntes + s.Apuntes);
-            if (!cuentas.ContainsKey(s.Cuenta)) cuentas[s.Cuenta] = ("", true, anio, null);
+            if (!cuentas.ContainsKey(s.Cuenta)) cuentas[s.Cuenta] = ("", true, anio, null, null);
         }
         return cuentas.OrderBy(c => c.Key, StringComparer.Ordinal).Select(c =>
         {
@@ -55,7 +55,8 @@ public static class SelectorCuentasMayor
                 return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, false, estado, resumen, c.Value.Descripcion);
             }
             var v = CuadresMayor.Ver(c.Key, cuadre);
-            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, true, v.Estado, CuadresMayor.Ayuda(v, cuadre.Trabajo), c.Value.Descripcion);
+            return new CuentaMayor(c.Key, c.Value.Nombre, x.SinApertura, x.Saldo, x.Apuntes, true, v.Estado, CuadresMayor.Ayuda(v, cuadre.Trabajo), c.Value.Descripcion,
+                c.Value.Centro);
         }).ToList();
     }
 

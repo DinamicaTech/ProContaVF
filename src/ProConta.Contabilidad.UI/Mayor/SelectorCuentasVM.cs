@@ -11,6 +11,8 @@ public sealed class CuentaSelectorVM(CuentaMayor c)
     public string Codigo => Cuenta.Codigo;
     public string Nombre => Cuenta.Nombre;
     public string Descripcion => Cuenta.Descripcion ?? "";
+    /// <summary>Centro de coste por defecto de la subcuenta («código · nombre»); vacío en las de grupo y en las que no tienen.</summary>
+    public string CentroCoste => Cuenta.CentroCoste ?? "";
     public decimal SaldoSinApertura => Cuenta.SaldoSinApertura;
     public decimal Saldo => Cuenta.Saldo;
     public int Apuntes => Cuenta.Apuntes;

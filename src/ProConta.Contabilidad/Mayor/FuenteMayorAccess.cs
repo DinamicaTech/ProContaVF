@@ -6,7 +6,8 @@ namespace ProConta.Contabilidad.Mayor;
 
 /// <summary>
 /// El Mayor sobre la BD, sin cambiar su estructura: Asientos y Apuntes (movimientos, alta y último cambio del asiento), libro de
-/// IVA repercutido y soportado (fecha de la factura), CuentasContables (nombres) y RegistroCambiosApuntes (historial). Cada
+/// IVA repercutido y soportado (fecha de la factura), CuentasContables (nombres y centro de coste por defecto), CentrosCoste (texto
+/// del centro de cada apunte) y RegistroCambiosApuntes (historial). Cada
 /// carga de la tabla hace un número fijo de consultas, sea cual sea el número de apuntes: los apuntes de las cuentas, todas las
 /// líneas de sus asientos (para la contrapartida), las fechas de factura y los nombres.
 /// </summary>
@@ -62,8 +63,16 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
                              f => (f.Entero("IdAsiento"), f.FechaNula("F"))))
                     if (fecha is { } d && (!fechasFactura.TryGetValue(id, out var otra) || d < otra)) fechasFactura[id] = d.Date;
 
+            // Centros de coste de la sociedad (una consulta): el apunte guarda solo su id.
+            var centros = new Dictionary<int, string>();
+            foreach (var (id, texto) in await s.ConsultarAsync(
+                         "SELECT c.IdCentroCoste, c.Codigo, c.Nombre FROM CentrosCoste AS c WHERE c.IdSociedad IN " +
+                         $"(SELECT se.IdSociedad FROM SociedadesEjercicios AS se WHERE se.IdSociedadEjercicio IN ({en}))",
+                         f => (f.Entero("IdCentroCoste"), CentrosCosteMayor.Texto(f.Texto("Codigo"), f.Texto("Nombre")))))
+                centros[id] = texto ?? $"Centro {id}";
+
             var apuntes = await s.ConsultarAsync(
-                "SELECT p.IdApunte, p.IdAsiento, p.Orden, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.Descripcion, p.NumeroDocumento, p.Punteado, " +
+                "SELECT p.IdApunte, p.IdAsiento, p.Orden, p.CuentaContable, p.ImporteDebe, p.ImporteHaber, p.Descripcion, p.NumeroDocumento, p.Punteado, p.IdCentroCoste, " +
                 "a.IdSociedadEjercicio, a.FechaContable, a.TipoAsiento, a.Descripcion AS DescripcionAsiento, a.Notas, a.FechaHoraCreacion, a.FechaHoraModificacion, a.EsAutomatico " + desde,
                 f =>
                 {
@@ -77,7 +86,8 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
                         f.Texto("NumeroDocumento")?.Trim() is { Length: > 0 } doc ? doc : null,
                         f.Texto("Notas")?.Trim() is { Length: > 0 } n ? n : null,
                         fechasFactura.TryGetValue(idAsiento, out var fd) ? fd : null, f.FechaNula("FechaHoraCreacion"), f.FechaNula("FechaHoraModificacion"),
-                        !f.EsNulo("Punteado") && f.Logico("Punteado"), !f.EsNulo("EsAutomatico") && f.Logico("EsAutomatico"));
+                        !f.EsNulo("Punteado") && f.Logico("Punteado"), !f.EsNulo("EsAutomatico") && f.Logico("EsAutomatico"),
+                        f.EnteroNulo("IdCentroCoste") is int c ? centros.GetValueOrDefault(c, $"Centro {c}") : null);
                 },
                 parametros);
             if (solicitud.BuscaFacturas)
@@ -162,9 +172,14 @@ public sealed class FuenteMayorAccess(IBaseDatos bd) : IFuenteMayor
         }, cancelacion);
 
     private static async Task<IReadOnlyList<PlanCuenta>> LeerPlanAsync(ISesionDatos s, string en) =>
-        (await s.ConsultarAsync($"SELECT Codigo, Nombre, EsImputable, IdSociedadEjercicio, Descripcion FROM CuentasContables WHERE IdSociedadEjercicio IN ({en})",
+        (await s.ConsultarAsync(
+            "SELECT c.Codigo, c.Nombre, c.EsImputable, c.IdSociedadEjercicio, c.Descripcion, c.IdCentroCostePredeterminado, cc.Codigo AS CodigoCentro, cc.Nombre AS NombreCentro " +
+            $"FROM CuentasContables AS c LEFT JOIN CentrosCoste AS cc ON c.IdCentroCostePredeterminado = cc.IdCentroCoste WHERE c.IdSociedadEjercicio IN ({en})",
             f => new PlanCuenta((f.Texto("Codigo") ?? "").Trim(), (f.Texto("Nombre") ?? "").Trim(), !f.EsNulo("EsImputable") && f.Logico("EsImputable"), f.Entero("IdSociedadEjercicio"),
-                string.IsNullOrWhiteSpace(f.Texto("Descripcion")) ? null : f.Texto("Descripcion")!.Trim())))
+                string.IsNullOrWhiteSpace(f.Texto("Descripcion")) ? null : f.Texto("Descripcion")!.Trim(),
+                f.EnteroNulo("IdCentroCostePredeterminado") is int c
+                    ? CentrosCosteMayor.Texto(f.Texto("CodigoCentro"), f.Texto("NombreCentro")) ?? $"Centro {c}"
+                    : null)))
         .Where(p => p.Codigo.Length > 0).ToList();
 
     /// <summary>Lista de ids para IN (enteros: no hay inyección posible).</summary>

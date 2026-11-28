@@ -142,6 +142,37 @@ public sealed class BuscadorCuentasVMTests
         Assert.Equal(["6290002"], vm.Resultados.Select(c => c.Codigo));
     }
 
+    /// <summary>Centros de la sociedad: uno activo e imputable y otro inactivo.</summary>
+    private sealed class CentrosFalsos : ICatalogoCentrosCoste
+    {
+        public Task<IReadOnlyList<CentroCoste>> ListarAsync(string idSociedad) => Task.FromResult<IReadOnlyList<CentroCoste>>(
+            [new CentroCoste(3, "T01", null, "300", "Piso A", true, true, 0, "300"), new CentroCoste(4, "T01", null, "OLD", "Antiguo", true, false, 0, "OLD")]);
+        public Task<CentroCoste?> ObtenerAsync(int idCentroCoste) => throw new NotSupportedException();
+        public Task<Resultado<CentroCoste>> AltaAsync(string idSociedad, string codigo, string nombre, int? idPadre = null, bool esImputable = true) => throw new NotSupportedException();
+        public Task<Resultado> ComprobarImputableAsync(string idSociedad, int idCentroCoste) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task La_lista_muestra_el_centro_de_coste_por_defecto_de_cada_subcuenta_aunque_el_centro_este_inactivo()
+    {
+        var plan = new PlanFalso();
+        plan.Cuentas[plan.Cuentas.FindIndex(c => c.Codigo == "6290001")] = plan.Cuentas.Single(c => c.Codigo == "6290001") with { IdCentroCostePredeterminado = 3 };
+        plan.Cuentas[plan.Cuentas.FindIndex(c => c.Codigo == "6299001")] = plan.Cuentas.Single(c => c.Codigo == "6299001") with { IdCentroCostePredeterminado = 4 };
+        plan.Cuentas[plan.Cuentas.FindIndex(c => c.Codigo == "6280011")] = plan.Cuentas.Single(c => c.Codigo == "6280011") with { IdCentroCostePredeterminado = 99 };
+        var vm = new BuscadorCuentasVM(plan, Ctx, ["62"], centrosCoste: new CentrosFalsos());
+        await vm.CargarAsync();
+
+        string Centro(string codigo) => vm.CentroDe(vm.Resultados.Single(c => c.Codigo == codigo));
+        Assert.Equal("300 · Piso A", Centro("6290001"));
+        Assert.Equal("OLD · Antiguo", Centro("6299001"));   // inactivo: no se ofrece en el alta, pero la cuenta lo sigue teniendo
+        Assert.Equal("Centro 99", Centro("6280011"));       // un id que ya no existe no deja la celda en blanco
+        Assert.Equal(["300"], vm.CentrosCoste.Select(c => c.Codigo));   // el alta solo ofrece los activos e imputables
+
+        var sinCentros = new BuscadorCuentasVM(plan, Ctx, ["62"]);
+        await sinCentros.CargarAsync();
+        Assert.Equal("", sinCentros.CentroDe(plan.Cuentas.Single(c => c.Codigo == "5720017")));
+    }
+
     private static FichaCompraVM Ficha(Func<string, Task<CuentaContable?>> buscar, List<string> textos)
     {
         var f = new FacturaCompra

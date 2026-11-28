@@ -202,7 +202,9 @@ public partial class VentanaPrincipal : Window
             // Al cambiar la subcuenta de un rol se ofrece pasar sus apuntes (terceros/roles/cambio-subcuenta).
             new CambioSubcuentaTercero(bd, cuentas, new MotorAsientosAccess(bd), asientosBanco),
             // Mandato SEPA del cliente: el acreedor es la sociedad activa (terceros/roles/mandato-sepa).
-            new ProConta.Terceros.Roles.LectorAcreedorSepa(bd));
+            new ProConta.Terceros.Roles.LectorAcreedorSepa(bd),
+            // El buscador de subcuentas muestra el centro de coste por defecto (contabilidad/cuenta-contable 2026-11-28).
+            new CatalogoCentrosCosteAccess(bd));
         _terceros = new ModuloTerceros(servicios, _area, new DialogosTerceros(servicios));
 
         // Mayor (contabilidad/mayor): pestaña Contabilidad › Mayor y el mismo control embebido en la ficha de terceros.
@@ -347,7 +349,7 @@ public partial class VentanaPrincipal : Window
                 AbrirFacturaVenta = id => _facturacion.AbrirFactura(id),
                 AbrirFacturaCompra = id => _compras.AbrirFactura(id),
             },
-            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd),
+            _area, new ProConta.Norma43.UI.Vistas.DialogosLineasN43(cuentas, () => this, new CatalogoCentrosCosteAccess(bd)), new ProConta.Norma43.Busqueda.BusquedaPorImporteN43(bd),
             new ProConta.Norma43.Remesas.ServicioRemesasN43(bd),
             new AjustesRemesaFacturacion(new AjustesCobroFacturas(facturas, serviciosFacturacion.Programadas), bd),
             new ProConta.Norma43.Similares.ConsultaSimilaresN43(bd), new ProConta.Norma43.Conciliacion.ServicioActivosN43(bd, conciliacionN43),
