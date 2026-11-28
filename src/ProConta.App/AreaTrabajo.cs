@@ -160,40 +160,88 @@ public sealed class AreaTrabajo : IAnfitrionPestanas, INotifyPropertyChanged
         }
     }
 
+    /// <summary>Hay alguna pestaña que se puede cerrar (todas menos Inicio).</summary>
+    public bool HayCerrables => Lista.Any(p => p.Cerrable);
+
     /// <summary>
     /// Salida de la aplicación: con cambios pendientes ofrece guardarlos todos, salir sin guardar o seguir trabajando.
     /// Devuelve true si se puede salir.
     /// </summary>
-    internal async Task<bool> PuedeSalirAsync()
+    internal async Task<bool> PuedeSalirAsync() =>
+        await ResolverCambiosAsync(Lista.Where(p => p.Pantalla.TieneCambios).ToList(), TextosCambios.Salir) != DecisionCambios.SeguirTrabajando;
+
+    /// <summary>
+    /// Cierra todas las pestañas menos Inicio (plataforma/contenedor 2026-11-28): «Cerrar todas las pestañas menos Inicio»
+    /// (Ctrl+Mayús+F4) y el cambio de sociedad o ejercicio. Con cambios pendientes ofrece guardarlos todos, cerrar sin guardar
+    /// o seguir trabajando. Devuelve true si se han cerrado.
+    /// </summary>
+    internal async Task<bool> CerrarTodasAsync(TextosCambios textos)
     {
-        var conCambios = Lista.Where(p => p.Pantalla.TieneCambios).ToList();
-        if (conCambios.Count == 0) return true;
+        var cerrables = Lista.Where(p => p.Cerrable).ToList();
+        var decision = await ResolverCambiosAsync(cerrables.Where(p => p.Pantalla.TieneCambios).ToList(), textos);
+        if (decision == DecisionCambios.SeguirTrabajando) return false;
+        foreach (var p in cerrables)
+        {
+            if (p.Pantalla.TieneCambios) p.Pantalla.Descartar();
+            Quitar(p);
+        }
+        return true;
+    }
+
+    /// <summary>Pregunta qué hacer con los cambios pendientes de varias pantallas y, si se eligen guardar, los guarda.</summary>
+    private async Task<DecisionCambios> ResolverCambiosAsync(IReadOnlyList<PestanaContenedor> conCambios, TextosCambios t)
+    {
+        if (conCambios.Count == 0) return DecisionCambios.SinCambios;
         var opcion = ServicioMensajes.Preguntar(Application.Current.MainWindow,
             conCambios.Count == 1 ? "Una pantalla con cambios sin guardar" : $"{conCambios.Count} pantallas con cambios sin guardar",
-            "Si sales sin guardar, pierdes estos cambios:",
+            t.Explicacion,
             conCambios.SelectMany(p => p.Pantalla.DescribirCambios().Select(c => $"{p.Titulo} · {c}")).ToList(),
-            new OpcionMensaje("Seguir trabajando", "No sale de ProContaVF", Cancelar: true),
-            new OpcionMensaje("Salir sin guardar", "Sale y pierde los cambios pendientes", Peligro: true),
-            new OpcionMensaje("Guardar todo y salir", "Guarda los cambios de cada pantalla y sale si todo se ha guardado", Principal: true));
-        if (opcion == 1) return true;
-        if (opcion != 2) return false;
+            new OpcionMensaje("Seguir trabajando", t.AyudaSeguir, Cancelar: true),
+            new OpcionMensaje(t.SinGuardar, t.AyudaSinGuardar, Peligro: true),
+            new OpcionMensaje(t.GuardarTodo, t.AyudaGuardarTodo, Principal: true));
+        if (opcion == 1) return DecisionCambios.Descartar;
+        if (opcion != 2) return DecisionCambios.SeguirTrabajando;
         foreach (var p in conCambios)
         {
             Activar(p.Pantalla);
             if (!await p.Pantalla.GuardarAsync())
             {
-                _avisar($"No salgo: los cambios de {p.Titulo} no se han podido guardar. Corrígelos o descártalos y vuelve a salir.");
-                return false;
+                _avisar(t.NoGuardado(p.Titulo));
+                return DecisionCambios.SeguirTrabajando;
             }
         }
-        return true;
+        return DecisionCambios.Guardado;
     }
+
+    private enum DecisionCambios { SinCambios, Guardado, Descartar, SeguirTrabajando }
 
     internal void EstadoCambiado()
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Resumen)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HayCambios)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HayCerrables)));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+/// <summary>Textos de la pregunta por los cambios pendientes según lo que se va a hacer (salir, cerrar todas, cambiar de ejercicio).</summary>
+public sealed record TextosCambios(string Explicacion, string AyudaSeguir, string SinGuardar, string AyudaSinGuardar, string GuardarTodo, string AyudaGuardarTodo,
+    Func<string, string> NoGuardado)
+{
+    public static readonly TextosCambios Salir = new("Si sales sin guardar, pierdes estos cambios:", "No sale de ProContaVF",
+        "Salir sin guardar", "Sale y pierde los cambios pendientes",
+        "Guardar todo y salir", "Guarda los cambios de cada pantalla y sale si todo se ha guardado",
+        titulo => $"No salgo: los cambios de {titulo} no se han podido guardar. Corrígelos o descártalos y vuelve a salir.");
+
+    public static readonly TextosCambios CerrarTodas = new("Si cierras las pestañas sin guardar, pierdes estos cambios:", "No cierra ninguna pestaña",
+        "Cerrar sin guardar", "Cierra todas las pestañas menos Inicio y pierde los cambios pendientes",
+        "Guardar todo y cerrar", "Guarda los cambios de cada pantalla y cierra las pestañas si todo se ha guardado",
+        titulo => $"No cierro las pestañas: los cambios de {titulo} no se han podido guardar. Corrígelos o descártalos y vuelve a intentarlo.");
+
+    public static readonly TextosCambios CambiarEjercicio = new("Para cambiar de ejercicio se cierran todas las pestañas. Si cambias sin guardar, pierdes estos cambios:",
+        "No cambia de ejercicio",
+        "Cambiar sin guardar", "Cierra las pestañas, pierde los cambios pendientes y cambia de ejercicio",
+        "Guardar todo y cambiar", "Guarda los cambios de cada pantalla y cambia de ejercicio si todo se ha guardado",
+        titulo => $"No cambio de ejercicio: los cambios de {titulo} no se han podido guardar. Corrígelos o descártalos y vuelve a intentarlo.");
 }

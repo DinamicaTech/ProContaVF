@@ -13,6 +13,7 @@
     <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GuardarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding GuardarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     <KeyBinding Key="F4" Modifiers="Ctrl" Command="{Binding CerrarActivaCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="F4" Modifiers="Ctrl+Shift" Command="{Binding CerrarTodasCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
   </Window.InputBindings>
 
   <DockPanel>
@@ -29,14 +30,18 @@
             <TextBlock Text="P" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
           </Border>
           <TextBlock Text="ProConta" Foreground="White" FontFamily="{StaticResource Fuente.Titulo}" FontWeight="Bold" FontSize="16" Margin="8,0,16,0" VerticalAlignment="Center" />
-          <Border CornerRadius="6" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10,4" VerticalAlignment="Center"
-                  ToolTip="Sociedad y ejercicio de trabajo. Cambiarlos sin volver a entrar llegará en una próxima versión.">
+          <Border CornerRadius="6" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10,4" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
-              <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.bank}" Stroke="#AEB8CC" VerticalAlignment="Center" />
-              <TextBlock x:Name="TextoSociedad" Foreground="White" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" MaxWidth="320" TextTrimming="CharacterEllipsis" />
-              <Rectangle Width="1" Fill="#33FFFFFF" Margin="12,2" />
-              <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.cal}" Stroke="#AEB8CC" VerticalAlignment="Center" />
-              <TextBlock x:Name="TextoEjercicio" Foreground="White" Margin="6,0,0,0" VerticalAlignment="Center" />
+              <!-- Sociedad y ejercicio de trabajo: pulsarlos permite cambiarlos sin volver a entrar (2026-11-28). -->
+              <StackPanel x:Name="ZonaContexto" Orientation="Horizontal" Background="Transparent" Cursor="Hand" MouseLeftButtonUp="AlPulsarContexto"
+                          ToolTip="Sociedad y ejercicio de trabajo. Púlsalos para cambiar de ejercicio o de sociedad sin salir de ProContaVF (se cierran las pestañas abiertas)">
+                <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.bank}" Stroke="#AEB8CC" VerticalAlignment="Center" />
+                <TextBlock x:Name="TextoSociedad" Foreground="White" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" MaxWidth="320" TextTrimming="CharacterEllipsis" />
+                <Rectangle Width="1" Fill="#33FFFFFF" Margin="12,2" />
+                <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.cal}" Stroke="#AEB8CC" VerticalAlignment="Center" />
+                <TextBlock x:Name="TextoEjercicio" Foreground="White" Margin="6,0,0,0" VerticalAlignment="Center" />
+                <Path Style="{StaticResource Icono.Trazo12}" Data="{StaticResource Icono.chev}" Stroke="#AEB8CC" Margin="4,0,0,0" VerticalAlignment="Center" />
+              </StackPanel>
               <Rectangle Width="1" Fill="#33FFFFFF" Margin="12,2" />
               <!-- Trimestre contable activo (compras/pantallas 2026-11-06 12:10): pulsarlo permite cerrarlo o reactivar el anterior. -->
               <TextBlock x:Name="TextoTrimestre" Foreground="White" VerticalAlignment="Center" Cursor="Hand" MouseLeftButtonUp="AlPulsarTrimestre"
@@ -123,6 +128,13 @@
       <!-- Área de trabajo con pestañas -->
       <DockPanel Grid.Column="2">
         <Border DockPanel.Dock="Top" Background="{StaticResource Pincel.Fondo2}" BorderBrush="{StaticResource Pincel.Linea}" BorderThickness="0,0,0,1">
+          <DockPanel>
+          <!-- Cerrar todas las pestañas menos Inicio (2026-11-28): solo se ve si hay alguna que cerrar. -->
+          <Button x:Name="BotonCerrarTodas" DockPanel.Dock="Right" Style="{StaticResource Boton.Icono}" pc:Iconos.Icono="{StaticResource Icono.xx}"
+                  Width="26" Height="26" Margin="0,0,8,0" VerticalAlignment="Center" Visibility="Collapsed"
+                  Command="{Binding CerrarTodasCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                  ToolTip="Cerrar todas las pestañas menos Inicio (Ctrl+Mayús+F4). Si alguna tiene cambios sin guardar, pregunta antes"
+                  AutomationProperties.Name="Cerrar todas las pestañas menos Inicio" />
           <ItemsControl x:Name="TiraPestanas" Focusable="False">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -155,6 +167,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          </DockPanel>
         </Border>
         <Grid x:Name="AreaVistas" Background="White" />
       </DockPanel>

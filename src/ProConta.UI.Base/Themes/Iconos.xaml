@@ -66,6 +66,7 @@
   <StreamGeometry x:Key="Icono.wand">M 15 4 V 2 M 15 10 V 8 M 11 6 h 2 M 17 6 h 2 M 3 21 l 11 -11 M 13 8 l 3 3</StreamGeometry>
   <StreamGeometry x:Key="Icono.warn">M 12 3 L 2 20 h 20 z M 12 10 v 4 M 12 17 v .5</StreamGeometry>
   <StreamGeometry x:Key="Icono.x">M 6 6 l 12 12 M 18 6 L 6 18</StreamGeometry>
+  <StreamGeometry x:Key="Icono.xx">M 3 7 l 10 10 M 13 7 L 3 17 M 11 7 l 10 10 M 21 7 L 11 17</StreamGeometry>
   <StreamGeometry x:Key="Icono.xc">M 3 12 A 9 9 0 1 0 21 12 A 9 9 0 1 0 3 12 Z M 9 9 l 6 6 M 15 9 l -6 6</StreamGeometry>
   <StreamGeometry x:Key="Icono.xls">M 14 3 H 6 a 1 1 0 0 0 -1 1 v 16 a 1 1 0 0 0 1 1 h 12 a 1 1 0 0 0 1 -1 V 8 z M 14 3 v 5 h 5 M 9 12 l 5 6 M 14 12 l -5 6</StreamGeometry>
 </ResourceDictionary>

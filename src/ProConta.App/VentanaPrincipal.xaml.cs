@@ -128,9 +128,11 @@ public partial class VentanaPrincipal : Window
         AlternarNavegacionCommand = new ComandoDelegado(_ => AlternarNavegacion());
         GuardarActivaCommand = new ComandoDelegado(() => { if (_area?.Activa is { TieneCambios: true } p) _ = p.GuardarAsync(); });
         CerrarActivaCommand = new ComandoDelegado(() => { if (_area?.Lista.FirstOrDefault(p => p.Activa) is { Cerrable: true } p) p.CerrarCommand.Execute(null); });
+        CerrarTodasCommand = new ComandoDelegado(() => { if (_area?.HayCerrables == true) _ = _area.CerrarTodasAsync(TextosCambios.CerrarTodas); });
         InitializeComponent();
 
         var sesion = contexto.Sesion;
+        _sesionAcceso = sesion;
         var ejercicio = contexto.Contexto.Ejercicio;
         Title = $"ProContaVF · {contexto.RazonSocial} · {ejercicio}";
         TextoSociedad.Text = contexto.RazonSocial;
@@ -885,6 +887,9 @@ public partial class VentanaPrincipal : Window
     public ICommand GuardarActivaCommand { get; }
     public ICommand CerrarActivaCommand { get; }
 
+    /// <summary>Cierra todas las pestañas menos Inicio (Ctrl+Mayús+F4 o el botón al final de la tira de pestañas).</summary>
+    public ICommand CerrarTodasCommand { get; }
+
     /// <summary>Abre (o activa) la pestaña Parámetros y tablas.</summary>
     /// <param name="clave">Tabla que se abre dentro (por ejemplo «reglasventa»); null, la primera o la que estuviera.</param>
     private void AbrirParametros(string? clave = null)
@@ -921,6 +926,53 @@ public partial class VentanaPrincipal : Window
     {
         TextoPantallas.Text = _area.Resumen;
         PuntoCambios.Visibility = _area.HayCambios ? Visibility.Visible : Visibility.Collapsed;
+        BotonCerrarTodas.Visibility = _area.HayCerrables ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ---------- cambio de sociedad o ejercicio sin volver a entrar (plataforma/contenedor 2026-11-28) ----------
+
+    private readonly SesionAcceso _sesionAcceso;
+    private bool _cambiandoContexto;
+
+    /// <summary>La ventana se cierra porque la sustituye la del ejercicio nuevo: al cerrarse no termina el programa.</summary>
+    internal bool Sustituida { get; set; }
+
+    private async void AlPulsarContexto(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_cambiandoContexto) return;
+        _cambiandoContexto = true;
+        try
+        {
+            await CambiarContextoAsync();
+        }
+        catch (Exception ex) when (ex is ProConta.Datos.Persistencia.ExcepcionDatos or InvalidOperationException)
+        {
+            Avisar($"No he podido cambiar de ejercicio: {ex.Message}");
+        }
+        finally
+        {
+            _cambiandoContexto = false;
+        }
+    }
+
+    /// <summary>
+    /// Elige sociedad y ejercicio, cierra las pestañas (preguntando si hay cambios), comprueba el acceso con la misma sesión
+    /// y sustituye la ventana principal por la del contexto nuevo, que abre Inicio.
+    /// </summary>
+    private async Task CambiarContextoAsync()
+    {
+        if (Application.Current is not App { Acceso: { } acceso } app) return;
+        var eleccion = await DialogoCambioEjercicio.ElegirAsync(this, acceso, _sesionAcceso, _ejercicioTrabajo);
+        if (eleccion is not { } elegido) return;
+        var (idSociedad, idSociedadEjercicio) = elegido;
+        if (!await _area.CerrarTodasAsync(TextosCambios.CambiarEjercicio)) return;
+        var nuevo = await acceso.CompletarAsync(_sesionAcceso, idSociedad, idSociedadEjercicio);
+        if (!nuevo.EsCorrecto)
+        {
+            InformarError("No he podido cambiar de ejercicio", nuevo.Error!);
+            return;
+        }
+        app.SustituirPrincipal(this, nuevo.Valor);
     }
 
     /// <summary>Aviso breve en la barra de estado (no bloquea); se borra solo al cabo de unos segundos.</summary>
