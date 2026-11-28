@@ -1,4 +1,4 @@
-using ProConta.Activos.Financieros;
+﻿using ProConta.Activos.Financieros;
 using ProConta.Activos.Gestion;
 
 namespace ProConta.Activos.Tests;
@@ -131,6 +131,50 @@ public sealed class CarteraFinancieraTests
         // Sin cotización solo cuentan las ventas.
         var sin = PosicionFinanciera.Crear(2, "PART", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m), Venta(2, new(2026, 3, 2), 5m, 600m)), new SeriePrecios([]), null, Hoy);
         Assert.Equal(100m, sin.ResultadoEjercicio(2026));
+    }
+
+    [Fact]
+    public void Rentabilidad_del_ano_es_ponderada_en_el_tiempo_hasta_la_ultima_cotizacion()
+    {
+        // 10 participaciones desde 2025; 110 el 31/12, vende 5 a 120 el 2/3 y la última cotización es 120 el 20/11: +9,09 % (la venta no mueve la TWR).
+        var hist = new SeriePrecios([(new(2025, 6, 2), 100m), (new(2025, 12, 31), 110m), (new(2026, 3, 2), 120m), (new(2026, 11, 20), 120m)]);
+        var p = PosicionFinanciera.Crear(1, "VWCE", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m), Venta(2, new(2026, 3, 2), 5m, 600m)), hist, null, Hoy);
+        var r = p.RentabilidadEjercicio(2026)!;
+        Assert.Equal(new DateTime(2025, 12, 31), r.Desde);
+        Assert.Equal(new DateTime(2026, 11, 20), r.Hasta);
+        Assert.Equal(0.0909m, Math.Round(r.Rentabilidad, 4));
+        Assert.Equal(324, r.Dias);
+        Assert.Equal(Math.Round(r.Rentabilidad * 365m / 324m, 6), Math.Round(r.Proyectada!.Value, 6));
+        // Año pasado: de la compra (2/6) al 31/12, +10 %.
+        var r25 = p.RentabilidadEjercicio(2025)!;
+        Assert.Equal(new DateTime(2025, 6, 2), r25.Desde);
+        Assert.Equal(new DateTime(2025, 12, 31), r25.Hasta);
+        Assert.Equal(0.10m, Math.Round(r25.Rentabilidad, 4));
+    }
+
+    [Fact]
+    public void Rentabilidad_del_ano_comprado_en_el_ano_cuenta_desde_la_compra_y_sin_cotizacion_no_hay()
+    {
+        var hist = new SeriePrecios([(new(2026, 2, 2), 100m), (new(2026, 11, 20), 105m)]);
+        var p = PosicionFinanciera.Crear(1, "VWCE", Inversion(Compra(1, new(2026, 2, 2), 10m, 1000m)), hist, null, Hoy);
+        var r = p.RentabilidadEjercicio(2026)!;
+        Assert.Equal(new DateTime(2026, 2, 2), r.Desde);
+        Assert.Equal(0.05m, Math.Round(r.Rentabilidad, 4));
+        Assert.Null(p.RentabilidadEjercicio(2025)); // aún no la tenía
+        var sin = PosicionFinanciera.Crear(2, "PART", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m)), new SeriePrecios([]), null, Hoy);
+        Assert.Null(sin.RentabilidadEjercicio(2026));
+    }
+
+    [Fact]
+    public void Rentabilidad_del_ano_de_un_grupo_pondera_las_posiciones()
+    {
+        // Dos fondos con el mismo valor al empezar: uno sube un 10 % y otro baja un 10 % el mismo día → el grupo se queda igual.
+        var a = PosicionFinanciera.Crear(1, "A", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m)),
+            new SeriePrecios([(new(2025, 12, 31), 100m), (new(2026, 11, 20), 110m)]), null, Hoy);
+        var b = PosicionFinanciera.Crear(2, "B", Inversion(Compra(1, new(2025, 6, 2), 10m, 1000m)),
+            new SeriePrecios([(new(2025, 12, 31), 100m), (new(2026, 11, 20), 90m)]), null, Hoy);
+        var g = RentabilidadPeriodo.De([a, b], 2026)!;
+        Assert.Equal(0m, Math.Round(g.Rentabilidad, 6));
     }
 
     [Fact]

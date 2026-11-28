@@ -1,4 +1,4 @@
-namespace ProConta.Activos.Financieros;
+﻿namespace ProConta.Activos.Financieros;
 
 /// <summary>
 /// Un lote de un activo financiero: cada compra es un lote. Al vender, todos los lotes vivos se reducen en la misma proporción, porque el coste de lo
@@ -182,6 +182,13 @@ public sealed record PosicionFinanciera(int IdActivo, string Codigo, InversionDe
         return Math.Round(ResultadoVentasEjercicio(ejercicio) + latenteFin - latenteInicio, 2, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>
+    /// Rentabilidad del ejercicio en curso o pasado (activos 2026-11-28, D1–D2): la ponderada en el tiempo (TWR) desde el 31/12 anterior, o desde la
+    /// primera compra si se compró en el año, hasta la última cotización (en un año pasado, hasta el 31/12); la proyectada, lineal × 365 / días. Null
+    /// sin cotización o si no tuvo participaciones en el año.
+    /// </summary>
+    public RentabilidadPeriodo? RentabilidadEjercicio(int ejercicio) => RentabilidadPeriodo.De([this], ejercicio);
+
     /// <summary>Flujos de la TIR: compras (−), ventas (+) y el valor de hoy (+).</summary>
     public IReadOnlyList<(DateTime Fecha, decimal Importe)> Flujos
     {
@@ -238,6 +245,37 @@ public sealed record PosicionFinanciera(int IdActivo, string Codigo, InversionDe
             origen = "histórico guardado";
         }
         return new PosicionFinanciera(idActivo, codigo, inversion, lotes, ventas, precio, fecha, origen, historico, fechaHoy.Date);
+    }
+}
+
+/// <summary>Rentabilidad ponderada en el tiempo de un periodo del ejercicio y su proyección anual lineal (activos 2026-11-28).</summary>
+public sealed record RentabilidadPeriodo(decimal Rentabilidad, DateTime Desde, DateTime Hasta)
+{
+    public int Dias => (Hasta.Date - Desde.Date).Days;
+
+    /// <summary>La del periodo llevada a un año: × 365 / días; null sin días.</summary>
+    public decimal? Proyectada => Dias > 0 ? Rentabilidad * 365m / Dias : null;
+
+    /// <summary>
+    /// TWR de unas posiciones (una sola, o las de un grupo) en el ejercicio: desde el 31/12 anterior, o desde la primera compra del año de las que no
+    /// tenían nada entonces, hasta la última cotización conocida sin pasar del 31/12 del ejercicio. Null si ninguna cotiza o no tuvieron participaciones.
+    /// </summary>
+    public static RentabilidadPeriodo? De(IReadOnlyList<PosicionFinanciera> posiciones, int ejercicio)
+    {
+        var inicio = new DateTime(ejercicio - 1, 12, 31);
+        var finAno = new DateTime(ejercicio, 12, 31);
+        var cotizadas = posiciones.Where(p => p.Historico.Count > 0 || p.FechaPrecio is not null).ToList();
+        if (cotizadas.Count == 0) return null;
+        var hasta = cotizadas.Max(p => p.FechaPrecio ?? p.Historico.Ultimo?.Fecha ?? inicio);
+        if (hasta > finAno) hasta = finAno;
+        if (hasta <= inicio) return null;
+        DateTime? desde = cotizadas.Any(p => p.ParticipacionesEn(inicio) > 0m) ? inicio
+            : cotizadas.SelectMany(p => p.Lotes).Where(l => l.Fecha > inicio && l.Fecha <= hasta).Select(l => (DateTime?)l.Fecha.Date).Min();
+        if (desde is not DateTime d || d >= hasta) return null;
+        var dias = SeriesCartera.Dias(d, hasta);
+        if (dias.Count == 0 || dias[0] != d) dias = [d, .. dias.Where(x => x > d)];
+        var r = SeriesCartera.RentabilidadPonderada(cotizadas, dias);
+        return r.Count > 0 && r[^1] is decimal v ? new RentabilidadPeriodo(v, d, hasta) : null;
     }
 }
 

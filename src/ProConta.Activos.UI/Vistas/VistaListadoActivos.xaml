@@ -259,12 +259,12 @@
             </DataGridTextColumn>
             <DataGridTextColumn Binding="{Binding Rentabilidad}" SortMemberPath="RentabilidadOrden" Width="88" ElementStyle="{StaticResource Celda.TonoRentabilidad}"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="rentabilidad"
-                                pc:TablaProConta.Ayuda="Rentabilidad del ejercicio de trabajo: resultado (ingresos − gastos, sin la amortización) entre el coste de compra">
+                                pc:TablaProConta.Ayuda="Rentabilidad del ejercicio de trabajo. Físicos: resultado (ingresos − gastos, sin la amortización) entre el coste de compra. Financieros: rentabilidad ponderada en el tiempo del año hasta la última cotización (no la mueven las compras ni las ventas)">
               <DataGridTextColumn.Header><TextBlock><Run Text="Rent. " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
             </DataGridTextColumn>
             <DataGridTextColumn Header="Proyectada" Binding="{Binding Proyectada}" SortMemberPath="ProyectadaOrden" Width="92" ElementStyle="{StaticResource Celda.TonoProyectada}"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="proyectada"
-                                pc:TablaProConta.Ayuda="Rentabilidad anual proyectada: la del ejercicio por 12 entre el último mes con ingresos (en un ejercicio terminado, la real). Pasa el ratón por la cifra para ver el cálculo" />
+                                pc:TablaProConta.Ayuda="Rentabilidad anual proyectada. Físicos: la del ejercicio por 12 entre el último mes con ingresos. Financieros: la del año por 365 entre los días hasta la última cotización. En un ejercicio terminado, la real. Pasa el ratón por la cifra para ver el cálculo" />
             <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -320,6 +320,14 @@
             <DataGridTextColumn Header="Anual" Binding="{Binding Anual}" SortMemberPath="AnualOrden" Width="72" ElementStyle="{StaticResource Celda.TonoAnual}"
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="anual"
                                 pc:TablaProConta.Ayuda="Rentabilidad media por año (TIR); «—» con menos de un año desde la compra" />
+            <DataGridTextColumn Binding="{Binding Rentabilidad}" SortMemberPath="RentabilidadOrden" Width="88" ElementStyle="{StaticResource Celda.TonoRentabilidad}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="rentabilidad"
+                                pc:TablaProConta.Ayuda="Rentabilidad del ejercicio de trabajo. Físicos: resultado (ingresos − gastos, sin la amortización) entre el coste de compra. Financieros: rentabilidad ponderada en el tiempo del año hasta la última cotización (no la mueven las compras ni las ventas)">
+              <DataGridTextColumn.Header><TextBlock><Run Text="Rent. " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Header="Proyectada" Binding="{Binding Proyectada}" SortMemberPath="ProyectadaOrden" Width="92" ElementStyle="{StaticResource Celda.TonoProyectada}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="proyectada"
+                                pc:TablaProConta.Ayuda="Rentabilidad anual proyectada. Físicos: la del ejercicio por 12 entre el último mes con ingresos. Financieros: la del año por 365 entre los días hasta la última cotización. En un ejercicio terminado, la real. Pasa el ratón por la cifra para ver el cálculo" />
             <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
