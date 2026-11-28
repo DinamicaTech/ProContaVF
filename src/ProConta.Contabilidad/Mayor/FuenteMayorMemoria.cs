@@ -6,7 +6,9 @@ public sealed record AsientoMemoria(
     byte Tipo = 0, string? Notas = null, DateTime? FechaDocumento = null, DateTime? GrabadoEl = null, DateTime? ModificadoEl = null, bool EsAutomatico = false);
 
 /// <summary>Un apunte en memoria (el id se asigna al añadir el asiento si es 0).</summary>
-public sealed record ApunteMemoria(string Cuenta, decimal Debe, decimal Haber, string? Concepto = null, string? Documento = null, int IdApunte = 0, bool Punteado = false);
+/// <param name="CentroCoste">Texto del centro de coste del apunte («código · nombre»), como lo daría la fuente de Access.</param>
+public sealed record ApunteMemoria(string Cuenta, decimal Debe, decimal Haber, string? Concepto = null, string? Documento = null, int IdApunte = 0, bool Punteado = false,
+    string? CentroCoste = null);
 
 /// <summary>
 /// Fuente del Mayor en memoria: misma semántica que la de Access (sin cierres, cuentas exactas o por prefijo, facturas en todas
@@ -32,9 +34,9 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
         return this;
     }
 
-    public FuenteMayorMemoria Cuenta(int idEjercicio, string codigo, string nombre, bool imputable = true, string? descripcion = null)
+    public FuenteMayorMemoria Cuenta(int idEjercicio, string codigo, string nombre, bool imputable = true, string? descripcion = null, string? centroCoste = null)
     {
-        _plan.Add(new PlanCuenta(codigo, nombre, imputable, idEjercicio, descripcion));
+        _plan.Add(new PlanCuenta(codigo, nombre, imputable, idEjercicio, descripcion, centroCoste));
         return this;
     }
 
@@ -86,7 +88,7 @@ public sealed class FuenteMayorMemoria(string idSociedad) : IFuenteMayor
                 if (!entra) continue;
                 conApuntes.Add(a.IdAsiento);
                 apuntes.Add(new ApunteMayor(p.IdApunte, a.IdAsiento, i + 1, a.IdSociedadEjercicio, Anio(a.IdSociedadEjercicio), a.Fecha, a.Tipo, p.Cuenta,
-                    p.Debe, p.Haber, p.Concepto ?? a.Descripcion, p.Documento, a.Notas, a.FechaDocumento, a.GrabadoEl, a.ModificadoEl, p.Punteado, a.EsAutomatico));
+                    p.Debe, p.Haber, p.Concepto ?? a.Descripcion, p.Documento, a.Notas, a.FechaDocumento, a.GrabadoEl, a.ModificadoEl, p.Punteado, a.EsAutomatico, p.CentroCoste));
             }
         var lineas = asientos.Where(a => conApuntes.Contains(a.IdAsiento))
             .SelectMany(a => a.Apuntes.Select((p, i) => new LineaContrapartida(a.IdAsiento, i + 1, p.Cuenta, p.Debe, p.Haber, p.IdApunte))).ToList();

@@ -265,6 +265,15 @@
               </DataGridTextColumn>
               <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" MinWidth="260" ElementStyle="{StaticResource Texto.Celda}" pc:TablaProConta.Clave="con" pc:TablaProConta.SiempreVisible="True" />
               <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" Width="132" ElementStyle="{StaticResource Texto.Celda.Mono}" pc:TablaProConta.Clave="doc" />
+              <DataGridTextColumn Header="Centro de coste" Binding="{Binding CentroCoste}" Width="150" MinWidth="90" pc:TablaProConta.Clave="cc" pc:TablaProConta.RutaExportar="CentroCoste"
+                                  pc:TablaProConta.Ayuda="Centro de coste del apunte. En las vistas agrupadas, «Varios» si sus apuntes tienen centros distintos (la ayuda de la celda los lista)">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda}">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="ToolTip" Value="{Binding AyudaCentroCoste}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
               <DataGridTextColumn Header="Debe" Binding="{Binding Debe, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Debe" Width="116"
                                   ElementStyle="{StaticResource Texto.Celda.Importe}" HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="debe" pc:TablaProConta.RutaExportar="Debe" />
               <DataGridTextColumn Header="Haber" Binding="{Binding Haber, Converter={StaticResource Importe}, ConverterParameter=vacio}" SortMemberPath="Haber" Width="116"

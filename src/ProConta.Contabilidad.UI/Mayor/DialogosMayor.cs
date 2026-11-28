@@ -66,6 +66,14 @@ public sealed class DialogosMayor(Func<Window?> propietario) : IDialogosMayor
         estiloDesc.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(nameof(CuentaSelectorVM.Descripcion))));
         desc.ElementStyle = estiloDesc;
         tabla.Columns.Add(desc);
+        // El centro de coste por defecto de la subcuenta (el que proponen las pantallas al usarla), con el texto entero en la ayuda.
+        var centro = Col("Centro de coste", nameof(CuentaSelectorVM.CentroCoste), 170, "cc", "Texto.Celda");
+        var estiloCentro = new Style(typeof(TextBlock), (Style)d.FindResource("Texto.Celda"));
+        estiloCentro.Setters.Add(new Setter(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis));
+        estiloCentro.Setters.Add(new Setter(FrameworkElement.ToolTipProperty, new Binding(nameof(CuentaSelectorVM.CentroCoste))));
+        centro.ElementStyle = estiloCentro;
+        TablaProConta.SetAyuda(centro, "Centro de coste por defecto de la subcuenta (el de su ficha, en el ejercicio más reciente elegido); vacío si no tiene o es una cuenta de grupo");
+        tabla.Columns.Add(centro);
         tabla.Columns.Add(Col("Saldo sin apertura", nameof(CuentaSelectorVM.SaldoSinApertura), 140, "ssa", "Texto.Celda.Importe", importe, true));
         tabla.Columns.Add(Col("Saldo", nameof(CuentaSelectorVM.Saldo), 130, "sal", "Texto.Celda.Importe", importe, true));
         tabla.Columns.Add(Col("Apuntes", nameof(CuentaSelectorVM.Apuntes), 80, "apu", "Texto.Celda.Importe", null, true));

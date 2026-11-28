@@ -13,7 +13,7 @@ namespace ProConta.Contabilidad.UI;
 
 /// <summary>
 /// Ventana del buscador de cuentas (contabilidad/cuenta-contable 2026-11-06) con <see cref="DialogoProConta"/>: búsqueda,
-/// casillas del filtro de grupos y «Solo con saldo», lista con código, nombre, descripción, saldo inicial y saldo actual del ejercicio de trabajo, y «Crear subcuenta…» en dos pasos (cuenta de
+/// casillas del filtro de grupos y «Solo con saldo», lista con código, nombre, descripción, centro de coste por defecto, saldo inicial y saldo actual del ejercicio de trabajo, y «Crear subcuenta…» en dos pasos (cuenta de
 /// 3 a 6 cifras y, después, código, nombre, descripción y centro de coste).
 /// </summary>
 public static class DialogoCuentas
@@ -41,12 +41,13 @@ public static class DialogoCuentas
         var lista = new ListBox { HorizontalContentAlignment = HorizontalAlignment.Stretch, ItemsSource = vm.Resultados };
         // Una línea por cuenta, con la descripción en su columna: caben más cuentas a la vista.
         // Saldos del ejercicio de trabajo: el inicial (apertura) y el actual, alineados a la derecha.
-        Grid Fila(string codigo, string nombre, string? descripcion, string saldoInicial, string saldoActual, bool cabecera)
+        Grid Fila(string codigo, string nombre, string? descripcion, string centro, string saldoInicial, string saldoActual, bool cabecera)
         {
             var g = new Grid { Margin = cabecera ? new Thickness(6, 0, 6, 4) : new Thickness(0, 2, 0, 2) };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
             TextBlock Saldo(string texto, string ayuda) => new()
@@ -59,6 +60,11 @@ public static class DialogoCuentas
                 new TextBlock { Text = codigo, FontFamily = cabecera ? dialogo.FontFamily : mono },
                 new TextBlock { Text = nombre, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 12, 0), ToolTip = cabecera ? null : nombre },
                 new TextBlock { Text = descripcion ?? "", TextTrimming = TextTrimming.CharacterEllipsis, Foreground = apagado, ToolTip = string.IsNullOrEmpty(descripcion) || cabecera ? null : descripcion },
+                new TextBlock
+                {
+                    Text = centro, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(12, 0, 0, 0),
+                    ToolTip = cabecera ? "Centro de coste por defecto de la subcuenta: el que se propone en sus apuntes" : string.IsNullOrEmpty(centro) ? null : centro,
+                },
                 Saldo(saldoInicial, "Saldo de apertura de la subcuenta en el ejercicio de trabajo"),
                 Saldo(saldoActual, "Saldo de la subcuenta hoy en el ejercicio de trabajo, con la apertura y todos sus apuntes"),
             };
@@ -70,8 +76,8 @@ public static class DialogoCuentas
             }
             return g;
         }
-        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var c = (CuentaContable)o!; return Fila(c.Codigo, c.Nombre, c.Descripcion, Formatos.ImporteOVacio(c.SaldoInicial), Formatos.ImporteOVacio(c.SaldoActual), cabecera: false); });
-        var cabeceraLista = Fila("Código", "Nombre", "Descripción", "Saldo inicial", "Saldo actual", cabecera: true);
+        lista.ItemTemplate = PlantillaCodigo.Crear(o => { var c = (CuentaContable)o!; return Fila(c.Codigo, c.Nombre, c.Descripcion, vm.CentroDe(c), Formatos.ImporteOVacio(c.SaldoInicial), Formatos.ImporteOVacio(c.SaldoActual), cabecera: false); });
+        var cabeceraLista = Fila("Código", "Nombre", "Descripción", "Centro de coste", "Saldo inicial", "Saldo actual", cabecera: true);
         var cuerpo = new DockPanel();
         DockPanel.SetDock(busqueda, Dock.Top);
         DockPanel.SetDock(casillas, Dock.Top);

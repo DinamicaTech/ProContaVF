@@ -19,6 +19,14 @@ public sealed class FilaMayorVM(FilaMayor f, string cabeceraEjercicio)
     public int Asiento => Fila.IdAsiento;
     public string Concepto => Fila.Concepto;
     public string? Documento => Fila.Documento;
+    public string CentroCoste => Fila.CentroCoste;
+    public string? AyudaCentroCoste => Fila.CentrosCoste.Count switch
+    {
+        0 => null,
+        1 => Fila.NumeroApuntes > 1 ? $"{Fila.CentrosCoste[0]} (todos los apuntes de la fila)" : Fila.CentrosCoste[0],
+        _ => "Los apuntes de esta fila tienen centros distintos:\n" + string.Join("\n", Fila.CentrosCoste.Take(15))
+             + (Fila.CentrosCoste.Count > 15 ? $"\n… y {Fila.CentrosCoste.Count - 15} más" : "") + "\nEn la vista Normal se ve el de cada apunte.",
+    };
     public decimal Debe => Fila.Debe;
     public decimal Haber => Fila.Haber;
     public decimal Saldo => Fila.Saldo;

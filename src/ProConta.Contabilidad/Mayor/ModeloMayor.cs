@@ -28,10 +28,11 @@ public sealed record LineaContrapartida(int IdAsiento, int Orden, string Cuenta,
 /// Apunte tal como lo lee el Mayor: el apunte, la cabecera de su asiento (fecha contable, tipo, notas, alta y último cambio)
 /// y la fecha de la factura del libro de IVA, si el asiento tiene registro de IVA.
 /// </summary>
+/// <param name="CentroCoste">Centro de coste del apunte (Apuntes.IdCentroCoste) como «código · nombre»; null si no tiene.</param>
 public sealed record ApunteMayor(
     int IdApunte, int IdAsiento, int Orden, int IdSociedadEjercicio, int Ejercicio, DateTime Fecha, byte TipoAsiento,
     string Cuenta, decimal Debe, decimal Haber, string Concepto, string? Documento, string? Notas,
-    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl, bool Punteado = false, bool EsAutomatico = false)
+    DateTime? FechaDocumento, DateTime? GrabadoEl, DateTime? ModificadoEl, bool Punteado = false, bool EsAutomatico = false, string? CentroCoste = null)
 {
     public decimal Importe => Debe - Haber;
     public bool EsApertura => TipoAsiento == TiposAsientoMayor.Apertura;
@@ -75,8 +76,10 @@ public sealed record DatosMayor(
 /// <param name="EsSubcuenta">Admite apuntes (imputable); las cuentas de grupo muestran todas sus subcuentas.</param>
 /// <param name="Cuadre">Si está cuadrada en los ejercicios elegidos; <paramref name="AyudaCuadre"/> dice cuándo, quién y con qué comentario.</param>
 /// <param name="Descripcion">Descripción de la cuenta en el plan (CuentasContables.Descripcion), la del ejercicio más reciente de la vista.</param>
+/// <param name="CentroCoste">Centro de coste por defecto de la subcuenta (CuentasContables.IdCentroCostePredeterminado) como «código · nombre»,
+/// el del ejercicio más reciente de la vista; null en las cuentas de grupo y en las subcuentas sin centro por defecto.</param>
 public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinApertura, decimal Saldo, int Apuntes, bool EsSubcuenta,
-    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null, string? Descripcion = null)
+    EstadoCuadre Cuadre = EstadoCuadre.SinMovimientos, string? AyudaCuadre = null, string? Descripcion = null, string? CentroCoste = null)
 {
     public string Etiqueta => Nombre.Length > 0 ? $"{Codigo} {Nombre}" : Codigo;
 }
@@ -84,8 +87,26 @@ public sealed record CuentaMayor(string Codigo, string Nombre, decimal SaldoSinA
 /// <summary>Sumas de una cuenta en un ejercicio, por tipo de asiento (lo que lee la fuente para el selector).</summary>
 public sealed record SumaCuenta(string Cuenta, int IdSociedadEjercicio, byte TipoAsiento, decimal Debe, decimal Haber, int Apuntes);
 
-/// <summary>Cuenta del plan de un ejercicio (CuentasContables).</summary>
-public sealed record PlanCuenta(string Codigo, string Nombre, bool EsImputable, int IdSociedadEjercicio, string? Descripcion = null);
+/// <summary>Cuenta del plan de un ejercicio (CuentasContables), con su centro de coste por defecto como «código · nombre».</summary>
+public sealed record PlanCuenta(string Codigo, string Nombre, bool EsImputable, int IdSociedadEjercicio, string? Descripcion = null, string? CentroCoste = null);
+
+/// <summary>Texto de un centro de coste en el Mayor y su selector: «código · nombre», como en el Diario.</summary>
+public static class CentrosCosteMayor
+{
+    /// <summary>Lo que dice la columna de una fila agrupada cuyos apuntes tienen centros distintos (o unos con centro y otros sin él).</summary>
+    public const string Varios = "Varios";
+
+    /// <summary>Lo que dice la ayuda de «Varios» por los apuntes sin centro.</summary>
+    public const string SinCentro = "Sin centro";
+
+    /// <summary>«código · nombre»; solo el que exista si falta uno; null si faltan los dos.</summary>
+    public static string? Texto(string? codigo, string? nombre)
+    {
+        var c = codigo?.Trim() ?? "";
+        var n = nombre?.Trim() ?? "";
+        return c.Length > 0 && n.Length > 0 ? $"{c} · {n}" : c.Length > 0 ? c : n.Length > 0 ? n : null;
+    }
+}
 
 /// <summary>Asiento completo para verlo en solo lectura desde el Mayor.</summary>
 public sealed record AsientoMayor(

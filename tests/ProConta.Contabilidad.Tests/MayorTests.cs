@@ -299,6 +299,74 @@ public sealed class MayorTests
         Assert.Equal(["6290001"], SelectorCuentasMayor.Filtrar(s.Catalogo, new FiltroCuentasMayor(ConMovimientos: false, Texto: "gastos")).Select(c => c.Codigo));
     }
 
+    /// <summary>Gastos de 2025 con centro de coste: dos líneas de la misma factura con centros distintos, otra con uno solo y una sin centro.</summary>
+    private static FuenteMayorMemoria FuenteConCentros()
+    {
+        var f = DatosMayorSinteticos.Fuente().Cuenta(2, "6290001", "Gastos varios");
+        f.Asiento(new(20, 2, new DateTime(2025, 5, 2), "Factura de servicios A-1",
+            [new("6290001", 60m, 0m, null, "A-1", CentroCoste: "300 · Piso A"), new("6290001", 40m, 0m, null, "A-1", CentroCoste: "301 · Piso B"), new("5720001", 0m, 100m)]));
+        f.Asiento(new(21, 2, new DateTime(2025, 6, 3), "Factura de servicios A-2",
+            [new("6290001", 30m, 0m, null, "A-2", CentroCoste: "300 · Piso A"), new("6290001", 20m, 0m, null, "A-2", CentroCoste: "300 · Piso A"), new("5720001", 0m, 50m)]));
+        f.Asiento(new(22, 2, new DateTime(2025, 7, 4), "Factura de servicios A-3",
+            [new("6290001", 10m, 0m, null, "A-3", CentroCoste: "300 · Piso A"), new("6290001", 5m, 0m, null, "A-3"), new("5720001", 0m, 15m)]));
+        f.Asiento(new(23, 2, new DateTime(2025, 8, 5), "Gasto sin centro", [new("6290001", 7m, 0m, null, "A-4"), new("5720001", 0m, 7m)]));
+        return f;
+    }
+
+    [Fact]
+    public async Task CadaApunteMuestraSuCentroDeCosteEnLaVistaNormal()
+    {
+        var s = await DatosMayorSinteticos.SesionAsync(FuenteConCentros(), 2025);
+        await s.VerCuentasAsync(["6290001"]);
+        var r = s.Resultado;
+        Assert.Equal(["300 · Piso A", "301 · Piso B", "300 · Piso A", "300 · Piso A", "300 · Piso A", "", ""], r.Filas.Select(f => f.CentroCoste));
+        Assert.Equal(["301 · Piso B"], r.Filas[1].CentrosCoste);
+        Assert.Empty(r.Filas[^1].CentrosCoste);
+        DatosMayorSinteticos.ComprobarTotales(r);
+    }
+
+    [Fact]
+    public async Task EnLasVistasAgrupadasElCentroEsElComunOVariosConLaListaParaLaAyuda()
+    {
+        var s = await DatosMayorSinteticos.SesionAsync(FuenteConCentros(), 2025);
+        await s.VerCuentasAsync(["6290001"]);
+        foreach (var vista in new[] { VistaMayor.Compacto, VistaMayor.SoloPendientes, VistaMayor.Agrupar700 })
+        {
+            s.CambiarVista(vista);
+            var porFactura = s.Resultado.Filas.ToDictionary(f => f.FacturaNormalizada);
+            Assert.Equal(CentrosCosteMayor.Varios, porFactura["A-1"].CentroCoste);
+            Assert.Equal(["300 · Piso A", "301 · Piso B"], porFactura["A-1"].CentrosCoste);
+            Assert.Equal("300 · Piso A", porFactura["A-2"].CentroCoste);   // todos sus apuntes en el mismo centro
+            Assert.Equal(["300 · Piso A"], porFactura["A-2"].CentrosCoste);
+            Assert.Equal(CentrosCosteMayor.Varios, porFactura["A-3"].CentroCoste);   // uno con centro y otro sin él
+            Assert.Equal(["300 · Piso A", CentrosCosteMayor.SinCentro], porFactura["A-3"].CentrosCoste);
+            Assert.Equal("", porFactura["A-4"].CentroCoste);
+            Assert.Empty(porFactura["A-4"].CentrosCoste);
+            DatosMayorSinteticos.ComprobarTotales(s.Resultado);
+        }
+    }
+
+    [Fact]
+    public async Task ElSelectorTraeElCentroDeCostePorDefectoDelEjercicioMasReciente()
+    {
+        var fuente = DatosMayorSinteticos.Fuente()
+            .Cuenta(1, "6290001", "Gastos varios", centroCoste: "200 · Antiguo")
+            .Cuenta(2, "6290001", "Gastos varios", centroCoste: "300 · Piso A")
+            .Cuenta(2, "629", "Otros servicios", imputable: false, centroCoste: "300 · Piso A");
+        var s = await DatosMayorSinteticos.SesionAsync(fuente, 2024, 2025);
+        Assert.Equal("300 · Piso A", s.Catalogo.Single(c => c.Codigo == "6290001").CentroCoste);
+        Assert.Null(s.Catalogo.Single(c => c.Codigo == "5720001").CentroCoste);   // sin centro por defecto
+        Assert.Null(s.Catalogo.Single(c => c.Codigo == "629").CentroCoste);       // las cuentas de grupo no lo muestran
+    }
+
+    [Theory]
+    [InlineData(" 300 ", " Piso A ", "300 · Piso A")]
+    [InlineData("300", null, "300")]
+    [InlineData(null, "Piso A", "Piso A")]
+    [InlineData(" ", null, null)]
+    public void ElTextoDelCentroEsCodigoYNombre(string? codigo, string? nombre, string? esperado) =>
+        Assert.Equal(esperado, CentrosCosteMayor.Texto(codigo, nombre));
+
     [Fact]
     public async Task CadaVistaHaceUnaSolaCargaYCambiarDeVistaNoVuelveALeer()
     {

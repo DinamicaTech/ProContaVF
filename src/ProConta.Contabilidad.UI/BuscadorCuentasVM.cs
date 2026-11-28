@@ -77,15 +77,31 @@ public sealed class BuscadorCuentasVM : ModeloVista
     /// <summary>Centros de coste imputables de la sociedad, para el centro de coste por defecto de la subcuenta.</summary>
     public IReadOnlyList<CentroCoste> CentrosCoste { get; private set; } = [];
 
+    /// <summary>Texto («código · nombre») de todos los centros de la sociedad, también los inactivos, para la columna de la lista.</summary>
+    private Dictionary<int, string> _textosCentro = [];
+
     /// <summary>Lee las cuentas del ejercicio (y los centros de coste) y aplica el texto inicial.</summary>
     public async Task CargarAsync()
     {
         _todas = (await _cuentas.ListarAsync(_trabajo)).ToList();
         if (_centrosCoste is not null)
-            CentrosCoste = (await _centrosCoste.ListarAsync(_trabajo.IdSociedad)).Where(c => c.EstaActivo && c.EsImputable)
-                .OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal).ToList();
+        {
+            var centros = await _centrosCoste.ListarAsync(_trabajo.IdSociedad);
+            _textosCentro = centros.GroupBy(c => c.IdCentroCoste).ToDictionary(g => g.Key, g => TextoCentro(g.First()));
+            CentrosCoste = centros.Where(c => c.EstaActivo && c.EsImputable).OrderBy(c => c.RutaJerarquica, StringComparer.Ordinal).ToList();
+        }
         Filtrar();
     }
+
+    /// <summary>«código · nombre» de un centro de coste, como en el Diario y el Mayor.</summary>
+    public static string TextoCentro(CentroCoste c) => $"{c.Codigo.Trim()} · {c.Nombre.Trim()}";
+
+    /// <summary>
+    /// Centro de coste por defecto de la cuenta (CuentasContables.IdCentroCostePredeterminado) para la columna de la lista;
+    /// vacío si no tiene (contabilidad/cuenta-contable 2026-11-28).
+    /// </summary>
+    public string CentroDe(CuentaContable c) =>
+        c.IdCentroCostePredeterminado is int id ? _textosCentro.GetValueOrDefault(id, $"Centro {id}") : "";
 
     private void Filtrar()
     {
