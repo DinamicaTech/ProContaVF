@@ -76,6 +76,19 @@
         <DataTrigger Binding="{Binding TonoAnual}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
       </Style.Triggers>
     </Style>
+    <Style x:Key="Celda.TonoRentabilidad" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding TonoRentabilidad}" Value="Bueno"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding TonoRentabilidad}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="Celda.TonoProyectada" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
+      <Setter Property="ToolTip" Value="{Binding AyudaProyectada}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding TonoProyectada}" Value="Bueno"><Setter Property="Foreground" Value="{StaticResource Pincel.Verde}" /></DataTrigger>
+        <DataTrigger Binding="{Binding TonoProyectada}" Value="Malo"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
+      </Style.Triggers>
+    </Style>
     <Style x:Key="Celda.Resultado" TargetType="TextBlock" BasedOn="{StaticResource Texto.Celda.Importe}">
       <Style.Triggers>
         <DataTrigger Binding="{Binding ResultadoNegativo}" Value="True"><Setter Property="Foreground" Value="{StaticResource Pincel.RojoSaldo}" /></DataTrigger>
@@ -244,6 +257,14 @@
                                 HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="resultado" pc:TablaProConta.Ayuda="Ingresos menos gastos del ejercicio de trabajo, sin la amortización. En los financieros, lo ganado o perdido en el año: resultado de las ventas más lo que ha subido o bajado su valor">
               <DataGridTextColumn.Header><TextBlock><Run Text="Resultado " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
             </DataGridTextColumn>
+            <DataGridTextColumn Binding="{Binding Rentabilidad}" SortMemberPath="RentabilidadOrden" Width="88" ElementStyle="{StaticResource Celda.TonoRentabilidad}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="rentabilidad"
+                                pc:TablaProConta.Ayuda="Rentabilidad del ejercicio de trabajo: resultado (ingresos − gastos, sin la amortización) entre el coste de compra">
+              <DataGridTextColumn.Header><TextBlock><Run Text="Rent. " /><Run Text="{Binding DataContext.Ejercicio, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" /></TextBlock></DataGridTextColumn.Header>
+            </DataGridTextColumn>
+            <DataGridTextColumn Header="Proyectada" Binding="{Binding Proyectada}" SortMemberPath="ProyectadaOrden" Width="92" ElementStyle="{StaticResource Celda.TonoProyectada}"
+                                HeaderStyle="{StaticResource Tabla.Cabecera.Derecha}" pc:TablaProConta.Clave="proyectada"
+                                pc:TablaProConta.Ayuda="Rentabilidad anual proyectada: la del ejercicio por 12 entre el último mes con ingresos (en un ejercicio terminado, la real). Pasa el ratón por la cifra para ver el cálculo" />
             <DataGridTemplateColumn Header="Estado" Width="170" SortMemberPath="Estado" pc:TablaProConta.Clave="estado" pc:TablaProConta.RutaExportar="Estado">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>

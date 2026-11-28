@@ -38,9 +38,10 @@ public sealed record EjercicioSociedad(int IdSociedadEjercicio, int Ejercicio);
 /// <param name="Amortizado">Saldo acreedor de su amortización acumulada en el ejercicio de trabajo.</param>
 /// <param name="Gastos">Gastos del ejercicio de trabajo, con la amortización prevista.</param>
 /// <param name="SubcuentasQueFaltan">Líneas activas de su plantilla sin subcuenta en el ejercicio de trabajo.</param>
+/// <param name="UltimoMesConIngresos">Último mes (1 a 12) del ejercicio de trabajo con ingresos del activo; null sin ingresos.</param>
 public sealed record ActivoListado(int IdActivo, string Codigo, string Nombre, string? NombreCorto, int IdTipoActivo, string CodigoTipo, string Tipo, int? IdCentroCoste,
     string Centro, DateTime? FechaCompra, decimal Coste, decimal Amortizable, decimal Amortizado, decimal Ingresos, decimal Gastos, bool EsAjeno, DateTime? FechaBaja,
-    int SubcuentasQueFaltan)
+    int SubcuentasQueFaltan, int? UltimoMesConIngresos = null)
 {
     public decimal Resultado => Ingresos - Gastos;
     public bool DeBaja => FechaBaja is not null;

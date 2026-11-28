@@ -45,6 +45,25 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar, int ejerc
     public string Resultado => !Propio ? "" : EsFinanciero && _posicion is null ? "…" : Formatos.Importe(ResultadoValor);
     public decimal ResultadoOrden => ResultadoValor;
     public bool ResultadoNegativo => Propio && ResultadoValor < 0m;
+
+    // ---------- rentabilidad (activos 2026-11-28) ----------
+    /// <summary>Meses con los que se proyecta el resultado del físico: hasta su último mes con ingresos; el ejercicio terminado, entero.</summary>
+    public int? MesesProyeccion => EsFinanciero || !Propio ? null : RentabilidadActivo.MesesTranscurridos(ejercicio, Datos.UltimoMesConIngresos, DateTime.Today);
+    public decimal? RentabilidadValor => !Propio || EsFinanciero ? null : RentabilidadActivo.DelEjercicio(Datos.Resultado, Datos.Coste);
+    public decimal? ProyectadaValor => !Propio || EsFinanciero ? null : RentabilidadActivo.Proyectar(RentabilidadValor, MesesProyeccion);
+    public string Rentabilidad => !Propio || EsFinanciero ? "" : TextosCartera.Pct(RentabilidadValor);
+    public decimal RentabilidadOrden => RentabilidadValor ?? decimal.MinValue;
+    public string Proyectada => !Propio || EsFinanciero ? "" : TextosCartera.Pct(ProyectadaValor);
+    public decimal ProyectadaOrden => ProyectadaValor ?? decimal.MinValue;
+    public string TonoRentabilidad => TextosCartera.Tono(RentabilidadValor);
+    public string TonoProyectada => TextosCartera.Tono(ProyectadaValor);
+    public string AyudaProyectada => !Propio || EsFinanciero ? ""
+        : ProyectadaValor is null ? (RentabilidadValor is null ? "Sin coste de compra no hay rentabilidad" : $"Sin ingresos en {ejercicio}: no hay meses con los que proyectar")
+        : MesesProyeccion == 12 ? "Ejercicio completo: la proyectada es la real"
+        : $"Resultado de enero a {Mes(MesesProyeccion!.Value)} (último mes con ingresos) llevado a doce meses: × 12/{MesesProyeccion}";
+
+    private static string Mes(int m) => Formatos.Cultura.DateTimeFormat.GetMonthName(m);
+
     public string Estado => Datos.SubcuentasQueFaltan > 1 ? $"Faltan {Datos.SubcuentasQueFaltan} subcuentas" : Datos.Estado;
 
     /// <summary>EN_USO, BAJA, AJENO o FALTA: el color de la pastilla del estado.</summary>
@@ -275,7 +294,11 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         var propios = lista.Where(f => f.Propio).ToList();
         var texto = Formatos.Plural(lista.Count, "activo", "activos");
         if (propios.Count == 0) return texto;
-        return $"{texto} · coste {Formatos.Importe(propios.Sum(f => f.Datos.Coste))} · resultado {propios[0].Ejercicio} {Formatos.Importe(propios.Sum(f => f.ResultadoValor))}";
+        var resumen = $"{texto} · coste {Formatos.Importe(propios.Sum(f => f.Datos.Coste))} · resultado {propios[0].Ejercicio} {Formatos.Importe(propios.Sum(f => f.ResultadoValor))}";
+        var fisicos = propios.Where(f => !f.EsFinanciero).ToList();
+        if (fisicos.Count == 0) return resumen;
+        var (real, proyectada) = RentabilidadActivo.DeGrupo(fisicos.Select(f => (f.Datos.Resultado, f.Datos.Coste, f.MesesProyeccion)));
+        return real is null ? resumen : $"{resumen} · rentabilidad {TextosCartera.Pct(real)} (proyectada {TextosCartera.Pct(proyectada)})";
     }
 
     public async Task CargarAsync()

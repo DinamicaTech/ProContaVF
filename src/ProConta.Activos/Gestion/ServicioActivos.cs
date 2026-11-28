@@ -172,6 +172,14 @@ public sealed partial class ServicioActivos
 
     // ---------- listado ----------
 
+    /// <summary>Último mes (1 a 12) con ingresos en la cuenta de resultados del activo; null si no tiene (rentabilidad proyectada, activos 2026-11-28).</summary>
+    internal static int? UltimoMesConIngresos(CuentaResultados cr)
+    {
+        for (var m = 11; m >= 0; m--)
+            if (cr.IngresosMes(m) > 0m) return m + 1;
+        return null;
+    }
+
     /// <summary>Todos los activos de la sociedad (también ajenos y de baja) con las cifras del ejercicio de trabajo.</summary>
     public async Task<IReadOnlyList<ActivoListado>> ListarAsync(ContextoSociedadEjercicio ctx)
     {
@@ -199,7 +207,8 @@ public sealed partial class ServicioActivos
             resultado.Add(new ActivoListado(a.Id, a.Codigo, a.Nombre, a.Alias, a.IdTipo, a.CodigoTipo, a.Tipo, a.Ajeno ? null : a.Centro,
                 a.Ajeno || a.Centro is not int c ? "" : centros.GetValueOrDefault(c, ""), a.Compra, a.Coste,
                 plan is null || a.Ajeno ? 0m : Math.Max(0m, plan.Base - plan.Residual), a.Ajeno ? 0m : Amortizado(apuntes, enlaces, codigoDe, a.Id),
-                cr?.Ingresos ?? 0m, cr?.Gastos ?? 0m, a.Ajeno, a.Baja, a.Ajeno || a.Baja is not null ? 0 : faltan.GetValueOrDefault(a.Id)));
+                cr?.Ingresos ?? 0m, cr?.Gastos ?? 0m, a.Ajeno, a.Baja, a.Ajeno || a.Baja is not null ? 0 : faltan.GetValueOrDefault(a.Id),
+                cr is null ? null : UltimoMesConIngresos(cr)));
         }
         return resultado;
     }
