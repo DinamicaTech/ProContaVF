@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Windows;
 using Microsoft.Win32;
 using ProConta.Datos.Persistencia;
@@ -83,6 +83,9 @@ public partial class App : Application
 
             var compatible = await ComprobarOActualizarAsync(ubicacion);
             if (compatible is null) { Shutdown(1); return; }
+            // El esquema ya está al día y no cambia mientras el programa está abierto: su estructura se lee una sola vez
+            // (registro-errores 2026-11-28; las consultas van por turno y no deben esperar lecturas de estructura repetidas).
+            MemoriaEsquema.RecordarEnElProceso();
 
             var bd = new BaseDatosAccess(ubicacion.RutaBaseDatos);
             var entorno = await InfoEntorno.LeerAsync(bd);
@@ -125,6 +128,7 @@ public partial class App : Application
 
             _crearPrincipal = contexto => new VentanaPrincipal(contexto, ubicacion, compatible.VersionBd, bd, entorno);
             var principal = AbrirPrincipal(acceso.Resultado);
+            ErroresInesperados.RevisarCierresAnteriores(principal);
             if (e.Args.Contains("--provocar-error", StringComparer.OrdinalIgnoreCase)) ErroresInesperados.ProvocarDePrueba(principal);
         }
         catch (ExcepcionDatos ex)

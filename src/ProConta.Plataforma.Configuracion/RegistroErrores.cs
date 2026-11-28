@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 
 namespace ProConta.Plataforma.Configuracion;
@@ -85,8 +85,18 @@ public sealed class RegistroErrores
         catch (Exception ex) { contexto = new ContextoError("ProContaVF", "?", Pantalla: $"(no se pudo leer el contexto: {ex.GetType().Name})"); }
         if (ajustar is not null) contexto = ajustar(contexto);
         var ahora = _ahora();
-        var texto = Formatear(ahora, contexto, donde, error);
-        var ruta = Ruta(ahora);
+        return Escribir(Formatear(ahora, contexto, donde, Resumen(error), error.ToString()), Ruta(ahora));
+    }
+
+    /// <summary>
+    /// Añade un error que no llega como excepción (un cierre brusco que Windows anotó en su visor de eventos, registro-errores
+    /// 2026-11-28) con su fecha y hora reales, en el fichero del mes de esa fecha. Devuelve la ruta, o null si no se pudo escribir.
+    /// </summary>
+    public string? RegistrarExterno(DateTime fecha, ContextoError contexto, string donde, string resumen, string detalle) =>
+        Escribir(Formatear(fecha, contexto, donde, resumen, detalle), Ruta(fecha));
+
+    private string? Escribir(string texto, string ruta)
+    {
         lock (_cerrojo)
         {
             // ProContaVF y el conector escriben en el mismo fichero: si el otro lo tiene abierto en ese instante, se reintenta.
@@ -178,7 +188,10 @@ public sealed class RegistroErrores
     }
 
     /// <summary>Una entrada del registro: cabecera con la fecha, los datos de contexto conocidos y el detalle técnico completo.</summary>
-    public static string Formatear(DateTime fecha, ContextoError c, string donde, Exception error)
+    public static string Formatear(DateTime fecha, ContextoError c, string donde, Exception error) =>
+        Formatear(fecha, c, donde, Resumen(error), error.ToString());
+
+    private static string Formatear(DateTime fecha, ContextoError c, string donde, string resumen, string detalle)
     {
         var sb = new StringBuilder();
         sb.Append("==== ").Append(fecha.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Append(" · ").Append(c.Programa).AppendLine(" · error inesperado");
@@ -194,9 +207,9 @@ public sealed class RegistroErrores
         Linea("Pantalla", c.Pantalla);
         Linea("Dónde", donde);
         Linea("Equipo", $"{Environment.MachineName} · usuario de Windows {Environment.UserName} · {Environment.OSVersion.VersionString}");
-        Linea("Error", Resumen(error));
+        Linea("Error", resumen);
         sb.AppendLine("Detalle técnico:");
-        sb.AppendLine(error.ToString());
+        sb.AppendLine(detalle.TrimEnd());
         sb.AppendLine();
         return sb.ToString();
     }

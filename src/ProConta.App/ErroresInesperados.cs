@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 using ProConta.Plataforma.Configuracion;
@@ -107,6 +107,53 @@ internal static class ErroresInesperados
 
         var elegida = ServicioMensajes.Preguntar(Principal is { IsLoaded: true } p ? p : null, "Algo ha fallado", mensaje, detalles, [.. opciones]);
         if (ruta is not null && elegida == 0) AbrirCarpeta(ruta);
+    }
+
+    /// <summary>
+    /// Al arrancar (registro-errores 2026-11-28): busca en el visor de eventos de Windows los cierres bruscos de este ejecutable
+    /// desde la última vez, los copia al registro de errores y avisa. Se lee en segundo plano para no retrasar la entrada.
+    /// </summary>
+    public static void RevisarCierresAnteriores(Window principal)
+    {
+        if (Environment.ProcessPath is not { } exe) return;
+        Task.Run(() => CierresWindows.Buscar(Registro.Carpeta, exe, DateTime.Now))
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted || t.Result.Count == 0) return;
+                string? ruta = null;
+                foreach (var c in t.Result)
+                    ruta = Registro.RegistrarExterno(c.Fecha, new ContextoError("ProContaVF", "la instalada entonces (no se conoce)", Entorno, BaseDatos, Operador),
+                        "Cierre brusco anotado por Windows en su visor de eventos (ProContaVF no pudo guardarlo)", c.Resumen, c.Detalle) ?? ruta;
+                AvisarCierres(principal, t.Result, ruta);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private static void AvisarCierres(Window principal, IReadOnlyList<CierreBrusco> cierres, string? ruta)
+    {
+        var ultimo = cierres[^1];
+        var cuando = cierres.Count == 1 ? $"el {RegistroErrores.FechaCorta(ultimo.Fecha)}" : $"{cierres.Count} veces, la última el {RegistroErrores.FechaCorta(ultimo.Fecha)}";
+        var mensaje = $"ProContaVF se cerró de golpe {cuando}, sin poder avisar ni guardar el detalle: falló un componente de Windows o de Office " +
+            "que usa el programa (por ejemplo, el motor de Access). Windows sí lo anotó, y " +
+            (ruta is not null ? "he copiado su detalle al registro de errores para poder averiguar la causa." : $"no he podido copiarlo al registro de errores ({Registro.RutaActual}).") +
+            Environment.NewLine + Environment.NewLine +
+            "Comprueba que lo último que hiciste antes del cierre está como esperabas. Si se repite, envía ese fichero a quien te da soporte.";
+        var detalles = new List<string>
+        {
+            ruta is not null ? "Fichero: " + ruta : "Fichero: no se ha podido escribir",
+            "Error: " + ultimo.Resumen,
+        };
+        var opciones = new List<OpcionMensaje>();
+        if (ruta is not null) opciones.Add(new OpcionMensaje("Abrir la carpeta", "Abre la carpeta del registro de errores con el fichero seleccionado, para enviarlo o mirarlo"));
+        opciones.Add(new OpcionMensaje("Seguir trabajando", "Cierra este aviso", Principal: true, Cancelar: true));
+        try
+        {
+            var elegida = ServicioMensajes.Preguntar(principal.IsLoaded ? principal : null, "ProContaVF se cerró de golpe", mensaje, detalles, [.. opciones]);
+            if (ruta is not null && elegida == 0) AbrirCarpeta(ruta);
+        }
+        catch (Exception ex)
+        {
+            Registro.Registrar(ex, "Aviso de cierre brusco anterior (no se pudo mostrar)");
+        }
     }
 
     /// <summary>Abre el Explorador con el fichero seleccionado. Si no puede, no hace nada: la ruta ya está en el aviso.</summary>

@@ -1,4 +1,4 @@
-namespace ProConta.Datos.Persistencia;
+﻿namespace ProConta.Datos.Persistencia;
 
 /// <summary>Estructura física leída de la BD; la usan el ActualizadorEsquema y el diccionario de datos.</summary>
 public sealed record EsquemaFisico(IReadOnlyList<TablaFisica> Tablas)
@@ -52,8 +52,26 @@ public static class MemoriaEsquema
         return new Cierre(anterior);
     }
 
+    // Memoria de todo el proceso (registro-errores 2026-11-28): ProContaVF la enciende al arrancar, después de actualizar el
+    // esquema; desde entonces la estructura de cada fichero se lee una sola vez por sesión del programa. Así las consultas, que
+    // ahora van por turno, no esperan las lecturas de estructura repetidas (unos 0,4 s cada una).
+    private static System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>? _proceso;
+
+    /// <summary>
+    /// Recuerda la estructura de cada BD hasta que se cierra el programa (o hasta <see cref="Olvidar"/>). Solo para quien ya ha
+    /// actualizado el esquema y no lo cambia después (ProContaVF tras el arranque); las migraciones y las pruebas no la encienden.
+    /// </summary>
+    public static void RecordarEnElProceso() =>
+        _proceso ??= new System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Olvida la estructura recordada en el proceso (se vuelve a leer la próxima vez).</summary>
+    public static void Olvidar() => _proceso?.Clear();
+
+    /// <summary>Apaga la memoria del proceso: fuera de un ámbito se vuelve a leer siempre (las pruebas la dejan así al terminar).</summary>
+    public static void DejarDeRecordar() => _proceso = null;
+
     public static EsquemaFisico Obtener(string clave, Func<EsquemaFisico> leer) =>
-        Actual.Value is { } d ? d.GetOrAdd(clave, _ => leer()) : leer();
+        (Actual.Value ?? _proceso) is { } d ? d.GetOrAdd(clave, _ => leer()) : leer();
 
     private sealed class Cierre(System.Collections.Concurrent.ConcurrentDictionary<string, EsquemaFisico>? anterior) : IDisposable
     {

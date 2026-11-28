@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -110,7 +110,10 @@ public class TablaProConta : DataGrid
         CanUserSortColumns = true;
         AutoGenerateColumns = false;
         EnableRowVirtualization = true;
-        EnableColumnVirtualization = true;
+        // Sin virtualizar columnas (registro-errores 2026-11-28): en una tabla agrupada más ancha que la pantalla, el DataGrid
+        // de WPF dejaba en blanco la cabecera y todas las celdas (Activos con la columna Nombre ensanchada). Las tablas tienen
+        // pocas columnas; las filas siguen virtualizadas.
+        EnableColumnVirtualization = false;
         VirtualizingPanel.SetVirtualizationMode(this, VirtualizationMode.Recycling);
         ExportarExcelCommand = new ComandoDelegado(() => ExportarAExcel(), () => Items.Count > 0);
         RestablecerColumnasCommand = new ComandoDelegado(RestablecerColumnas);

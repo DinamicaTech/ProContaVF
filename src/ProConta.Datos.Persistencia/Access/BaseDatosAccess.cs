@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Data.OleDb;
 using ProConta.Nucleo.Resultados;
 
@@ -56,19 +56,44 @@ public sealed class BaseDatosAccess : IBaseDatos
 
     public async Task<T> EjecutarAsync<T>(Func<ISesionDatos, Task<T>> trabajo, CancellationToken cancelacion = default)
     {
-        var conexion = Abrir();
+        var turno = await EsperarTurnoAsync(cancelacion).ConfigureAwait(false);
+        // Marca del turno para lo que se ejecute desde aquí; un método async no la devuelve al que lo llamó, por eso se pone aquí.
+        _enTurno.Value = true;
         try
         {
-            var sesion = new SesionAccess(conexion, null, cancelacion);
-            return await trabajo(sesion).ConfigureAwait(false);
+            var conexion = Abrir();
+            try
+            {
+                var sesion = new SesionAccess(conexion, null, cancelacion);
+                return await trabajo(sesion).ConfigureAwait(false);
+            }
+            finally
+            {
+                Cerrar(conexion);
+            }
         }
         finally
         {
-            Cerrar(conexion);
+            turno?.Release();
         }
     }
 
     public async Task<T> EnTransaccionAsync<T>(Func<ISesionDatos, Task<T>> trabajo, CancellationToken cancelacion = default)
+    {
+        var turno = await EsperarTurnoAsync(cancelacion).ConfigureAwait(false);
+        // Marca del turno para lo que se ejecute desde aquí; un método async no la devuelve al que lo llamó, por eso se pone aquí.
+        _enTurno.Value = true;
+        try
+        {
+            return await EnTransaccionConTurnoAsync(trabajo, cancelacion).ConfigureAwait(false);
+        }
+        finally
+        {
+            turno?.Release();
+        }
+    }
+
+    private async Task<T> EnTransaccionConTurnoAsync<T>(Func<ISesionDatos, Task<T>> trabajo, CancellationToken cancelacion)
     {
         var conexion = Abrir();
         try
@@ -99,8 +124,23 @@ public sealed class BaseDatosAccess : IBaseDatos
     }
 
     // ACE falla (violación de acceso) si dos hilos del mismo proceso abren o cierran conexiones a la
-    // vez; se serializan solo la apertura y el cierre, no el trabajo de cada sesión.
+    // vez; la apertura y el cierre van además bajo este cerrojo por si alguien abre fuera de turno (una sesión anidada).
     private static readonly object _cerrojoProveedor = new();
+
+    // El ACE de Office también falla (violación de acceso que cierra el programa sin pasar por .NET) cuando dos hilos ejecutan
+    // o cierran consultas a la vez, aunque cada uno tenga su conexión (registro-errores 2026-11-28: Inicio leía la estructura
+    // mientras se abría Activos). Por eso todo el trabajo con ACE del proceso va por turno: una sesión detrás de otra, en
+    // todas las BD. Una sesión abierta dentro de otra del mismo flujo (anidada) no espera: si esperase, se bloquearía a sí misma.
+    private static readonly SemaphoreSlim _turno = new(1, 1);
+    private static readonly AsyncLocal<bool> _enTurno = new();
+
+    /// <summary>Espera el turno del proceso; devuelve el semáforo que hay que soltar, o null si este flujo ya tenía el turno.</summary>
+    private static async Task<SemaphoreSlim?> EsperarTurnoAsync(CancellationToken cancelacion)
+    {
+        if (_enTurno.Value) return null;
+        await _turno.WaitAsync(cancelacion).ConfigureAwait(false);
+        return _turno;
+    }
 
     private static void Cerrar(OleDbConnection conexion)
     {

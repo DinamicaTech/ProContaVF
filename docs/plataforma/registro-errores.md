@@ -1,8 +1,9 @@
 ---
 title: Registro de errores
-depends_on: [plataforma/contenedor, plataforma/conector-claude, plataforma/configuracion]
+depends_on: [plataforma/contenedor, plataforma/conector-claude, plataforma/configuracion, datos/persistencia, plataforma/ui-base]
 threads:
   - 2026-11-18 18:48 · Registrar los errores inesperados | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5G2FNuf3HdhCg2nAo5Gwvfe1
+  - 2026-11-28 13:29 · Investigar cierre al abrir Activos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GFrfBjZtDZzN6HLm4TE7WVt
 ---
 ## Summary
 Fichero de registro de los errores inesperados (los que ningún código controla) de ProContaVF y de su conector de Claude Desktop, para poder averiguar la causa de un fallo en producción.
@@ -12,6 +13,7 @@ Conector: si una herramienta falla de forma inesperada, se guarda con la socieda
 Configuración › «Registro de errores» los enseña en una pestaña de solo lectura (`PestanaRegistroErrores`): tabla con fecha, programa, sociedad, pantalla, error y versión de todos los ficheros conservados, el detalle técnico de la fila seleccionada, «Actualizar» y «Abrir la carpeta» en la cabecera y «Copiar el detalle» en el menú contextual.
 Los errores ya explicados (BD no encontrada, esquema antiguo, validaciones…) siguen con su aviso y no van al fichero. Para validarlo, `--provocar-error` en ProContaVF (falla la pantalla activa al abrir la ventana principal) y en el conector (falla la herramienta «sociedades»), sin tocar datos.
 **Aceptación:** un error provocado a propósito en una pantalla y otro en el conector quedan en el fichero con fecha, versión, sociedad, pantalla y detalle técnico; el mensaje que ve el usuario dice dónde está el fichero; el programa no se cierra sin dejar rastro.
+Cierres bruscos: un fallo dentro de un componente nativo (el motor de Access) cierra el proceso sin pasar por .NET y no llega al fichero. Al arrancar, ProContaVF busca en el visor de eventos de Windows («Error de aplicación» 1000 de su mismo ejecutable, con el evento 1026 de .NET Runtime que trae la pila) los cierres desde la última revisión (marca `cierres-revisados.txt` en la carpeta de errores; la primera vez, 7 días), los copia al fichero con su fecha real y avisa «ProContaVF se cerró de golpe» con la ruta y «Abrir la carpeta».
 
 ## Decisions
 - 2026-11-18 12:20 · Creado como borrador desde el hilo «Registrar las funcionalidades que faltan» (revisión de funcionalidades antes del arranque), con el visto bueno del propietario (2026-11-18 12:18).
@@ -19,11 +21,15 @@ Los errores ya explicados (BD no encontrada, esquema antiguo, validaciones…) s
 - 2026-11-18 18:48 · Construido: `RegistroErrores` y `ContextoError` en ProConta.Plataforma.Configuracion (escritura compartida con reintentos porque los dos programas usan el mismo fichero), `ErroresInesperados` y `VentanaPrincipal.Errores.cs` en ProConta.App, y `Proteger` en cada herramienta del conector (el SDK de MCP se traga la excepción y devolvería un error genérico, así que se captura dentro de cada herramienta). Pruebas sin BD en ProConta.Plataforma.Configuracion.Tests (RegistroErroresTests) y ProConta.Conector.Tests (ErroresInesperadosConectorTests).
 - 2026-11-18 18:58 · Pantalla de consulta, acordada con el propietario (18:50): Configuración › «Registro de errores», de solo lectura, lee los ficheros de la carpeta (`RegistroErrores.Leer`, de la entrada más reciente a la más antigua; un fichero bloqueado se salta y se avisa). No cambia la BD ni el formato del fichero.
 - 2026-11-18 20:17 · Validado por el propietario («Ok, ya puedes fusionar»): el nodo deja de ser borrador.
+- 2026-11-28 13:55 · Cierres bruscos (propietario 2026-11-28 13:49, «Ok, adelante»): el 28/11 a las 13:27 producción se cerró sin dejar rastro en el registro; el visor de eventos de Windows mostraba una violación de acceso dentro de ACE mientras Inicio leía la estructura de la BD y se abría Activos (y otra igual el 27/11 en un clon). Se corrige la causa en datos/persistencia (todo el trabajo con ACE por turno) y en plataforma/ui-base (tablas agrupadas en blanco), y al arrancar se copian al registro los cierres de este ejecutable anotados por Windows (`CierresWindows` y `ErroresInesperados.RevisarCierresAnteriores` en ProConta.App; `RegistroErrores.RegistrarExterno` con la fecha real). Las excepciones de .NET (código e0434352) no se copian: ya las guarda el programa.
 
 ## Requirements
 - 2026-11-18 12:16 · Sí, un registro de errores nos puede resultar necesario. Como nuevo nodo en draft, lo activaré cuando modelos tributarios haya acabado
 - 2026-11-18 12:18 · draft: Guardar en un fichero de registro todos los errores inesperados de ProContaVF y de su conector, con la fecha, la versión, la sociedad, la pantalla y el detalle técnico, y decirle al usuario en el mensaje de error dónde está ese fichero.
 - 2026-11-18 18:49 · Hay alguna pantalla donde pueda consultar el histórico de registro de errores ?
+- 2026-11-28 13:28 · Se acaba de cerrar la aplicación justo al abrir la pantalla de Activos. ¿Puedes investigar?
+- 2026-11-28 13:33 · Como dato, no se cómo, pero se ocultaron las filas de la pantalla de activos. Cerrar y abrir la pestaña no lo solucionaba, por lo que cerré la aplicación y volví a abrir. Al abrir activos, cierre inmediato. Podría tener algo que ver con la configuración.
+- 2026-11-28 13:49 · Ok, adelante. (a: una sola cosa a la vez con la BD y estructura leída una vez; b: copiar al registro los cierres bruscos del visor de eventos y avisar; c: tablas agrupadas que no se quedan en blanco)
 
 ## Hand-over
 - 2026-11-18 18:48 · Hecho y probado: pruebas automáticas y el conector con `--provocar-error` contra la copia ProConta-errores-01 (el error queda en el fichero y la respuesta da la ruta). La pestaña Configuración › «Registro de errores» se ha revisado fuera de pantalla con dos errores de ejemplo. Falta: validar en pantalla ProContaVF con `--provocar-error` y la pestaña, y, cuando el propietario lo dé por bueno, quitar `status: draft`.

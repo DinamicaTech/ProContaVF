@@ -1,4 +1,4 @@
-using ProConta.Plataforma.Configuracion;
+﻿using ProConta.Plataforma.Configuracion;
 
 namespace ProConta.Plataforma.Configuracion.Tests;
 
@@ -170,6 +170,26 @@ public sealed class RegistroErroresTests : IDisposable
     public void La_carpeta_por_defecto_esta_junto_a_la_configuracion_local()
     {
         Assert.EndsWith(Path.Combine("ProContaVF", "errores"), RegistroErrores.CarpetaPorDefecto);
+    }
+
+    [Fact]
+    public void Un_cierre_anotado_por_Windows_se_guarda_con_su_fecha_en_el_fichero_de_su_mes_y_se_puede_leer()
+    {
+        var registro = Nuevo();
+        var fecha = new DateTime(2026, 10, 28, 13, 27, 49);
+
+        var ruta = registro.RegistrarExterno(fecha, new ContextoError("ProContaVF", "la instalada entonces (no se conoce)", "Producción"),
+            "Cierre brusco anotado por Windows en su visor de eventos (ProContaVF no pudo guardarlo)",
+            "Cierre brusco: violación de acceso (c0000005) en coreclr.dll",
+            "Application: ProContaVF.exe\nDescription: The process was terminated due to an unhandled exception.\nStack:\n   at LectorEsquemaAccess.Autonumericos");
+
+        Assert.Equal(Path.Combine(_carpeta, "errores-2026-10.log"), ruta);
+        var entrada = Assert.Single(registro.Leer(out var ilegibles));
+        Assert.Equal(0, ilegibles);
+        Assert.Equal(fecha, entrada.Fecha);
+        Assert.Equal("Cierre brusco: violación de acceso (c0000005) en coreclr.dll", entrada.Error);
+        Assert.Equal("Cierre brusco anotado por Windows en su visor de eventos (ProContaVF no pudo guardarlo)", entrada.Donde);
+        Assert.Contains("LectorEsquemaAccess.Autonumericos", entrada.Texto);
     }
 
     public void Dispose()

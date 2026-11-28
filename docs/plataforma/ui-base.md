@@ -8,6 +8,7 @@ threads:
   - 2026-11-05 11:24 · Construir facturas de compra | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GEbtcX2Z7baM2yhwHY2wJXj
   - 2026-11-12 10:45 · Terminar el Mayor reutilizable | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GUQTbt5iUykqVQuUQnN1twN
   - 2026-11-11 19:20 · Terminar el Mayor en local | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GUQTbt5iUykqVQuUQnN1twN
+  - 2026-11-28 13:29 · Investigar cierre al abrir Activos | https://claude.ai/code/project/chan_01SQZ7PCqQx2V9FyGTmZCe5G?thread=cmsg_01SQZ7PCqQx2V9FyGTmZCe5GFrfBjZtDZzN6HLm4TE7WVt
 ---
 ## Summary
 Estilos, recursos y componentes WPF compartidos: tipografía, colores, separaciones, pestañas, listas, estados, botones, foco, validaciones y ayudas. Fija el ancho de campo según contenido y las pautas de accesibilidad. La voz de los mensajes al operador está en su hijo plataforma/ui-base/mensajes.
@@ -58,6 +59,7 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-12 10:45 · Ancho de las columnas de todas las tablas (`TablaProConta`), completa el criterio global de 2026-10-31 09:58: entre los títulos se ve una línea divisoria y el separador tiene una zona de 10 px para cogerlo. Arrastrarlo cambia solo esa columna, que sigue al ratón, y desplaza las demás (si no caben, barra horizontal); no hay ancho mínimo (8 px, para que no desaparezca: ocultarla es otra opción), y una columna nunca se estrecha sola para caber en la ventana. Doble clic en el separador: la columna a su contenido. «Ajustar todas al contenido» mide el texto de todas las filas (hasta 5.000), no solo las pintadas: primero las columnas de contenido fijo (fechas, códigos, importes, textos cortos) a su contenido; después el espacio que queda se reparte entre las de contenido variable (las proporcionales, como el concepto, y las que piden más de 320 px, como las notas): si sobra, cada una recibe lo que pide más una parte del sobrante; si no cabe, a partes iguales, y la que pide menos que su parte se queda con lo que pide. Ninguna baja del ancho de su título.
 - 2026-11-14 23:35 · `ExportadorExcel.Exportar` admite una fila de totales opcional (un valor por columna): va en negrita dos filas por debajo de los datos y fuera del filtro automático, para que ordenar en Excel no la mezcle con ellos. La usa el Diario (contabilidad/diario); las demás tablas exportan como antes.
 - 2026-11-25 20:40 · `TablaProConta` conserva la ordenación cuando la pantalla le cambia las filas (ItemsSource): el DataGrid de WPF la borraba y el operador volvía a la ordenación por defecto al filtrar o al releer (norma43/pantallas 2026-11-25 20:40). Se guarda la ordenación justo antes de que el DataGrid la borre y se vuelve a poner, con la flecha de su columna, sobre las filas nuevas; si la pantalla trae su propia vista ya ordenada (el Mayor), se pone la de esa vista. No se restaura si alguna de las columnas ordenadas ya no existe. Pruebas en OrdenTablaTests (STA).
+- 2026-11-28 13:55 · `TablaProConta` no virtualiza columnas (las filas sí): una tabla agrupada (Activos, por tipo de activo) más ancha que la pantalla dejaba en blanco la cabecera y todas las celdas en cuanto el operador ensanchaba una columna (Nombre a 737 px en Activos, 2026-11-28). Las tablas tienen pocas columnas y el coste es despreciable.
 
 ## Requirements
 - 2026-10-28 12:28 · From sources/01_ESPECIFICACION_FUNCIONAL.docx § 6 RF-UI-02, 03, 06: look and feel de las maquetas con estilos compartidos, campos del ancho de su contenido, accesibilidad y mensajes
@@ -95,6 +97,7 @@ Dirigió la validación de los prototipos HTML de las pantallas principales (con
 - 2026-11-12 09:40 · Ok a una PR aparte para las columnas
 - 2026-11-14 23:35 · Derived from contabilidad/diario: fila de totales opcional en la exportación común a Excel.
 - 2026-11-25 20:40 · Derived from norma43/pantallas: conservar la columna y el sentido de la ordenación cuando una rejilla recibe filas nuevas.
+- 2026-11-28 13:49 · Derived from plataforma/registro-errores: una tabla agrupada más ancha que la pantalla no se queda en blanco.
 
 ## Hand-over
 - 2026-10-29 10:20 · Hecho: acceso al lienzo confirmado, decisión HTML frente a WPF, desglose acordado y requisitos derivados en cada nodo de pantalla. Mayor antiguo exportado y analizado (`sources/proconta-antiguo/mayor/ANALISIS-FUNCIONAL.md`). Pendiente: validar los prototipos en el orden acordado, crear los de importación de compras y Mayor, y después la biblioteca WPF con su pantalla de muestra.
