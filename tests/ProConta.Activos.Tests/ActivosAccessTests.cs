@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProConta.Activos.Gestion;
 using ProConta.Contabilidad.Asientos;
 using ProConta.Contabilidad.Cuentas;
@@ -251,8 +251,9 @@ public sealed class ActivosAccessTests : IDisposable
         // 80.000 al 3 % desde el 1/7: 184 días de 365 = 1.209,86, pendiente de contabilizar.
         var prevista = Assert.Single(c.Filas, f => f.Tipo == TipoFilaResultado.AmortizacionPrevista);
         Assert.Equal(1_209.86m, prevista.Total);
-        Assert.Equal(120m + 1_209.86m, c.Gastos);
-        Assert.Equal(900m - 120m - 1_209.86m, c.Resultado);
+        // El resultado no lleva la amortización, ni la contabilizada ni la prevista (activos 2026-11-27 13:40): va aparte, informativa.
+        Assert.Equal(120m, c.Gastos);
+        Assert.Equal(900m - 120m, c.Resultado);
         var tabla = await Servicio.AmortizacionAsync(_ctx, id);
         Assert.Equal(1_209.86m, tabla.Filas.Single(f => f.Ejercicio == 2026).Cuota);
         Assert.Equal(EstadoAmortizacionEjercicio.PendienteDeContabilizar, tabla.Filas[0].Estado);
