@@ -44,7 +44,7 @@ public partial class App : Application
     /// </summary>
     internal void SustituirPrincipal(VentanaPrincipal anterior, ContextoAcceso nuevo)
     {
-        var ventana = anterior.WindowState == WindowState.Maximized ? null : new Rect(anterior.Left, anterior.Top, anterior.Width, anterior.Height);
+        Rect? ventana = anterior.WindowState == WindowState.Maximized ? null : new Rect(anterior.Left, anterior.Top, anterior.Width, anterior.Height);
         anterior.Sustituida = true;
         var principal = AbrirPrincipal(nuevo);
         if (ventana is Rect r)
