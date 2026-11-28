@@ -240,6 +240,30 @@ public sealed class AccesoAccessTests : IDisposable
     }
 
     [Fact]
+    public async Task CambiarDeEjercicioYDeSociedadConLaMismaSesion()
+    {
+        // plataforma/contenedor 2026-11-28: el cambio de ejercicio sin volver a entrar reutiliza la sesión abierta al entrar.
+        await PrepararSociedadesAsync();
+        var bd = _copia.Bd();
+        var acceso = Servicio();
+        await DatosSinteticos.OperadorSinContrasenaAsync(bd, "operador.prueba");
+        var sesion = (await acceso.AutenticarAsync("operador.prueba", "")).Valor;
+
+        var primero = await acceso.CompletarAsync(sesion, "T01", 9002);
+        Assert.True(primero.EsCorrecto, primero.Error?.ToString());
+        var otroEjercicio = await acceso.CompletarAsync(sesion, "T01", 9001);
+        Assert.True(otroEjercicio.EsCorrecto, otroEjercicio.Error?.ToString());
+        Assert.Equal(9001, otroEjercicio.Valor.Contexto.IdSociedadEjercicio);
+        Assert.Equal(9001, (await acceso.ListarEjerciciosAsync(sesion, "T01")).Valor.IdPropuesto);
+
+        var otraSociedad = await acceso.CompletarAsync(sesion, "T02", 9003);
+        Assert.True(otraSociedad.EsCorrecto, otraSociedad.Error?.ToString());
+        Assert.Equal("T02", otraSociedad.Valor.Contexto.IdSociedad);
+        Assert.Equal("T02", (await acceso.ListarSociedadesAsync(sesion)).Valor.IdPropuesta);
+        Assert.True((await acceso.ValidarContextoAsync(otraSociedad.Valor)).EsCorrecto);
+    }
+
+    [Fact]
     public async Task LaSesionSeRevalidaEnCadaOperacion()
     {
         await PrepararSociedadesAsync();

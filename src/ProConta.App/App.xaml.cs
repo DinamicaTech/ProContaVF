@@ -22,6 +22,39 @@ public partial class App : Application
 
     private ServicioAcceso? _acceso;
     private SesionAcceso? _sesion;
+    private Func<ContextoAcceso, VentanaPrincipal>? _crearPrincipal;
+
+    /// <summary>Servicio de acceso de la sesión, para cambiar de sociedad o ejercicio sin volver a entrar.</summary>
+    internal ServicioAcceso? Acceso => _acceso;
+
+    /// <summary>Crea y muestra la ventana principal en un contexto; al cerrarla termina el programa salvo que se haya sustituido.</summary>
+    private VentanaPrincipal AbrirPrincipal(ContextoAcceso contexto)
+    {
+        var principal = _crearPrincipal!(contexto);
+        principal.Closed += (_, _) => { if (!principal.Sustituida) Shutdown(0); };
+        MainWindow = principal;
+        ErroresInesperados.Principal = principal;
+        principal.Show();
+        return principal;
+    }
+
+    /// <summary>
+    /// Cambio de sociedad o ejercicio sin volver a entrar (plataforma/contenedor 2026-11-28): abre la ventana principal del
+    /// contexto nuevo con la misma sesión y cierra la anterior, que ya ha cerrado sus pestañas.
+    /// </summary>
+    internal void SustituirPrincipal(VentanaPrincipal anterior, ContextoAcceso nuevo)
+    {
+        Rect? ventana = anterior.WindowState == WindowState.Maximized ? null : new Rect(anterior.Left, anterior.Top, anterior.Width, anterior.Height);
+        anterior.Sustituida = true;
+        var principal = AbrirPrincipal(nuevo);
+        if (ventana is Rect r)
+        {
+            principal.WindowState = WindowState.Normal;
+            principal.Left = r.Left; principal.Top = r.Top; principal.Width = r.Width; principal.Height = r.Height;
+        }
+        anterior.Close();
+        principal.Activate();
+    }
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -90,11 +123,8 @@ public partial class App : Application
             // Columnas de las tablas y paneles se guardan por operador (ProConta.UI.Base).
             UI.Base.Preferencias.PreferenciasOperador.Actual = new UI.Base.Preferencias.PreferenciasJson(_sesion.NombreOperador);
 
-            var principal = new VentanaPrincipal(acceso.Resultado, ubicacion, compatible.VersionBd, bd, entorno);
-            principal.Closed += (_, _) => Shutdown(0);
-            MainWindow = principal;
-            ErroresInesperados.Principal = principal;
-            principal.Show();
+            _crearPrincipal = contexto => new VentanaPrincipal(contexto, ubicacion, compatible.VersionBd, bd, entorno);
+            var principal = AbrirPrincipal(acceso.Resultado);
             if (e.Args.Contains("--provocar-error", StringComparer.OrdinalIgnoreCase)) ErroresInesperados.ProvocarDePrueba(principal);
         }
         catch (ExcepcionDatos ex)
