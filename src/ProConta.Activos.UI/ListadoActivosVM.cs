@@ -45,6 +45,38 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar, int ejerc
     public string Resultado => !Propio ? "" : EsFinanciero && _posicion is null ? "…" : Formatos.Importe(ResultadoValor);
     public decimal ResultadoOrden => ResultadoValor;
     public bool ResultadoNegativo => Propio && ResultadoValor < 0m;
+
+    // ---------- rentabilidad (activos 2026-11-28) ----------
+    private RentabilidadPeriodo? _periodo;
+
+    /// <summary>Meses con los que se proyecta el resultado del físico: hasta su último mes con ingresos; el ejercicio terminado, entero.</summary>
+    public int? MesesProyeccion => EsFinanciero || !Propio ? null : RentabilidadActivo.MesesTranscurridos(ejercicio, Datos.UltimoMesConIngresos, DateTime.Today);
+
+    /// <summary>Físico: resultado entre coste. Financiero: la ponderada en el tiempo del año hasta la última cotización.</summary>
+    public decimal? RentabilidadValor => !Propio ? null : EsFinanciero ? _periodo?.Rentabilidad : RentabilidadActivo.DelEjercicio(Datos.Resultado, Datos.Coste);
+
+    /// <summary>Físico: × 12 / último mes con ingresos. Financiero: × 365 / días hasta la última cotización.</summary>
+    public decimal? ProyectadaValor => !Propio ? null : EsFinanciero ? _periodo?.Proyectada : RentabilidadActivo.Proyectar(RentabilidadValor, MesesProyeccion);
+
+    public string Rentabilidad => !Propio ? "" : EsFinanciero && _posicion is null ? "…" : TextosCartera.Pct(RentabilidadValor);
+    public decimal RentabilidadOrden => RentabilidadValor ?? decimal.MinValue;
+    public string Proyectada => !Propio ? "" : EsFinanciero && _posicion is null ? "…" : TextosCartera.Pct(ProyectadaValor);
+    public decimal ProyectadaOrden => ProyectadaValor ?? decimal.MinValue;
+    public string TonoRentabilidad => TextosCartera.Tono(RentabilidadValor);
+    public string TonoProyectada => TextosCartera.Tono(ProyectadaValor);
+
+    public string AyudaProyectada => !Propio ? "" : EsFinanciero ? AyudaProyectadaFinanciero
+        : ProyectadaValor is null ? (RentabilidadValor is null ? "Sin coste de compra no hay rentabilidad" : $"Sin ingresos en {ejercicio}: no hay meses con los que proyectar")
+        : MesesProyeccion == 12 ? "Ejercicio completo: la proyectada es la real"
+        : $"Resultado de enero a {Mes(MesesProyeccion!.Value)} (último mes con ingresos) llevado a doce meses: × 12/{MesesProyeccion}";
+
+    private string AyudaProyectadaFinanciero => _posicion is null ? "Leyendo su posición…"
+        : _periodo is not { } p ? $"Sin cotización o sin participaciones en {ejercicio}: no hay rentabilidad del año"
+        : $"Rentabilidad ponderada en el tiempo del {Formatos.Fecha(p.Desde)} al {Formatos.Fecha(p.Hasta)} (última cotización), sin contar compras ni ventas: "
+          + $"{TextosCartera.Pct(p.Rentabilidad)} en {p.Dias} días; × 365/{p.Dias} = {TextosCartera.Pct(p.Proyectada)} al año";
+
+    private static string Mes(int m) => Formatos.Cultura.DateTimeFormat.GetMonthName(m);
+
     public string Estado => Datos.SubcuentasQueFaltan > 1 ? $"Faltan {Datos.SubcuentasQueFaltan} subcuentas" : Datos.Estado;
 
     /// <summary>EN_USO, BAJA, AJENO o FALTA: el color de la pastilla del estado.</summary>
@@ -73,6 +105,9 @@ public sealed class FilaActivoVM(ActivoListado datos, Action alMarcar, int ejerc
         set
         {
             _posicion = value;
+            _periodo = value?.RentabilidadEjercicio(ejercicio);
+            Avisar(nameof(Rentabilidad), nameof(RentabilidadOrden), nameof(Proyectada), nameof(ProyectadaOrden), nameof(TonoRentabilidad), nameof(TonoProyectada),
+                nameof(AyudaProyectada));
             Avisar(nameof(Participaciones), nameof(Cotizacion), nameof(Valor), nameof(Plusvalia), nameof(Porcentaje), nameof(Anual), nameof(Tono), nameof(TonoAnual),
                 nameof(Resultado), nameof(ResultadoOrden), nameof(ResultadoNegativo), nameof(AyudaFila));
         }
@@ -275,7 +310,17 @@ public sealed class ListadoActivosVM : ModeloVista, IPestanaTrabajo
         var propios = lista.Where(f => f.Propio).ToList();
         var texto = Formatos.Plural(lista.Count, "activo", "activos");
         if (propios.Count == 0) return texto;
-        return $"{texto} · coste {Formatos.Importe(propios.Sum(f => f.Datos.Coste))} · resultado {propios[0].Ejercicio} {Formatos.Importe(propios.Sum(f => f.ResultadoValor))}";
+        var resumen = $"{texto} · coste {Formatos.Importe(propios.Sum(f => f.Datos.Coste))} · resultado {propios[0].Ejercicio} {Formatos.Importe(propios.Sum(f => f.ResultadoValor))}";
+        var fisicos = propios.Where(f => !f.EsFinanciero).ToList();
+        if (fisicos.Count > 0)
+        {
+            var (real, proyectada) = RentabilidadActivo.DeGrupo(fisicos.Select(f => (f.Datos.Resultado, f.Datos.Coste, f.MesesProyeccion)));
+            if (real is not null) resumen += $" · rentabilidad {TextosCartera.Pct(real)} (proyectada {TextosCartera.Pct(proyectada)})";
+        }
+        var posiciones = propios.Where(f => f.EsFinanciero && f.Posicion is not null).Select(f => f.Posicion!).ToList();
+        if (posiciones.Count > 0 && RentabilidadPeriodo.De(posiciones, propios[0].Ejercicio) is { } p)
+            resumen += $" · rentabilidad {TextosCartera.Pct(p.Rentabilidad)} (proyectada {TextosCartera.Pct(p.Proyectada)})";
+        return resumen;
     }
 
     public async Task CargarAsync()
